@@ -44,6 +44,42 @@ cgi.maxlen = 1000000
 
 ##################################################################
 
+# Define a class that is an iterable. We can start returning the file before
+# everything was retrieved from the sources.
+
+class ResultFile(object):
+    def __init__(self, urlList):
+        self.urlList = urlList
+        self.content_type = 'application/vnd.fdsn.mseed'
+        self.filename = 'eidaws.mseed'
+
+    def __iter__(self):
+        blockSize = 100 * 1024
+
+        for url in self.urlList:
+            # Prepare POST
+            # values = {'network': n, 'station': s, 'location': l, 'channel': c,
+            #           'starttime': parameters['starttime'].value,
+            #           'endtime': parameters['endtime'].value}
+            # data = urllib.urlencode(values)
+            req = urllib2.Request(url)
+
+            # Connect to the proper FDSN-WS
+            try:
+                u = urllib2.urlopen(req)
+
+                buffer = u.read(blockSize)
+                while len(buffer):
+                    print '%s - %d' % (url, len(buffer))
+                    yield buffer
+
+            except urllib2.URLError as e:
+                if hasattr(e, 'reason'):
+                    print '%s - Reason: %s' % (url, e.reason)
+                elif hasattr(e, 'code'):
+                    print 'The server couldn\'t fulfill the request.'
+                    print 'Error code: ', e.code
+
 
 class DataSelectQuery(object):
     def __init__(self, appName, dataPath):
@@ -79,6 +115,8 @@ class DataSelectQuery(object):
         # Add routing cache here, to be accessible to all modules
         routesFile = dataPath + '/routing.xml'
         self.routes = RoutingCache(routesFile)
+
+        self.ID = str(datetime.datetime.now())
 
         logs.debug(str(self))
 
@@ -117,13 +155,7 @@ class DataSelectQuery(object):
         except:
             return 'Error while converting endtime parameter.'
 
-        # Delete old data from intermediate file
-        try:
-            os.remove('/tmp/nada.ms')
-        except:
-            pass
-
-        res_string = []
+        urlList = []
         for reqLine in self.ic.expand(net, sta, loc, cha, start, endt):
             n, s, l, c = reqLine
             print reqLine
@@ -138,39 +170,12 @@ class DataSelectQuery(object):
                     parameters['starttime'].value + \
                     '&end=' + parameters['endtime'].value
 
-            # Prepare POST
-            values = {'network': n, 'station': s, 'location': l, 'channel': c,
-                      'starttime': parameters['starttime'].value,
-                      'endtime': parameters['endtime'].value}
-            data = urllib.urlencode(values)
-            req = urllib2.Request(url)
+            urlList.append(url)
 
-            # Connect to the proper FDSN-WS
-            try:
-                res_string.append(url)
-                u = urllib2.urlopen(req)
-                # u = urllib2.urlopen(url)
+        iterObj = ResultFile(urlList)
+        return iterObj
 
-                with open('/tmp/nada.%s.%s.%s.%s.ms'
-                          % (n, s, l, c), 'ab+') as f:
-                    # block_sz = 1024 * 1024
-                    # buffer = u.read(block_sz)
-                    buffer = u.read()
-                    if buffer:
-                        f.write(buffer)
-                        # break
 
-                    # res_string.append(url)
-
-            except urllib2.URLError as e:
-                if hasattr(e, 'reason'):
-                    print 'We failed to reach a server.'
-                    print 'Reason: ', e.reason
-                elif hasattr(e, 'code'):
-                    print 'The server couldn\'t fulfill the request.'
-                    print 'Error code: ', e.code
-
-        return res_string
 
 ##################################################################
 #
@@ -222,25 +227,21 @@ def application(environ, start_response):
                                    'Only the query function is supported',
                                    start_response)
 
-    res_string = wi.makeQuery(form)
+    iterObj = wi.makeQuery(form)
 
-    body = []
 
-    # body.extend(["%s: %s" % (key, value)
-    #     for key, value in environ.iteritems()])
-
-    # status = '200 OK'
-    # return send_plain_response(status, body, start_response)
-
-    if isinstance(res_string, basestring):
+    if isinstance(iterObj, basestring):
         status = '200 OK'
         body = res_string
         return send_plain_response(status, body, start_response)
 
-    elif hasattr(res_string, 'filename'):
+    elif hasattr(iterObj, 'filename'):
         status = '200 OK'
-        body = res_string
-        return send_file_response(status, body, start_response)
+        return send_file_response(status, iterObj, start_response)
+
+    elif isinstance(iterObj, ResultFile):
+        status = '200 OK'
+        return send_file_response(status, iterObj, start_response)
 
     status = '200 OK'
     body = "\n".join(res_string)
