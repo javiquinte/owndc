@@ -126,27 +126,28 @@ class DataSelectQuery(object):
         res_string = []
         for reqLine in self.ic.expand(net, sta, loc, cha, start, endt):
             n, s, l, c = reqLine
+            print reqLine
             auxRoute = self.routes.getRoute(n, s, l, c)[1]
 
             fdsnws = None
             if auxRoute == 'GFZ':
                 fdsnws = 'http://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query'
 
-            # url = fdsnws + '?net=' + n + '&sta=' + s + \
-            #         '&loc=' + l + '&cha=' + c + '&start=' + \
-            #         parameters['starttime'].value + \
-            #         '&end=' + parameters['endtime'].value
+            url = fdsnws + '?net=' + n + '&sta=' + s + \
+                    '&loc=' + l + '&cha=' + c + '&start=' + \
+                    parameters['starttime'].value + \
+                    '&end=' + parameters['endtime'].value
 
             # Prepare POST
-            values = {'net': n, 'sta': s, 'loc': l, 'cha': c,
-                      'start': parameters['starttime'].value,
-                      'end': parameters['endtime'].value}
+            values = {'network': n, 'station': s, 'location': l, 'channel': c,
+                      'starttime': parameters['starttime'].value,
+                      'endtime': parameters['endtime'].value}
             data = urllib.urlencode(values)
-            req = urllib2.Request(fdsnws, data)
+            req = urllib2.Request(url)
 
             # Connect to the proper FDSN-WS
             try:
-                res_string.append(str(fdsnws) + str(data))
+                res_string.append(url)
                 u = urllib2.urlopen(req)
                 # u = urllib2.urlopen(url)
 
@@ -157,11 +158,11 @@ class DataSelectQuery(object):
                     buffer = u.read()
                     if buffer:
                         f.write(buffer)
-                        break
+                        # break
 
                     # res_string.append(url)
 
-            except URLError as e:
+            except urllib2.URLError as e:
                 if hasattr(e, 'reason'):
                     print 'We failed to reach a server.'
                     print 'Reason: ', e.reason
