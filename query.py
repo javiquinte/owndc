@@ -22,9 +22,7 @@ version. For more information, see http://www.gnu.org/
 import cgi
 import datetime
 import urllib2
-
-# JSON (since Python 2.6)
-import json
+import urllib
 
 # SC3 stuff
 import seiscomp3.System
@@ -119,6 +117,12 @@ class DataSelectQuery(object):
         except:
             return 'Error while converting endtime parameter.'
 
+        # Delete old data from intermediate file
+        try:
+            os.remove('/tmp/nada.ms')
+        except:
+            pass
+
         res_string = []
         for reqLine in self.ic.expand(net, sta, loc, cha, start, endt):
             n, s, l, c = reqLine
@@ -128,20 +132,42 @@ class DataSelectQuery(object):
             if auxRoute == 'GFZ':
                 fdsnws = 'http://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query'
 
-            url = fdsnws + '?net=' + n + '&sta=' + s + \
-                    '&loc=' + l + '&cha=' + c + '&start=' + \
-                    parameters['starttime'].value + \
-                    '&end=' + parameters['endtime'].value
-            u = urllib2.urlopen(url)
-            f = open('/tmp/nada.ms', 'wb')
-            block_sz = 1024 * 1024
-            buffer = u.read(block_sz)
-            if buffer:
-                f.write(buffer)
-                break
-            f.close()
+            # url = fdsnws + '?net=' + n + '&sta=' + s + \
+            #         '&loc=' + l + '&cha=' + c + '&start=' + \
+            #         parameters['starttime'].value + \
+            #         '&end=' + parameters['endtime'].value
 
-            res_string.append(url)
+            # Prepare POST
+            values = {'net': n, 'sta': s, 'loc': l, 'cha': c,
+                      'start': parameters['starttime'].value,
+                      'end': parameters['endtime'].value}
+            data = urllib.urlencode(values)
+            req = urllib2.Request(fdsnws, data)
+
+            # Connect to the proper FDSN-WS
+            try:
+                res_string.append(str(fdsnws) + str(data))
+                u = urllib2.urlopen(req)
+                # u = urllib2.urlopen(url)
+
+                with open('/tmp/nada.%s.%s.%s.%s.ms'
+                          % (n, s, l, c), 'ab+') as f:
+                    # block_sz = 1024 * 1024
+                    # buffer = u.read(block_sz)
+                    buffer = u.read()
+                    if buffer:
+                        f.write(buffer)
+                        break
+
+                    # res_string.append(url)
+
+            except URLError as e:
+                if hasattr(e, 'reason'):
+                    print 'We failed to reach a server.'
+                    print 'Reason: ', e.reason
+                elif hasattr(e, 'code'):
+                    print 'The server couldn\'t fulfill the request.'
+                    print 'Error code: ', e.code
 
         return res_string
 
@@ -152,7 +178,6 @@ class DataSelectQuery(object):
 ##################################################################
 
 wi = DataSelectQuery('EIDA FDSN-WS', '/var/www/fdsnws/dataselect/')
-
 
 
 def application(environ, start_response):
