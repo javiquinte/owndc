@@ -127,7 +127,62 @@ class DataSelectQuery(object):
 
         logs.debug(str(self))
 
-    def makeQuery(self, parameters):
+    def makeQueryPOST(self, lines):
+
+        urlList = []
+        for line in lines.split('\n'):
+            # Skip empty lines
+            if not len(line):
+                continue
+
+            net, sta, loc, cha, start, endt = line.split(' ')
+
+            # Empty location
+            if loc == '--':
+                loc = ''
+
+            try:
+                start = datetime.datetime.strptime(start, '%Y-%m-%dT%H:%M:%S')
+            except:
+                return 'Error while converting starttime parameter.'
+
+            try:
+                endt = datetime.datetime.strptime(endt, '%Y-%m-%dT%H:%M:%S')
+            except:
+                return 'Error while converting starttime parameter.'
+
+            print (net, sta, loc, cha, start, endt)
+            for reqLine in self.ic.expand(net, sta, loc, cha, start, endt):
+                n, s, l, c = reqLine
+                print reqLine
+                auxRoute = self.routes.getRoute(n, s, l, c)[1]
+
+                fdsnws = None
+                if auxRoute == 'GFZ':
+                    fdsnws = 'http://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query'
+                elif auxRoute == 'ODC':
+                    fdsnws = 'http://www.orfeus-eu.org/fdsnws/dataselect/1/query'
+                elif auxRoute == 'ETH':
+                    fdsnws = 'http://eida.ethz.ch/fdsnws/dataselect/1/query'
+                elif auxRoute == 'RESIF':
+                    fdsnws = 'http://ws.resif.fr/fdsnws/dataselect/1/query'
+
+                url = fdsnws + '?network=' + n
+                url += '&station=' + s
+                if len(l):
+                    url += '&location=' + l
+                url += '&channel=' + c
+                url += '&starttime=' + start.strftime('%Y-%m-%dT%H:%M:%S')
+                url += '&endtime=' + endt.strftime('%Y-%m-%dT%H:%M:%S')
+
+                urlList.append(url)
+
+        print urlList
+        iterObj = ResultFile(urlList)
+        return iterObj
+
+
+    def makeQueryGET(self, parameters):
         # List all the accepted parameters
         allowedParams = ['net', 'network',
                          'sta', 'station',
@@ -229,8 +284,8 @@ class DataSelectQuery(object):
             if len(l):
                 url += '&location=' + l
             url += '&channel=' + c
-            url += '&starttime=' + parameters['starttime'].value
-            url += '&endtime=' + parameters['endtime'].value
+            url += '&starttime=' + start.strftime('%Y-%m-%dT%H:%M:%S')
+            url += '&endtime=' + endt.strftime('%Y-%m-%dT%H:%M:%S')
 
             urlList.append(url)
 
@@ -271,7 +326,19 @@ def application(environ, start_response):
         return send_html_response(status, 'Error! ' + status, start_response)
 
     try:
-        form = cgi.FieldStorage(fp=environ['wsgi.input'], environ=environ)
+        if environ['REQUEST_METHOD'] == 'GET':
+            form = cgi.FieldStorage(fp=environ['wsgi.input'], environ=environ)
+        elif environ['REQUEST_METHOD'] == 'POST':
+            form = ''  # b'' for consistency on Python 3.0
+            try:
+                length= int(environ.get('CONTENT_LENGTH', '0'))
+            except ValueError:
+                length= 0
+            # If there is a body to read
+            if length!=0:
+                form= environ['wsgi.input'].read(length)
+        else:
+            raise Exception
 
     except ValueError, e:
         if str(e) == "Maximum content length exceeded":
@@ -288,7 +355,10 @@ def application(environ, start_response):
                                    'Only the query function is supported',
                                    start_response)
 
-    iterObj = wi.makeQuery(form)
+    if isinstance(form, basestring):
+        iterObj = wi.makeQueryPOST(form)
+    else:
+        iterObj = wi.makeQueryGET(form)
 
     if isinstance(iterObj, basestring):
         status = '200 OK'
