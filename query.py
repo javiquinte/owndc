@@ -54,9 +54,6 @@ class ResultFile(object):
         self.filename = 'eidaws.mseed'
 
     def __iter__(self):
-        return self
-
-    def next(self):
         blockSize = 100 * 1024
 
         for pos, url in enumerate(self.urlList):
@@ -72,15 +69,17 @@ class ResultFile(object):
                 u = urllib2.urlopen(req)
 
                 buffer = u.read(blockSize)
-                print '%d / %d - %s Buffer: %s bytes' % (pos,
+                while len(buffer):
+                    print '%d / %d - (%s) Buffer: %s bytes' % (pos,
                                                          len(self.urlList),
-                                                         url,
+                                                         url.split('?')[1],
                                                          len(buffer))
-                self.urlList.remove(url)
-                if len(buffer):
-                    # FIXME Necesito un while para leer TODOS los datos
-                    return buffer
-                    # return str(len(buffer))
+                    # Return one block of data
+                    yield buffer
+                    buffer = u.read(blockSize)
+
+                # Close the connection to avoid overloading the server
+                u.close()
 
             except urllib2.URLError as e:
                 if hasattr(e, 'reason'):
@@ -241,8 +240,7 @@ def application(environ, start_response):
 
     if isinstance(iterObj, basestring):
         status = '200 OK'
-        body = res_string
-        return send_plain_response(status, body, start_response)
+        return send_plain_response(status, iterObj, start_response)
 
     elif hasattr(iterObj, 'filename'):
         status = '200 OK'
