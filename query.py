@@ -22,7 +22,6 @@ version. For more information, see http://www.gnu.org/
 import cgi
 import datetime
 import urllib2
-import urllib
 
 # SC3 stuff
 import seiscomp3.System
@@ -44,19 +43,25 @@ cgi.maxlen = 1000000
 
 ##################################################################
 
-# Define a class that is an iterable. We can start returning the file before
-# everything was retrieved from the sources.
 
 class ResultFile(object):
+    """Define a class that is an iterable. We can start returning the file
+    before everything was retrieved from the sources."""
+
     def __init__(self, urlList):
         self.urlList = urlList
         self.content_type = 'application/vnd.fdsn.mseed'
         self.filename = 'eidaws.mseed'
 
     def __iter__(self):
+        return self
+
+    def next(self):
         blockSize = 100 * 1024
 
-        for url in self.urlList:
+        print 'Called!'
+        for pos, url in enumerate(self.urlList):
+            print '%d / %d - %s' % (pos, len(self.urlList), url)
             # Prepare POST
             # values = {'network': n, 'station': s, 'location': l, 'channel': c,
             #           'starttime': parameters['starttime'].value,
@@ -69,9 +74,12 @@ class ResultFile(object):
                 u = urllib2.urlopen(req)
 
                 buffer = u.read(blockSize)
-                while len(buffer):
-                    print '%s - %d' % (url, len(buffer))
-                    yield buffer
+                print 'Buffer: %s bytes' % len(buffer)
+                self.urlList.remove(url)
+                if len(buffer):
+                    # FIXME Necesito un while para leer TODOS los datos
+                    # return buffer
+                    return str(len(buffer))
 
             except urllib2.URLError as e:
                 if hasattr(e, 'reason'):
@@ -79,6 +87,8 @@ class ResultFile(object):
                 elif hasattr(e, 'code'):
                     print 'The server couldn\'t fulfill the request.'
                     print 'Error code: ', e.code
+
+        raise StopIteration
 
 
 class DataSelectQuery(object):
@@ -166,15 +176,14 @@ class DataSelectQuery(object):
                 fdsnws = 'http://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query'
 
             url = fdsnws + '?net=' + n + '&sta=' + s + \
-                    '&loc=' + l + '&cha=' + c + '&start=' + \
-                    parameters['starttime'].value + \
-                    '&end=' + parameters['endtime'].value
+                '&loc=' + l + '&cha=' + c + '&start=' + \
+                parameters['starttime'].value + \
+                '&end=' + parameters['endtime'].value
 
             urlList.append(url)
 
         iterObj = ResultFile(urlList)
         return iterObj
-
 
 
 ##################################################################
@@ -228,7 +237,6 @@ def application(environ, start_response):
                                    start_response)
 
     iterObj = wi.makeQuery(form)
-
 
     if isinstance(iterObj, basestring):
         status = '200 OK'
