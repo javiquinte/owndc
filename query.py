@@ -59,9 +59,7 @@ class ResultFile(object):
     def next(self):
         blockSize = 100 * 1024
 
-        print 'Called!'
         for pos, url in enumerate(self.urlList):
-            print '%d / %d - %s' % (pos, len(self.urlList), url)
             # Prepare POST
             # values = {'network': n, 'station': s, 'location': l, 'channel': c,
             #           'starttime': parameters['starttime'].value,
@@ -74,12 +72,15 @@ class ResultFile(object):
                 u = urllib2.urlopen(req)
 
                 buffer = u.read(blockSize)
-                print 'Buffer: %s bytes' % len(buffer)
+                print '%d / %d - %s Buffer: %s bytes' % (pos,
+                                                         len(self.urlList),
+                                                         url,
+                                                         len(buffer))
                 self.urlList.remove(url)
                 if len(buffer):
                     # FIXME Necesito un while para leer TODOS los datos
-                    # return buffer
-                    return str(len(buffer))
+                    return buffer
+                    # return str(len(buffer))
 
             except urllib2.URLError as e:
                 if hasattr(e, 'reason'):
