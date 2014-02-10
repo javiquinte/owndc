@@ -57,17 +57,14 @@ class ResultFile(object):
         blockSize = 100 * 1024
 
         for pos, url in enumerate(self.urlList):
-            # Prepare POST
-            # values = {'network': n, 'station': s, 'location': l, 'channel': c,
-            #           'starttime': parameters['starttime'].value,
-            #           'endtime': parameters['endtime'].value}
-            # data = urllib.urlencode(values)
+            # Prepare Request
             req = urllib2.Request(url)
 
             # Connect to the proper FDSN-WS
             try:
                 u = urllib2.urlopen(req)
 
+                # Read the data in blocks of predefined size
                 buffer = u.read(blockSize)
                 while len(buffer):
                     print '%d / %d - (%s) Buffer: %s bytes' % (pos,
@@ -242,11 +239,11 @@ def application(environ, start_response):
         status = '200 OK'
         return send_plain_response(status, iterObj, start_response)
 
-    elif hasattr(iterObj, 'filename'):
-        status = '200 OK'
-        return send_file_response(status, iterObj, start_response)
-
     elif isinstance(iterObj, ResultFile):
+        status = '200 OK'
+        return send_dynamicfile_response(status, iterObj, start_response)
+
+    elif hasattr(iterObj, 'filename'):
         status = '200 OK'
         return send_file_response(status, iterObj, start_response)
 
