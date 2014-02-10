@@ -350,15 +350,24 @@ def application(environ, start_response):
 
         return send_plain_response("400 Bad Request", str(e), start_response)
 
-    if environ['PATH_INFO'].split('/')[-1] != 'query':
+    # Check whether the function called is implemented
+    implementedFunctions = ['query', 'application.wadl']
+
+    fname = environ['PATH_INFO'].split('/')[-1]
+    if fname not in implementedFunctions:
         return send_plain_response("400 Bad Request",
-                                   'Only the query function is supported',
+                                   'Function "%s" not implemented.' % fname,
                                    start_response)
 
-    if isinstance(form, basestring):
-        iterObj = wi.makeQueryPOST(form)
-    else:
-        iterObj = wi.makeQueryGET(form)
+    if fname == 'application.wadl':
+        iterObj = []
+        with open('/var/www/fdsnws/dataselect/application.wadl', 'r') as appFile:
+            iterObj.append(appFile.read())
+    elif fname == 'query':
+        if isinstance(form, basestring):
+            iterObj = wi.makeQueryPOST(form)
+        else:
+            iterObj = wi.makeQueryGET(form)
 
     if isinstance(iterObj, basestring):
         status = '200 OK'
@@ -373,5 +382,5 @@ def application(environ, start_response):
         return send_file_response(status, iterObj, start_response)
 
     status = '200 OK'
-    body = "\n".join(res_string)
+    body = "\n".join(iterObj)
     return send_plain_response(status, body, start_response)
