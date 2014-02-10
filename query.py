@@ -224,10 +224,13 @@ class DataSelectQuery(object):
             elif auxRoute == 'RESIF':
                 fdsnws = 'http://ws.resif.fr/fdsnws/dataselect/1/query'
 
-            url = fdsnws + '?network=' + n + '&station=' + s + \
-                '&location=' + l + '&channel=' + c + '&starttime=' + \
-                parameters['starttime'].value + \
-                '&endtime=' + parameters['endtime'].value
+            url = fdsnws + '?network=' + n
+            url += '&station=' + s
+            if len(l):
+                url += '&location=' + l
+            url += '&channel=' + c
+            url += '&starttime=' + parameters['starttime'].value
+            url += '&endtime=' + parameters['endtime'].value
 
             urlList.append(url)
 
