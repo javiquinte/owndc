@@ -128,37 +128,83 @@ class DataSelectQuery(object):
         logs.debug(str(self))
 
     def makeQuery(self, parameters):
+        # List all the accepted parameters
+        allowedParams = ['net', 'network',
+                         'sta', 'station',
+                         'loc', 'location',
+                         'cha', 'channel',
+                         'start', 'starttime',
+                         'end', 'endtime']
+
+        for param in parameters:
+            if param not in allowedParams:
+                return 'Unknown parameter: %s' % param
+
         try:
-            net = parameters['network'].value
+            if 'network' in parameters:
+                net = parameters['network'].value
+            elif 'net' in parameters:
+                net = parameters['net'].value
+            else:
+                net = '*'
         except:
             net = '*'
 
         try:
-            sta = parameters['station'].value
+            if 'station' in parameters:
+                sta = parameters['station'].value
+            elif 'sta' in parameters:
+                sta = parameters['sta'].value
+            else:
+                sta = '*'
         except:
             sta = '*'
 
         try:
-            loc = parameters['location'].value
+            if 'location' in parameters:
+                loc = parameters['location'].value
+            elif 'loc' in parameters:
+                loc = parameters['loc'].value
+            else:
+                loc = '*'
         except:
             loc = '*'
 
         try:
-            cha = parameters['channel'].value
+            if 'channel' in parameters:
+                cha = parameters['channel'].value
+            elif 'cha' in parameters:
+                cha = parameters['cha'].value
+            else:
+                cha = '*'
         except:
             cha = '*'
 
         try:
-            start = datetime.datetime.strptime(
-                parameters['starttime'].value,
-                '%Y-%m-%dT%H:%M:%S')
+            if 'starttime' in parameters:
+                start = datetime.datetime.strptime(
+                    parameters['starttime'].value,
+                    '%Y-%m-%dT%H:%M:%S')
+            elif 'start' in parameters:
+                start = datetime.datetime.strptime(
+                    parameters['start'].value,
+                    '%Y-%m-%dT%H:%M:%S')
+            else:
+                raise Exception
         except:
             return 'Error while converting starttime parameter.'
 
         try:
-            endt = datetime.datetime.strptime(
-                parameters['endtime'].value,
-                '%Y-%m-%dT%H:%M:%S')
+            if 'endtime' in parameters:
+                endt = datetime.datetime.strptime(
+                    parameters['endtime'].value,
+                    '%Y-%m-%dT%H:%M:%S')
+            elif 'end' in parameters:
+                endt = datetime.datetime.strptime(
+                    parameters['end'].value,
+                    '%Y-%m-%dT%H:%M:%S')
+            else:
+                raise Exception
         except:
             return 'Error while converting endtime parameter.'
 
@@ -171,11 +217,17 @@ class DataSelectQuery(object):
             fdsnws = None
             if auxRoute == 'GFZ':
                 fdsnws = 'http://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query'
+            elif auxRoute == 'ODC':
+                fdsnws = 'http://www.orfeus-eu.org/fdsnws/dataselect/1/query'
+            elif auxRoute == 'ETH':
+                fdsnws = 'http://eida.ethz.ch/fdsnws/dataselect/1/query'
+            elif auxRoute == 'RESIF':
+                fdsnws = 'http://ws.resif.fr/fdsnws/dataselect/1/query'
 
-            url = fdsnws + '?net=' + n + '&sta=' + s + \
-                '&loc=' + l + '&cha=' + c + '&start=' + \
+            url = fdsnws + '?network=' + n + '&station=' + s + \
+                '&location=' + l + '&channel=' + c + '&starttime=' + \
                 parameters['starttime'].value + \
-                '&end=' + parameters['endtime'].value
+                '&endtime=' + parameters['endtime'].value
 
             urlList.append(url)
 
