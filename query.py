@@ -108,7 +108,7 @@ class DataSelectQuery(object):
         logs.warning = seiscomp3.Logging.warning
         logs.error = seiscomp3.Logging.error
 
-        logs.notice("Starting EIDA webinterface")
+        logs.notice("Starting EIDA Dataselect Web Service")
 
         # load SC3 config files from all standard locations (SEISCOMP_ROOT
         # must be set)
