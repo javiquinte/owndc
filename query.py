@@ -362,9 +362,11 @@ def application(environ, start_response):
                                    start_response)
 
     if fname == 'application.wadl':
-        iterObj = []
+        iterObj = ''
         with open('/var/www/fdsnws/dataselect/application.wadl', 'r') as appFile:
-            iterObj.append(appFile.read())
+            iterObj = appFile.read()
+            status = '200 OK'
+            return send_xml_response(status, iterObj, start_response)
 
     elif fname == 'query':
         makeQuery = getattr(wi, 'makeQuery%s' % environ['REQUEST_METHOD'])
