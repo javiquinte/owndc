@@ -145,12 +145,14 @@ class DataSelectQuery(object):
                 loc = ''
 
             try:
-                start = datetime.datetime.strptime(start, '%Y-%m-%dT%H:%M:%S')
+                startParts = start.replace('-', ' ').replace('T', ' ').replace(':', ' ').replace('.', ' ').replace('Z', '').split()
+                start = datetime.datetime(*map(int, startParts))
             except:
                 return 'Error while converting starttime parameter.'
 
             try:
-                endt = datetime.datetime.strptime(endt, '%Y-%m-%dT%H:%M:%S')
+                endParts = endt.replace('-', ' ').replace('T', ' ').replace(':', ' ').replace('.', ' ').replace('Z', '').split()
+                endt = datetime.datetime(*map(int, endParts))
             except:
                 return 'Error while converting starttime parameter.'
 
@@ -266,7 +268,6 @@ class DataSelectQuery(object):
         urlList = []
         for reqLine in self.ic.expand(net, sta, loc, cha, start, endt):
             n, s, l, c = reqLine
-            print reqLine
             auxRoute = self.routes.getRoute(n, s, l, c)[1]
 
             fdsnws = None
@@ -329,16 +330,17 @@ def application(environ, start_response):
         if environ['REQUEST_METHOD'] == 'GET':
             form = cgi.FieldStorage(fp=environ['wsgi.input'], environ=environ)
         elif environ['REQUEST_METHOD'] == 'POST':
-            form = ''  # b'' for consistency on Python 3.0
+            form = ''
             try:
-                length= int(environ.get('CONTENT_LENGTH', '0'))
+                length = int(environ.get('CONTENT_LENGTH', '0'))
             except ValueError:
-                length= 0
+                length = 0
             # If there is a body to read
-            if length!=0:
-                form= environ['wsgi.input'].read(length)
+            if length != 0:
+                form = environ['wsgi.input'].read(length)
             else:
-                form= environ['wsgi.input'].read()
+                form = environ['wsgi.input'].read()
+
         else:
             raise Exception
 
