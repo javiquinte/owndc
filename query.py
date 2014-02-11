@@ -135,7 +135,10 @@ class DataSelectQuery(object):
             if not len(line):
                 continue
 
-            net, sta, loc, cha, start, endt = line.split(' ')
+            try:
+                net, sta, loc, cha, start, endt = line.split(' ')
+            except:
+                continue
 
             # Empty location
             if loc == '--':
@@ -151,10 +154,8 @@ class DataSelectQuery(object):
             except:
                 return 'Error while converting starttime parameter.'
 
-            print (net, sta, loc, cha, start, endt)
             for reqLine in self.ic.expand(net, sta, loc, cha, start, endt):
                 n, s, l, c = reqLine
-                print reqLine
                 auxRoute = self.routes.getRoute(n, s, l, c)[1]
 
                 fdsnws = None
@@ -177,7 +178,6 @@ class DataSelectQuery(object):
 
                 urlList.append(url)
 
-        print urlList
         iterObj = ResultFile(urlList)
         return iterObj
 
@@ -337,6 +337,8 @@ def application(environ, start_response):
             # If there is a body to read
             if length!=0:
                 form= environ['wsgi.input'].read(length)
+            else:
+                form= environ['wsgi.input'].read()
         else:
             raise Exception
 
@@ -363,11 +365,10 @@ def application(environ, start_response):
         iterObj = []
         with open('/var/www/fdsnws/dataselect/application.wadl', 'r') as appFile:
             iterObj.append(appFile.read())
+
     elif fname == 'query':
-        if isinstance(form, basestring):
-            iterObj = wi.makeQueryPOST(form)
-        else:
-            iterObj = wi.makeQueryGET(form)
+        makeQuery = getattr(wi, 'makeQuery%s' % environ['REQUEST_METHOD'])
+        iterObj = makeQuery(form)
 
     if isinstance(iterObj, basestring):
         status = '200 OK'
