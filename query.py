@@ -22,6 +22,7 @@ version. For more information, see http://www.gnu.org/
 import cgi
 import datetime
 import urllib2
+import struct
 
 # SC3 stuff
 import seiscomp3.System
@@ -29,6 +30,7 @@ import seiscomp3.Config
 import seiscomp3.Logging
 
 from seiscomp import logs
+import seiscomp.mseedlite
 from wsgicomm import *
 from inventorycache import InventoryCache
 from routing import RoutingCache
@@ -43,6 +45,123 @@ cgi.maxlen = 1000000
 
 ##################################################################
 
+sdsRoot = '/iso_sds'
+
+
+def getRecords(net, sta, loc, cha, startt, endt):
+    """Retrieve records from an SDS archive. The start and end dates must be
+    in the same day for this test. This can be later improved."""
+
+    if ((startt.year != endt.year) or (startt.month != endt.month) or
+       (startt.day != endt.day)):
+        print "Error: Start and end dates should be in the same day."
+        return None
+
+    # Take into account the case of empty location
+    if loc == '--':
+        loc = ''
+
+    # For every file that contains information to be retrieved
+    try:
+        with open('%s/%d/%s/%s/%s.D/.%s.%s.%s.%s.D.%d.%s.idx' %
+                  (sdsRoot, startt.year, net, sta, cha, net, sta, loc, cha,
+                   startt.year, startt.strftime('%j')),
+                  'rb') as idxFile:
+            buffer = idxFile.read(100000)
+
+            with open('%s/%d/%s/%s/%s.D/%s.%s.%s.%s.D.%d.%s' %
+                      (sdsRoot, startt.year, net, sta, cha, net, sta, loc, cha,
+                       startt.year, startt.strftime('%j')),
+                      'rb') as msFile:
+                # Read the baseline for time from the first record
+                rec = msFile.read(512)
+                msrec = seiscomp.mseedlite.Record(rec)
+                basetime = msrec.begin_time
+
+                # Float number that we search for in the index
+                # THIS IS ONLY TO FIND THE STARTING POINT
+                searchFor = (startt - basetime).total_seconds()
+
+                recStart = 0
+                recEnd = int(len(buffer) / 4) - 1
+
+                timeStart = struct.unpack('f', buffer[recStart * 4:
+                                                      (recStart + 1) * 4])[0]
+                timeEnd = struct.unpack('f', buffer[recEnd * 4:
+                                                    (recEnd + 1) * 4])[0]
+
+                recHalf = recStart + int((recEnd - recStart) / 2.0)
+                timeHalf = struct.unpack('f', buffer[recHalf * 4:
+                                                     (recHalf + 1) * 4])[0]
+
+                if searchFor <= timeStart:
+                    recEnd = recStart
+                if searchFor >= timeEnd:
+                    recStart = recEnd
+
+                while (recEnd - recStart) > 1:
+                    if searchFor > timeHalf:
+                        recStart = recHalf
+                    else:
+                        recEnd = recHalf
+                    recHalf = recStart + int((recEnd - recStart) / 2.0)
+                    # Calculate time
+                    timeStart = struct.unpack('f',
+                                              buffer[recStart * 4:
+                                                     (recStart + 1) * 4])[0]
+                    timeEnd = struct.unpack('f', buffer[recEnd * 4:
+                                                        (recEnd + 1) * 4])[0]
+                    timeHalf = struct.unpack('f', buffer[recHalf * 4:
+                                                         (recHalf + 1) * 4])[0]
+                    # print searchFor, timeStart, timeHalf, timeEnd
+
+                lower = recStart
+
+                # Float number that we search for in the index
+                # THIS IS ONLY TO FIND THE END POINT
+                searchFor = (endt - basetime).total_seconds()
+
+                recStart = 0
+                recEnd = int(len(buffer) / 4) - 1
+
+                timeStart = struct.unpack('f', buffer[recStart * 4:
+                                                      (recStart + 1) * 4])[0]
+                timeEnd = struct.unpack('f', buffer[recEnd * 4:
+                                                    (recEnd + 1) * 4])[0]
+
+                recHalf = recStart + int((recEnd - recStart) / 2.0)
+                timeHalf = struct.unpack('f', buffer[recHalf * 4:
+                                                     (recHalf + 1) * 4])[0]
+
+                if searchFor <= timeStart:
+                    recEnd = recStart
+                if searchFor >= timeEnd:
+                    recStart = recEnd
+
+                while (recEnd - recStart) > 1:
+                    if searchFor > timeHalf:
+                        recStart = recHalf
+                    else:
+                        recEnd = recHalf
+                    recHalf = recStart + int((recEnd - recStart) / 2.0)
+                    # Calculate time
+                    timeStart = struct.unpack('f',
+                                              buffer[recStart * 4:
+                                                     (recStart + 1) * 4])[0]
+                    timeEnd = struct.unpack('f', buffer[recEnd * 4:
+                                                        (recEnd + 1) * 4])[0]
+                    timeHalf = struct.unpack('f', buffer[recHalf * 4:
+                                                         (recHalf + 1) * 4])[0]
+                    # print searchFor, timeStart, timeHalf, timeEnd
+
+                upper = recEnd
+                # Now I have a pointer to the record I want (recStart)
+                # and another one (recEnd) to the record where I should stop
+                msFile.seek(lower * 512)
+                return msFile.read((upper - lower + 1) * 512)
+
+    except:
+        return None
 
 class ResultFile(object):
     """Define a class that is an iterable. We can start returning the file
@@ -57,6 +176,31 @@ class ResultFile(object):
         blockSize = 100 * 1024
 
         for pos, url in enumerate(self.urlList):
+            # Check if the data should be searched locally at the SDS archive
+            if url[:4] != 'http':
+                params = url.split()
+
+                try:
+                    startParts = params[4].replace('-', ' ').replace('T', ' ')
+                    startParts = startParts.replace(':', ' ').replace('.', ' ')
+                    startParts = startParts.replace('Z', '').split()
+                    params[4] = datetime.datetime(*map(int, startParts))
+                except:
+                    print 'Error while converting START parameter.'
+
+                try:
+                    endParts = params[5].replace('-', ' ').replace('T', ' ')
+                    endParts = endParts.replace(':', ' ').replace('.', ' ')
+                    endParts = endParts.replace('Z', '').split()
+                    params[5] = datetime.datetime(*map(int, endParts))
+                except:
+                    print 'Error while converting END parameter.'
+
+                buffer = getRecords(*params)
+                if buffer is not None:
+                    yield buffer
+                continue
+
             # Prepare Request
             req = urllib2.Request(url)
 
@@ -67,10 +211,9 @@ class ResultFile(object):
                 # Read the data in blocks of predefined size
                 buffer = u.read(blockSize)
                 while len(buffer):
-                    print '%d / %d - (%s) Buffer: %s bytes' % (pos,
-                                                         len(self.urlList),
-                                                         url.split('?')[1],
-                                                         len(buffer))
+                    print '%d / %d - (%s) Buffer: %s bytes' \
+                            % (pos, len(self.urlList), url.split('?')[1],
+                               len(buffer))
                     # Return one block of data
                     yield buffer
                     buffer = u.read(blockSize)
@@ -269,6 +412,18 @@ class DataSelectQuery(object):
         for reqLine in self.ic.expand(net, sta, loc, cha, start, endt):
             n, s, l, c = reqLine
             auxRoute = self.routes.getRoute(n, s, l, c)[1]
+
+            if n == 'GE' and start.year == 2014:
+
+                # Empty location case
+                if l == '':
+                    l = '--'
+
+                urlList.append('%s %s %s %s %s %s' %
+                               (n, s, l, c,
+                                start.strftime('%Y-%m-%dT%H:%M:%S'),
+                                endt.strftime('%Y-%m-%dT%H:%M:%S')))
+                continue
 
             fdsnws = None
             if auxRoute == 'GFZ':
