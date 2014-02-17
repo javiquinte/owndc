@@ -45,12 +45,16 @@ cgi.maxlen = 1000000
 
 ##################################################################
 
-sdsRoot = '/iso_sds'
-
 
 def getRecords(net, sta, loc, cha, startt, endt):
     """Retrieve records from an SDS archive. The start and end dates must be
     in the same day for this test. This can be later improved."""
+
+    sdsRoot = '/iso_sds'
+    idxRoot = '/home/javier'
+
+    relPath = sdsRoot[1:] if sdsRoot[0] == os.sep else sdsRoot
+    idxRoot = os.path.join(idxRoot, relPath)
 
     if ((startt.year != endt.year) or (startt.month != endt.month) or
        (startt.day != endt.day)):
@@ -63,18 +67,27 @@ def getRecords(net, sta, loc, cha, startt, endt):
 
     # For every file that contains information to be retrieved
     try:
+        # print '%s/%d/%s/%s/%s.D/.%s.%s.%s.%s.D.%d.%s.idx' % \
+        #           (idxRoot, startt.year, net, sta, cha, net, sta, loc, cha, \
+        #            startt.year, startt.strftime('%j'))
+
         with open('%s/%d/%s/%s/%s.D/.%s.%s.%s.%s.D.%d.%s.idx' %
-                  (sdsRoot, startt.year, net, sta, cha, net, sta, loc, cha,
+                  (idxRoot, startt.year, net, sta, cha, net, sta, loc, cha,
                    startt.year, startt.strftime('%j')),
                   'rb') as idxFile:
             buffer = idxFile.read(100000)
+
+            # Read the record length (integer - constant for the whole file)
+            reclen = struct.unpack('i', buffer[:4])
+            print "Record Length: %d" % reclen
+            timeDiffSecs = buffer[4:]
 
             with open('%s/%d/%s/%s/%s.D/%s.%s.%s.%s.D.%d.%s' %
                       (sdsRoot, startt.year, net, sta, cha, net, sta, loc, cha,
                        startt.year, startt.strftime('%j')),
                       'rb') as msFile:
                 # Read the baseline for time from the first record
-                rec = msFile.read(512)
+                rec = msFile.read(reclen)
                 msrec = seiscomp.mseedlite.Record(rec)
                 basetime = msrec.begin_time
 
@@ -83,15 +96,15 @@ def getRecords(net, sta, loc, cha, startt, endt):
                 searchFor = (startt - basetime).total_seconds()
 
                 recStart = 0
-                recEnd = int(len(buffer) / 4) - 1
+                recEnd = int(len(timeDiffSecs) / 4) - 1
 
-                timeStart = struct.unpack('f', buffer[recStart * 4:
+                timeStart = struct.unpack('f', timeDiffSecs[recStart * 4:
                                                       (recStart + 1) * 4])[0]
-                timeEnd = struct.unpack('f', buffer[recEnd * 4:
+                timeEnd = struct.unpack('f', timeDiffSecs[recEnd * 4:
                                                     (recEnd + 1) * 4])[0]
 
                 recHalf = recStart + int((recEnd - recStart) / 2.0)
-                timeHalf = struct.unpack('f', buffer[recHalf * 4:
+                timeHalf = struct.unpack('f', timeDiffSecs[recHalf * 4:
                                                      (recHalf + 1) * 4])[0]
 
                 if searchFor <= timeStart:
@@ -107,11 +120,11 @@ def getRecords(net, sta, loc, cha, startt, endt):
                     recHalf = recStart + int((recEnd - recStart) / 2.0)
                     # Calculate time
                     timeStart = struct.unpack('f',
-                                              buffer[recStart * 4:
+                                              timeDiffSecs[recStart * 4:
                                                      (recStart + 1) * 4])[0]
-                    timeEnd = struct.unpack('f', buffer[recEnd * 4:
+                    timeEnd = struct.unpack('f', timeDiffSecs[recEnd * 4:
                                                         (recEnd + 1) * 4])[0]
-                    timeHalf = struct.unpack('f', buffer[recHalf * 4:
+                    timeHalf = struct.unpack('f', timeDiffSecs[recHalf * 4:
                                                          (recHalf + 1) * 4])[0]
                     # print searchFor, timeStart, timeHalf, timeEnd
 
@@ -122,15 +135,15 @@ def getRecords(net, sta, loc, cha, startt, endt):
                 searchFor = (endt - basetime).total_seconds()
 
                 recStart = 0
-                recEnd = int(len(buffer) / 4) - 1
+                recEnd = int(len(timeDiffSecs) / 4) - 1
 
-                timeStart = struct.unpack('f', buffer[recStart * 4:
+                timeStart = struct.unpack('f', timeDiffSecs[recStart * 4:
                                                       (recStart + 1) * 4])[0]
-                timeEnd = struct.unpack('f', buffer[recEnd * 4:
+                timeEnd = struct.unpack('f', timeDiffSecs[recEnd * 4:
                                                     (recEnd + 1) * 4])[0]
 
                 recHalf = recStart + int((recEnd - recStart) / 2.0)
-                timeHalf = struct.unpack('f', buffer[recHalf * 4:
+                timeHalf = struct.unpack('f', timeDiffSecs[recHalf * 4:
                                                      (recHalf + 1) * 4])[0]
 
                 if searchFor <= timeStart:
@@ -146,22 +159,23 @@ def getRecords(net, sta, loc, cha, startt, endt):
                     recHalf = recStart + int((recEnd - recStart) / 2.0)
                     # Calculate time
                     timeStart = struct.unpack('f',
-                                              buffer[recStart * 4:
+                                              timeDiffSecs[recStart * 4:
                                                      (recStart + 1) * 4])[0]
-                    timeEnd = struct.unpack('f', buffer[recEnd * 4:
+                    timeEnd = struct.unpack('f', timeDiffSecs[recEnd * 4:
                                                         (recEnd + 1) * 4])[0]
-                    timeHalf = struct.unpack('f', buffer[recHalf * 4:
+                    timeHalf = struct.unpack('f', timeDiffSecs[recHalf * 4:
                                                          (recHalf + 1) * 4])[0]
                     # print searchFor, timeStart, timeHalf, timeEnd
 
                 upper = recEnd
                 # Now I have a pointer to the record I want (recStart)
                 # and another one (recEnd) to the record where I should stop
-                msFile.seek(lower * 512)
-                return msFile.read((upper - lower + 1) * 512)
+                msFile.seek(lower * reclen)
+                return msFile.read((upper - lower + 1) * reclen)
 
     except:
         return None
+
 
 class ResultFile(object):
     """Define a class that is an iterable. We can start returning the file
@@ -212,8 +226,8 @@ class ResultFile(object):
                 buffer = u.read(blockSize)
                 while len(buffer):
                     print '%d / %d - (%s) Buffer: %s bytes' \
-                            % (pos, len(self.urlList), url.split('?')[1],
-                               len(buffer))
+                        % (pos, len(self.urlList), url.split('?')[1],
+                           len(buffer))
                     # Return one block of data
                     yield buffer
                     buffer = u.read(blockSize)
@@ -288,13 +302,17 @@ class DataSelectQuery(object):
                 loc = ''
 
             try:
-                startParts = start.replace('-', ' ').replace('T', ' ').replace(':', ' ').replace('.', ' ').replace('Z', '').split()
+                startParts = start.replace('-', ' ').replace('T', ' ')
+                startParts = startParts.replace(':', ' ').replace('.', ' ')
+                startParts = startParts.replace('Z', '').split()
                 start = datetime.datetime(*map(int, startParts))
             except:
                 return 'Error while converting starttime parameter.'
 
             try:
-                endParts = endt.replace('-', ' ').replace('T', ' ').replace(':', ' ').replace('.', ' ').replace('Z', '').split()
+                endParts = endt.replace('-', ' ').replace('T', ' ')
+                endParts = endParts.replace(':', ' ').replace('.', ' ')
+                endParts = endParts.replace('Z', '').split()
                 endt = datetime.datetime(*map(int, endParts))
             except:
                 return 'Error while converting starttime parameter.'
@@ -325,7 +343,6 @@ class DataSelectQuery(object):
 
         iterObj = ResultFile(urlList)
         return iterObj
-
 
     def makeQueryGET(self, parameters):
         # List all the accepted parameters
@@ -520,7 +537,8 @@ def application(environ, start_response):
 
     if fname == 'application.wadl':
         iterObj = ''
-        with open('/var/www/fdsnws/dataselect/application.wadl', 'r') as appFile:
+        with open('/var/www/fdsnws/dataselect/application.wadl', 'r') \
+                as appFile:
             iterObj = appFile.read()
             status = '200 OK'
             return send_xml_response(status, iterObj, start_response)
