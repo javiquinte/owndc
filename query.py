@@ -20,6 +20,7 @@ version. For more information, see http://www.gnu.org/
 """
 
 import cgi
+import os
 import datetime
 import urllib2
 import struct
@@ -67,10 +68,7 @@ def getRecords(net, sta, loc, cha, startt, endt):
 
     # For every file that contains information to be retrieved
     try:
-        # print '%s/%d/%s/%s/%s.D/.%s.%s.%s.%s.D.%d.%s.idx' % \
-        #           (idxRoot, startt.year, net, sta, cha, net, sta, loc, cha, \
-        #            startt.year, startt.strftime('%j'))
-
+        # Open the index file
         with open('%s/%d/%s/%s/%s.D/.%s.%s.%s.%s.D.%d.%s.idx' %
                   (idxRoot, startt.year, net, sta, cha, net, sta, loc, cha,
                    startt.year, startt.strftime('%j')),
@@ -78,8 +76,7 @@ def getRecords(net, sta, loc, cha, startt, endt):
             buffer = idxFile.read(100000)
 
             # Read the record length (integer - constant for the whole file)
-            reclen = struct.unpack('i', buffer[:4])
-            print "Record Length: %d" % reclen
+            reclen = struct.unpack('i', buffer[:4])[0]
             timeDiffSecs = buffer[4:]
 
             with open('%s/%d/%s/%s/%s.D/%s.%s.%s.%s.D.%d.%s' %
@@ -98,14 +95,19 @@ def getRecords(net, sta, loc, cha, startt, endt):
                 recStart = 0
                 recEnd = int(len(timeDiffSecs) / 4) - 1
 
-                timeStart = struct.unpack('f', timeDiffSecs[recStart * 4:
-                                                      (recStart + 1) * 4])[0]
-                timeEnd = struct.unpack('f', timeDiffSecs[recEnd * 4:
-                                                    (recEnd + 1) * 4])[0]
+                timeStart = struct.unpack('f',
+                                          timeDiffSecs[recStart * 4:
+                                                       (recStart + 1) * 4])[0]
+                timeEnd = struct.unpack('f',
+                                        timeDiffSecs[recEnd * 4:
+                                                     (recEnd + 1) * 4])[0]
 
                 recHalf = recStart + int((recEnd - recStart) / 2.0)
-                timeHalf = struct.unpack('f', timeDiffSecs[recHalf * 4:
-                                                     (recHalf + 1) * 4])[0]
+                timeHalf = struct.unpack('f',
+                                         timeDiffSecs[recHalf * 4:
+                                                      (recHalf + 1) * 4])[0]
+
+                print searchFor, timeStart, timeHalf, timeEnd
 
                 if searchFor <= timeStart:
                     recEnd = recStart
@@ -137,14 +139,17 @@ def getRecords(net, sta, loc, cha, startt, endt):
                 recStart = 0
                 recEnd = int(len(timeDiffSecs) / 4) - 1
 
-                timeStart = struct.unpack('f', timeDiffSecs[recStart * 4:
-                                                      (recStart + 1) * 4])[0]
-                timeEnd = struct.unpack('f', timeDiffSecs[recEnd * 4:
-                                                    (recEnd + 1) * 4])[0]
+                timeStart = struct.unpack('f',
+                                          timeDiffSecs[recStart * 4:
+                                                       (recStart + 1) * 4])[0]
+                timeEnd = struct.unpack('f',
+                                        timeDiffSecs[recEnd * 4:
+                                                     (recEnd + 1) * 4])[0]
 
                 recHalf = recStart + int((recEnd - recStart) / 2.0)
-                timeHalf = struct.unpack('f', timeDiffSecs[recHalf * 4:
-                                                     (recHalf + 1) * 4])[0]
+                timeHalf = struct.unpack('f',
+                                         timeDiffSecs[recHalf * 4:
+                                                      (recHalf + 1) * 4])[0]
 
                 if searchFor <= timeStart:
                     recEnd = recStart
@@ -161,10 +166,12 @@ def getRecords(net, sta, loc, cha, startt, endt):
                     timeStart = struct.unpack('f',
                                               timeDiffSecs[recStart * 4:
                                                      (recStart + 1) * 4])[0]
-                    timeEnd = struct.unpack('f', timeDiffSecs[recEnd * 4:
-                                                        (recEnd + 1) * 4])[0]
-                    timeHalf = struct.unpack('f', timeDiffSecs[recHalf * 4:
-                                                         (recHalf + 1) * 4])[0]
+                    timeEnd = struct.unpack('f',
+                                            timeDiffSecs[recEnd * 4:
+                                                         (recEnd + 1) * 4])[0]
+                    timeHalf = struct.unpack('f',
+                                             timeDiffSecs[recHalf * 4:
+                                                          (recHalf + 1) * 4])[0]
                     # print searchFor, timeStart, timeHalf, timeEnd
 
                 upper = recEnd
