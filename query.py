@@ -107,7 +107,7 @@ def getRecords(net, sta, loc, cha, startt, endt):
                                          timeDiffSecs[recHalf * 4:
                                                       (recHalf + 1) * 4])[0]
 
-                print searchFor, timeStart, timeHalf, timeEnd
+                # print searchFor, timeStart, timeHalf, timeEnd
 
                 if searchFor <= timeStart:
                     recEnd = recStart
