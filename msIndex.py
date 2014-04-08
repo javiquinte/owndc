@@ -62,13 +62,24 @@ class IndexedSDS(object):
         self.idxRoot = idxRoot
         self.idx = Indexer(sdsRoot, idxRoot)
 
-    def getMSName(self, reqDate, net, sta, loc, cha):
+    def _getMSName(self, reqDate, net, sta, loc, cha):
         loc = loc if loc != '--' else ''
         return '%s/%d/%s/%s/%s.D/%s.%s.%s.%s.D.%d.%s' % \
             (self.sdsRoot, reqDate.year, net, sta, cha, net, sta, loc, cha,
              reqDate.year, reqDate.strftime('%j'))
 
     def getRawBytes(self, startt, endt, net, sta, loc, cha):
+        eoDay = datetime.datetime(startt.year, startt.month, startt.day)\
+            + datetime.timedelta(days=1) - datetime.timedelta(milliseconds=1)
+        while startt < endt:
+            yield self.getDayRaw(startt, min(endt, eoDay), net, sta, loc, cha)
+            startt = datetime.datetime(startt.year, startt.month, startt.day)\
+                + datetime.timedelta(days=1)
+            eoDay = datetime.datetime(startt.year, startt.month, startt.day)\
+                + datetime.timedelta(days=2)
+        raise StopIteration
+
+    def getDayRaw(self, startt, endt, net, sta, loc, cha):
         """Retrieve records from an SDS archive. The start and end dates must
          be in the same day for this test. This can be later improved."""
 
@@ -93,7 +104,7 @@ class IndexedSDS(object):
                 reclen = unpack('i', buffer[:4])[0]
                 timeDiffSecs = buffer[4:]
 
-                with open(self.getMSName(startt, net, sta, loc, cha), 'rb') \
+                with open(self._getMSName(startt, net, sta, loc, cha), 'rb') \
                         as msFile:
                     # Read the baseline for time from the first record
                     rec = msFile.read(reclen)

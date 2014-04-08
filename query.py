@@ -82,10 +82,10 @@ class ResultFile(object):
                 except:
                     print 'Error while converting END parameter.'
 
-                buffer = self.iSDS.getRawBytes(params[4], params[5],
-                                               params[0], params[1],
-                                               params[2], params[3])
-                if buffer is not None:
+                # Iterator over MS files. Final result is returned in chunks.
+                for buffer in self.iSDS.getRawBytes(params[4], params[5],
+                                                    params[0], params[1],
+                                                    params[2], params[3]):
                     yield buffer
                 continue
 
