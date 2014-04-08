@@ -72,7 +72,9 @@ class IndexedSDS(object):
         eoDay = datetime.datetime(startt.year, startt.month, startt.day)\
             + datetime.timedelta(days=1) - datetime.timedelta(milliseconds=1)
         while startt < endt:
-            yield self.getDayRaw(startt, min(endt, eoDay), net, sta, loc, cha)
+            retVal = self.getDayRaw(startt, min(endt, eoDay), net, sta, loc, cha)
+            if retVal is not None:
+                yield retVal
             startt = datetime.datetime(startt.year, startt.month, startt.day)\
                 + datetime.timedelta(days=1)
             eoDay = datetime.datetime(startt.year, startt.month, startt.day)\
@@ -94,6 +96,10 @@ class IndexedSDS(object):
 
         # For every file that contains information to be retrieved
         try:
+            # Check that the data file exists
+            if not os.path.exists(self._getMSName(startt, net, sta, loc, cha)):
+                return None
+
             # Open the index file
             with open(self.idx.getIndex(startt, net, sta, loc, cha), 'rb') \
                     as idxFile:
