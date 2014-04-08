@@ -20,10 +20,8 @@ version. For more information, see http://www.gnu.org/
 """
 
 import cgi
-import os
 import datetime
 import urllib2
-import struct
 
 # SC3 stuff
 import seiscomp3.System
@@ -31,10 +29,10 @@ import seiscomp3.Config
 import seiscomp3.Logging
 
 from seiscomp import logs
-import seiscomp.mseedlite
 from wsgicomm import *
 from inventorycache import InventoryCache
 from routing import RoutingCache
+from msIndex import IndexedSDS
 
 # Verbosity level a la SeisComP logging.level: 1=ERROR, ... 4=DEBUG
 # (global parameters, settable in wsgi file)
@@ -47,151 +45,18 @@ cgi.maxlen = 1000000
 ##################################################################
 
 
-def getRecords(net, sta, loc, cha, startt, endt):
-    """Retrieve records from an SDS archive. The start and end dates must be
-    in the same day for this test. This can be later improved."""
-
-    sdsRoot = '/iso_sds'
-    idxRoot = '/home/javier'
-
-    relPath = sdsRoot[1:] if sdsRoot[0] == os.sep else sdsRoot
-    idxRoot = os.path.join(idxRoot, relPath)
-
-    if ((startt.year != endt.year) or (startt.month != endt.month) or
-       (startt.day != endt.day)):
-        print "Error: Start and end dates should be in the same day."
-        return None
-
-    # Take into account the case of empty location
-    if loc == '--':
-        loc = ''
-
-    # For every file that contains information to be retrieved
-    try:
-        # Open the index file
-        with open('%s/%d/%s/%s/%s.D/.%s.%s.%s.%s.D.%d.%s.idx' %
-                  (idxRoot, startt.year, net, sta, cha, net, sta, loc, cha,
-                   startt.year, startt.strftime('%j')),
-                  'rb') as idxFile:
-            buffer = idxFile.read(100000)
-
-            # Read the record length (integer - constant for the whole file)
-            reclen = struct.unpack('i', buffer[:4])[0]
-            timeDiffSecs = buffer[4:]
-
-            with open('%s/%d/%s/%s/%s.D/%s.%s.%s.%s.D.%d.%s' %
-                      (sdsRoot, startt.year, net, sta, cha, net, sta, loc, cha,
-                       startt.year, startt.strftime('%j')),
-                      'rb') as msFile:
-                # Read the baseline for time from the first record
-                rec = msFile.read(reclen)
-                msrec = seiscomp.mseedlite.Record(rec)
-                basetime = msrec.begin_time
-
-                # Float number that we search for in the index
-                # THIS IS ONLY TO FIND THE STARTING POINT
-                searchFor = (startt - basetime).total_seconds()
-
-                recStart = 0
-                recEnd = int(len(timeDiffSecs) / 4) - 1
-
-                timeStart = struct.unpack('f',
-                                          timeDiffSecs[recStart * 4:
-                                                       (recStart + 1) * 4])[0]
-                timeEnd = struct.unpack('f',
-                                        timeDiffSecs[recEnd * 4:
-                                                     (recEnd + 1) * 4])[0]
-
-                recHalf = recStart + int((recEnd - recStart) / 2.0)
-                timeHalf = struct.unpack('f',
-                                         timeDiffSecs[recHalf * 4:
-                                                      (recHalf + 1) * 4])[0]
-
-                # print searchFor, timeStart, timeHalf, timeEnd
-
-                if searchFor <= timeStart:
-                    recEnd = recStart
-                if searchFor >= timeEnd:
-                    recStart = recEnd
-
-                while (recEnd - recStart) > 1:
-                    if searchFor > timeHalf:
-                        recStart = recHalf
-                    else:
-                        recEnd = recHalf
-                    recHalf = recStart + int((recEnd - recStart) / 2.0)
-                    # Calculate time
-                    timeStart = struct.unpack('f',
-                                              timeDiffSecs[recStart * 4:
-                                                     (recStart + 1) * 4])[0]
-                    timeEnd = struct.unpack('f', timeDiffSecs[recEnd * 4:
-                                                        (recEnd + 1) * 4])[0]
-                    timeHalf = struct.unpack('f', timeDiffSecs[recHalf * 4:
-                                                         (recHalf + 1) * 4])[0]
-                    # print searchFor, timeStart, timeHalf, timeEnd
-
-                lower = recStart
-
-                # Float number that we search for in the index
-                # THIS IS ONLY TO FIND THE END POINT
-                searchFor = (endt - basetime).total_seconds()
-
-                recStart = 0
-                recEnd = int(len(timeDiffSecs) / 4) - 1
-
-                timeStart = struct.unpack('f',
-                                          timeDiffSecs[recStart * 4:
-                                                       (recStart + 1) * 4])[0]
-                timeEnd = struct.unpack('f',
-                                        timeDiffSecs[recEnd * 4:
-                                                     (recEnd + 1) * 4])[0]
-
-                recHalf = recStart + int((recEnd - recStart) / 2.0)
-                timeHalf = struct.unpack('f',
-                                         timeDiffSecs[recHalf * 4:
-                                                      (recHalf + 1) * 4])[0]
-
-                if searchFor <= timeStart:
-                    recEnd = recStart
-                if searchFor >= timeEnd:
-                    recStart = recEnd
-
-                while (recEnd - recStart) > 1:
-                    if searchFor > timeHalf:
-                        recStart = recHalf
-                    else:
-                        recEnd = recHalf
-                    recHalf = recStart + int((recEnd - recStart) / 2.0)
-                    # Calculate time
-                    timeStart = struct.unpack('f',
-                                              timeDiffSecs[recStart * 4:
-                                                     (recStart + 1) * 4])[0]
-                    timeEnd = struct.unpack('f',
-                                            timeDiffSecs[recEnd * 4:
-                                                         (recEnd + 1) * 4])[0]
-                    timeHalf = struct.unpack('f',
-                                             timeDiffSecs[recHalf * 4:
-                                                          (recHalf + 1) * 4])[0]
-                    # print searchFor, timeStart, timeHalf, timeEnd
-
-                upper = recEnd
-                # Now I have a pointer to the record I want (recStart)
-                # and another one (recEnd) to the record where I should stop
-                msFile.seek(lower * reclen)
-                return msFile.read((upper - lower + 1) * reclen)
-
-    except:
-        return None
-
-
 class ResultFile(object):
     """Define a class that is an iterable. We can start returning the file
     before everything was retrieved from the sources."""
 
-    def __init__(self, urlList):
+    def __init__(self, urlList, iSDS):
         self.urlList = urlList
+        self.iSDS = iSDS
         self.content_type = 'application/vnd.fdsn.mseed'
-        self.filename = 'eidaws.mseed'
+        now = datetime.datetime.now()
+        nowStr = '%d%d%d-%d%d%d' % (now.year, now.month, now.day,
+                                    now.hour, now.minute, now.second)
+        self.filename = 'eidaws-%s.mseed' % nowStr
 
     def __iter__(self):
         blockSize = 100 * 1024
@@ -217,7 +82,9 @@ class ResultFile(object):
                 except:
                     print 'Error while converting END parameter.'
 
-                buffer = getRecords(*params)
+                buffer = self.iSDS.getRawBytes(params[4], params[5],
+                                               params[0], params[1],
+                                               params[2], params[3])
                 if buffer is not None:
                     yield buffer
                 continue
@@ -253,7 +120,10 @@ class ResultFile(object):
 
 
 class DataSelectQuery(object):
-    def __init__(self, appName, dataPath):
+    def __init__(self, appName, dataPath, sdsRoot=None, idxRoot=None):
+        if sdsRoot is not None and idxRoot is not None:
+            self.iSDS = IndexedSDS(sdsRoot, idxRoot)
+
         # initialize SC3 environment
         env = seiscomp3.System.Environment_Instance()
 
@@ -328,6 +198,8 @@ class DataSelectQuery(object):
                 n, s, l, c = reqLine
                 auxRoute = self.routes.getRoute(n, s, l, c)[1]
 
+                # FIXME This should be a dictionary read from a configuration
+                # file.
                 fdsnws = None
                 if auxRoute == 'GFZ':
                     fdsnws = 'http://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query'
@@ -348,7 +220,7 @@ class DataSelectQuery(object):
 
                 urlList.append(url)
 
-        iterObj = ResultFile(urlList)
+        iterObj = ResultFile(urlList, self.iSDS)
         return iterObj
 
     def makeQueryGET(self, parameters):
@@ -449,6 +321,7 @@ class DataSelectQuery(object):
                                 endt.strftime('%Y-%m-%dT%H:%M:%S')))
                 continue
 
+            # FIXME This should be a dictionary read from a configuration file
             fdsnws = None
             if auxRoute == 'GFZ':
                 fdsnws = 'http://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query'
@@ -469,7 +342,7 @@ class DataSelectQuery(object):
 
             urlList.append(url)
 
-        iterObj = ResultFile(urlList)
+        iterObj = ResultFile(urlList, self.iSDS)
         return iterObj
 
 
@@ -479,7 +352,8 @@ class DataSelectQuery(object):
 #
 ##################################################################
 
-wi = DataSelectQuery('EIDA FDSN-WS', '/var/www/fdsnws/dataselect/')
+wi = DataSelectQuery('EIDA FDSN-WS', '/var/www/fdsnws/dataselect/',
+                     '/iso_sds', '/iso_sds/indexes')
 
 
 def application(environ, start_response):
