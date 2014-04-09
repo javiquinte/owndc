@@ -1,3 +1,22 @@
+#!/usr/bin/env python
+#
+# FDSN-WS Dataselect prototype
+#
+# (c) 2014 Javier Quinteros, GEOFON team
+# <javier@gfz-potsdam.de>
+#
+# ----------------------------------------------------------------------
+
+"""Classes to access an indexed SDS structure to be used by the Dataselect-WS
+
+(c) 2014 Javier Quinteros, GEOFON, GFZ Potsdam
+
+This program is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 2, or (at your option) any later
+version. For more information, see http://www.gnu.org/
+
+"""
 import os
 import datetime
 from struct import pack, unpack
@@ -72,7 +91,8 @@ class IndexedSDS(object):
         eoDay = datetime.datetime(startt.year, startt.month, startt.day)\
             + datetime.timedelta(days=1) - datetime.timedelta(milliseconds=1)
         while startt < endt:
-            retVal = self.getDayRaw(startt, min(endt, eoDay), net, sta, loc, cha)
+            retVal = self.getDayRaw(startt, min(endt, eoDay), net, sta, loc,
+                                    cha)
             if retVal is not None:
                 yield retVal
             startt = datetime.datetime(startt.year, startt.month, startt.day)\

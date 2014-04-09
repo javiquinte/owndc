@@ -2,7 +2,7 @@
 #
 # FDSN-WS Dataselect prototype
 #
-# Begun by Javier Quinteros, GEOFON team, February 2014
+# (c) 2014 Javier Quinteros, GEOFON team
 # <javier@gfz-potsdam.de>
 #
 # ----------------------------------------------------------------------
@@ -10,7 +10,7 @@
 
 """FDSN-WS Dataselect prototype
 
-(c) 2014 GEOFON, GFZ Potsdam
+(c) 2014 Javier Quinteros, GEOFON, GFZ Potsdam
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
