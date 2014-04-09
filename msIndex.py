@@ -24,6 +24,14 @@ import seiscomp.sds
 import seiscomp.mseedlite
 
 
+class NoDataAvailable(Exception):
+    def __init__(self, message):
+        # Call the base class constructor with the parameters it needs
+        Exception.__init__(self, message)
+        # Now for your custom code...
+        #self.Errors = Errors
+
+
 class Indexer(object):
     def __init__(self, sdsRoot, idxRoot):
         self.mysds = seiscomp.sds.SDS('', sdsRoot, '')
@@ -91,10 +99,12 @@ class IndexedSDS(object):
         eoDay = datetime.datetime(startt.year, startt.month, startt.day)\
             + datetime.timedelta(days=1) - datetime.timedelta(milliseconds=1)
         while startt < endt:
-            retVal = self.getDayRaw(startt, min(endt, eoDay), net, sta, loc,
-                                    cha)
-            if retVal is not None:
-                yield retVal
+            try:
+                yield self.getDayRaw(startt, min(endt, eoDay), net, sta,
+                                     loc, cha)
+            except:
+                pass
+
             startt = datetime.datetime(startt.year, startt.month, startt.day)\
                 + datetime.timedelta(days=1)
             eoDay = datetime.datetime(startt.year, startt.month, startt.day)\
@@ -117,8 +127,9 @@ class IndexedSDS(object):
         # For every file that contains information to be retrieved
         try:
             # Check that the data file exists
-            if not os.path.exists(self._getMSName(startt, net, sta, loc, cha)):
-                return None
+            dataFile = self._getMSName(startt, net, sta, loc, cha)
+            if not os.path.exists(dataFile):
+                raise NoDataAvailable('%s does not exist!' % dataFile)
 
             # Open the index file
             with open(self.idx.getIndex(startt, net, sta, loc, cha), 'rb') \
@@ -233,4 +244,4 @@ class IndexedSDS(object):
                     return msFile.read((upper - lower + 1) * reclen)
 
         except:
-            return None
+            raise
