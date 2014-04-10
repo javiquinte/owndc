@@ -62,7 +62,7 @@ class IndexedSDS(object):
 
     def getDayRaw(self, startt, endt, net, sta, loc, cha):
         """Retrieve records from an SDS archive. The start and end dates must
-         be in the same day for this test. This can be later improved."""
+         be in the same day for this test."""
 
         if ((startt.year != endt.year) or (startt.month != endt.month) or
            (startt.day != endt.day)):
@@ -91,8 +91,7 @@ class IndexedSDS(object):
                 reclen = unpack('i', buffer[:4])[0]
                 timeDiffSecs = buffer[4:]
 
-                with open(self._getMSName(startt, net, sta, loc, cha), 'rb') \
-                        as msFile:
+                with open(dataFile, 'rb') as msFile:
                     # Read the baseline for time from the first record
                     rec = msFile.read(reclen)
                     msrec = seiscomp.mseedlite.Record(rec)
