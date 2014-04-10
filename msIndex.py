@@ -20,7 +20,6 @@ version. For more information, see http://www.gnu.org/
 import os
 import datetime
 from struct import pack, unpack
-import seiscomp.sds
 import seiscomp.mseedlite
 
 
@@ -34,8 +33,14 @@ class NoDataAvailable(Exception):
 
 class Indexer(object):
     def __init__(self, sdsRoot, idxRoot):
-        self.mysds = seiscomp.sds.SDS('', sdsRoot, '')
+        self.sdsRoot = sdsRoot
         self.idxRoot = idxRoot
+
+    def _getMSName(self, reqDate, net, sta, loc, cha):
+        loc = loc if loc != '--' else ''
+        return '%s/%d/%s/%s/%s.D/%s.%s.%s.%s.D.%d.%s' % \
+            (self.sdsRoot, reqDate.year, net, sta, cha, net, sta, loc, cha,
+             reqDate.year, reqDate.strftime('%j'))
 
     def _buildPath(self, startD, net, sta, loc, cha):
         relPath = os.path.join(str(startD.year), net, sta, cha)
@@ -48,33 +53,34 @@ class Indexer(object):
     def getIndex(self, startD, net, sta, loc, cha):
         idxFileName = self._buildPath(startD, net, sta, loc, cha)
         if not os.path.exists(idxFileName):
-            self._indexMS(startD, net, sta, loc, cha)
+            fd = None
+            try:
+                msFile = self._getMSName(startD, net, sta, loc, cha)
+                fd = open(msFile, 'rb')
+            except:
+                raise NoDataAvailable('%s does not exist!' % msFile)
+
+            self._indexMS(startD, net, sta, loc, cha, fd)
+            if fd:
+                fd.close()
         return idxFileName
 
-    def _indexMS(self, reqDate, net, sta, loc, cha):
+    def _indexMS(self, reqDate, net, sta, loc, cha, fd):
         idxFileName = self._buildPath(reqDate, net, sta, loc, cha)
         if not os.path.exists(os.path.dirname(idxFileName)):
             os.makedirs(os.path.dirname(idxFileName))
         idxFile = open(idxFileName, 'wb')
 
-        # Take one hour buffer on both sides
-        tfrom = datetime.datetime(reqDate.year, reqDate.month, reqDate.day)
-        tto = datetime.datetime(reqDate.year, reqDate.month, reqDate.day) +\
-            datetime.timedelta(days=1)
-
-        # Traverse through all records
         baseTime = None
-        # FIXME I should not use iterdata because I need to index A FILE!
-        # I need direct access to it
-        for recOrder, rec in enumerate(self.mysds.iterdata(tfrom, tto, net,
-                                                           sta, cha, loc)):
-            msrec = seiscomp.mseedlite.Record(rec)
-
+        # Loop through the records in the file
+        for msrec in seiscomp.mseedlite.Input(fd):
             # setup the base time for the whole file
             if baseTime is None:
                 baseTime = msrec.begin_time
                 reclen = msrec.size
-                # print "Record length: %d" % reclen
+                print "Indexing %s on %d/%d/%d with records of %d bytes" % \
+                    ((net, sta, loc, cha), reqDate.year, reqDate.month,
+                     reqDate.day, reclen)
                 idxFile.write(pack('i', reclen))
 
             diffSeconds = (msrec.begin_time - baseTime).total_seconds()
