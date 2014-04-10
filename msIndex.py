@@ -31,69 +31,10 @@ class NoDataAvailable(Exception):
         #self.Errors = Errors
 
 
-class Indexer(object):
-    def __init__(self, sdsRoot, idxRoot):
-        self.sdsRoot = sdsRoot
-        self.idxRoot = idxRoot
-
-    def _getMSName(self, reqDate, net, sta, loc, cha):
-        loc = loc if loc != '--' else ''
-        return '%s/%d/%s/%s/%s.D/%s.%s.%s.%s.D.%d.%s' % \
-            (self.sdsRoot, reqDate.year, net, sta, cha, net, sta, loc, cha,
-             reqDate.year, reqDate.strftime('%j'))
-
-    def _buildPath(self, startD, net, sta, loc, cha):
-        relPath = os.path.join(str(startD.year), net, sta, cha)
-        filename = '%s.%s.%s.%s.D.%d.%d' % (net, sta, loc, cha, startD.year,
-                                            startD.timetuple().tm_yday)
-        idxFileName = os.path.join(self.idxRoot, relPath,
-                                   '.%s.idx' % filename)
-        return idxFileName
-
-    def getIndex(self, startD, net, sta, loc, cha):
-        idxFileName = self._buildPath(startD, net, sta, loc, cha)
-        if not os.path.exists(idxFileName):
-            fd = None
-            try:
-                msFile = self._getMSName(startD, net, sta, loc, cha)
-                fd = open(msFile, 'rb')
-            except:
-                raise NoDataAvailable('%s does not exist!' % msFile)
-
-            self._indexMS(startD, net, sta, loc, cha, fd)
-            if fd:
-                fd.close()
-        return idxFileName
-
-    def _indexMS(self, reqDate, net, sta, loc, cha, fd):
-        idxFileName = self._buildPath(reqDate, net, sta, loc, cha)
-        if not os.path.exists(os.path.dirname(idxFileName)):
-            os.makedirs(os.path.dirname(idxFileName))
-        idxFile = open(idxFileName, 'wb')
-
-        baseTime = None
-        # Loop through the records in the file
-        for msrec in seiscomp.mseedlite.Input(fd):
-            # setup the base time for the whole file
-            if baseTime is None:
-                baseTime = msrec.begin_time
-                reclen = msrec.size
-                print "Indexing %s on %d/%d/%d with records of %d bytes" % \
-                    ((net, sta, loc, cha), reqDate.year, reqDate.month,
-                     reqDate.day, reclen)
-                idxFile.write(pack('i', reclen))
-
-            diffSeconds = (msrec.begin_time - baseTime).total_seconds()
-            idxFile.write(pack('f', diffSeconds))
-
-        idxFile.close()
-
-
 class IndexedSDS(object):
     def __init__(self, sdsRoot, idxRoot):
         self.sdsRoot = sdsRoot
         self.idxRoot = idxRoot
-        self.idx = Indexer(sdsRoot, idxRoot)
 
     def _getMSName(self, reqDate, net, sta, loc, cha):
         loc = loc if loc != '--' else ''
@@ -138,7 +79,7 @@ class IndexedSDS(object):
                 raise NoDataAvailable('%s does not exist!' % dataFile)
 
             # Open the index file
-            with open(self.idx.getIndex(startt, net, sta, loc, cha), 'rb') \
+            with open(self.getIndex(startt, net, sta, loc, cha), 'rb') \
                     as idxFile:
                 buffer = idxFile.read()
 
@@ -251,3 +192,49 @@ class IndexedSDS(object):
 
         except:
             raise
+
+    def _buildPath(self, startD, net, sta, loc, cha):
+        relPath = os.path.join(str(startD.year), net, sta, cha)
+        filename = '%s.%s.%s.%s.D.%d.%d' % (net, sta, loc, cha, startD.year,
+                                            startD.timetuple().tm_yday)
+        idxFileName = os.path.join(self.idxRoot, relPath,
+                                   '.%s.idx' % filename)
+        return idxFileName
+
+    def getIndex(self, startD, net, sta, loc, cha):
+        idxFileName = self._buildPath(startD, net, sta, loc, cha)
+        if not os.path.exists(idxFileName):
+            fd = None
+            try:
+                msFile = self._getMSName(startD, net, sta, loc, cha)
+                fd = open(msFile, 'rb')
+            except:
+                raise NoDataAvailable('%s does not exist!' % msFile)
+
+            self._indexMS(startD, net, sta, loc, cha, fd)
+            if fd:
+                fd.close()
+        return idxFileName
+
+    def _indexMS(self, reqDate, net, sta, loc, cha, fd):
+        idxFileName = self._buildPath(reqDate, net, sta, loc, cha)
+        if not os.path.exists(os.path.dirname(idxFileName)):
+            os.makedirs(os.path.dirname(idxFileName))
+        idxFile = open(idxFileName, 'wb')
+
+        baseTime = None
+        # Loop through the records in the file
+        for msrec in seiscomp.mseedlite.Input(fd):
+            # setup the base time for the whole file
+            if baseTime is None:
+                baseTime = msrec.begin_time
+                reclen = msrec.size
+                print "Indexing %s on %d/%d/%d with records of %d bytes" % \
+                    ((net, sta, loc, cha), reqDate.year, reqDate.month,
+                     reqDate.day, reclen)
+                idxFile.write(pack('i', reclen))
+
+            diffSeconds = (msrec.begin_time - baseTime).total_seconds()
+            idxFile.write(pack('f', diffSeconds))
+
+        idxFile.close()
