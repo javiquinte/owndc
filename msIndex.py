@@ -33,14 +33,20 @@ class NoDataAvailable(Exception):
 
 class IndexedSDS(object):
     def __init__(self, sdsRoot, idxRoot):
-        self.sdsRoot = sdsRoot
+        if isinstance(sdsRoot, basestring):
+            self.sdsRoot = [sdsRoot]
+        elif type(sdsRoot) == type(list()):
+            self.sdsRoot = sdsRoot
         self.idxRoot = idxRoot
 
     def _getMSName(self, reqDate, net, sta, loc, cha):
         loc = loc if loc != '--' else ''
-        return '%s/%d/%s/%s/%s.D/%s.%s.%s.%s.D.%d.%s' % \
-            (self.sdsRoot, reqDate.year, net, sta, cha, net, sta, loc, cha,
-             reqDate.year, reqDate.strftime('%j'))
+
+        for root in self.sdsRoot:
+            yield '%s/%d/%s/%s/%s.D/%s.%s.%s.%s.D.%d.%s' % \
+                (root, reqDate.year, net, sta, cha, net, sta, loc, cha,
+                 reqDate.year, reqDate.strftime('%j'))
+        raise StopIteration
 
     def getRawBytes(self, startt, endt, net, sta, loc, cha):
         eoDay = datetime.datetime(startt.year, startt.month, startt.day)\
@@ -77,121 +83,125 @@ class IndexedSDS(object):
         # For every file that contains information to be retrieved
         try:
             # Check that the data file exists
-            dataFile = self._getMSName(startt, net, sta, loc, cha)
-            if not os.path.exists(dataFile):
-                raise NoDataAvailable('%s does not exist!' % dataFile)
+            for dataFile in self._getMSName(startt, net, sta, loc, cha):
+                if not os.path.exists(dataFile):
+                    continue
 
-            # Open the index file
-            with open(self.getIndex(startt, net, sta, loc, cha), 'rb') \
-                    as idxFile:
-                buffer = idxFile.read()
+                # Open the index file
+                with open(self.getIndex(startt, net, sta, loc, cha), 'rb') \
+                        as idxFile:
+                    buffer = idxFile.read()
 
-                # Read the record length (integer - constant for the whole
-                # file)
-                reclen = unpack('i', buffer[:4])[0]
-                timeDiffSecs = buffer[4:]
+                    # Read the record length (integer - constant for the whole
+                    # file)
+                    reclen = unpack('i', buffer[:4])[0]
+                    timeDiffSecs = buffer[4:]
 
-                with open(dataFile, 'rb') as msFile:
-                    # Read the baseline for time from the first record
-                    rec = msFile.read(reclen)
-                    msrec = seiscomp.mseedlite.Record(rec)
-                    basetime = msrec.begin_time
+                    with open(dataFile, 'rb') as msFile:
+                        # Read the baseline for time from the first record
+                        rec = msFile.read(reclen)
+                        msrec = seiscomp.mseedlite.Record(rec)
+                        basetime = msrec.begin_time
 
-                    # Float number that we search for in the index
-                    # THIS IS ONLY TO FIND THE STARTING POINT
-                    searchFor = (startt - basetime).total_seconds()
+                        # Float number that we search for in the index
+                        # THIS IS ONLY TO FIND THE STARTING POINT
+                        searchFor = (startt - basetime).total_seconds()
 
-                    recStart = 0
-                    recEnd = int(len(timeDiffSecs) / 4) - 1
+                        recStart = 0
+                        recEnd = int(len(timeDiffSecs) / 4) - 1
 
-                    timeStart = unpack('f',
-                                       timeDiffSecs[recStart * 4:
-                                                    (recStart + 1) * 4])[0]
-                    timeEnd = unpack('f',
-                                     timeDiffSecs[recEnd * 4:
-                                                  (recEnd + 1) * 4])[0]
-
-                    recHalf = recStart + int((recEnd - recStart) / 2.0)
-                    timeHalf = unpack('f',
-                                      timeDiffSecs[recHalf * 4:
-                                                   (recHalf + 1) * 4])[0]
-
-                    # print searchFor, timeStart, timeHalf, timeEnd
-
-                    if searchFor <= timeStart:
-                        recEnd = recStart
-                    if searchFor >= timeEnd:
-                        recStart = recEnd
-
-                    while (recEnd - recStart) > 1:
-                        if searchFor > timeHalf:
-                            recStart = recHalf
-                        else:
-                            recEnd = recHalf
-                        recHalf = recStart + int((recEnd - recStart) / 2.0)
-                        # Calculate time
                         timeStart = unpack('f',
                                            timeDiffSecs[recStart * 4:
                                                         (recStart + 1) * 4])[0]
                         timeEnd = unpack('f',
                                          timeDiffSecs[recEnd * 4:
                                                       (recEnd + 1) * 4])[0]
+
+                        recHalf = recStart + int((recEnd - recStart) / 2.0)
                         timeHalf = unpack('f',
                                           timeDiffSecs[recHalf * 4:
                                                        (recHalf + 1) * 4])[0]
+
                         # print searchFor, timeStart, timeHalf, timeEnd
 
-                    lower = recStart
+                        if searchFor <= timeStart:
+                            recEnd = recStart
+                        if searchFor >= timeEnd:
+                            recStart = recEnd
 
-                    # Float number that we search for in the index
-                    # THIS IS ONLY TO FIND THE END POINT
-                    searchFor = (endt - basetime).total_seconds()
+                        while (recEnd - recStart) > 1:
+                            if searchFor > timeHalf:
+                                recStart = recHalf
+                            else:
+                                recEnd = recHalf
+                            recHalf = recStart + int((recEnd - recStart) / 2.0)
+                            # Calculate time
+                            timeStart = unpack('f',
+                                               timeDiffSecs[recStart * 4:
+                                                            (recStart + 1) * 4])[0]
+                            timeEnd = unpack('f',
+                                             timeDiffSecs[recEnd * 4:
+                                                          (recEnd + 1) * 4])[0]
+                            timeHalf = unpack('f',
+                                              timeDiffSecs[recHalf * 4:
+                                                           (recHalf + 1) * 4])[0]
+                            # print searchFor, timeStart, timeHalf, timeEnd
 
-                    recStart = 0
-                    recEnd = int(len(timeDiffSecs) / 4) - 1
+                        lower = recStart
 
-                    timeStart = unpack('f',
-                                       timeDiffSecs[recStart * 4:
-                                                    (recStart + 1) * 4])[0]
-                    timeEnd = unpack('f',
-                                     timeDiffSecs[recEnd * 4:
-                                                  (recEnd + 1) * 4])[0]
+                        # Float number that we search for in the index
+                        # THIS IS ONLY TO FIND THE END POINT
+                        searchFor = (endt - basetime).total_seconds()
 
-                    recHalf = recStart + int((recEnd - recStart) / 2.0)
-                    timeHalf = unpack('f',
-                                      timeDiffSecs[recHalf * 4:
-                                                   (recHalf + 1) * 4])[0]
+                        recStart = 0
+                        recEnd = int(len(timeDiffSecs) / 4) - 1
 
-                    if searchFor <= timeStart:
-                        recEnd = recStart
-                    if searchFor >= timeEnd:
-                        recStart = recEnd
-
-                    while (recEnd - recStart) > 1:
-                        if searchFor > timeHalf:
-                            recStart = recHalf
-                        else:
-                            recEnd = recHalf
-                        recHalf = recStart + int((recEnd - recStart) / 2.0)
-                        # Calculate time
                         timeStart = unpack('f',
                                            timeDiffSecs[recStart * 4:
                                                         (recStart + 1) * 4])[0]
                         timeEnd = unpack('f',
                                          timeDiffSecs[recEnd * 4:
                                                       (recEnd + 1) * 4])[0]
+
+                        recHalf = recStart + int((recEnd - recStart) / 2.0)
                         timeHalf = unpack('f',
                                           timeDiffSecs[recHalf * 4:
                                                        (recHalf + 1) * 4])[0]
-                        # print searchFor, timeStart, timeHalf, timeEnd
 
-                    upper = recEnd
-                    # Now I have a pointer to the record I want (recStart)
-                    # and another one (recEnd) to the record where I should
-                    # stop
-                    msFile.seek(lower * reclen)
-                    return msFile.read((upper - lower + 1) * reclen)
+                        if searchFor <= timeStart:
+                            recEnd = recStart
+                        if searchFor >= timeEnd:
+                            recStart = recEnd
 
+                        while (recEnd - recStart) > 1:
+                            if searchFor > timeHalf:
+                                recStart = recHalf
+                            else:
+                                recEnd = recHalf
+                            recHalf = recStart + int((recEnd - recStart) / 2.0)
+                            # Calculate time
+                            timeStart = unpack('f',
+                                               timeDiffSecs[recStart * 4:
+                                                            (recStart + 1) * 4])[0]
+                            timeEnd = unpack('f',
+                                             timeDiffSecs[recEnd * 4:
+                                                          (recEnd + 1) * 4])[0]
+                            timeHalf = unpack('f',
+                                              timeDiffSecs[recHalf * 4:
+                                                           (recHalf + 1) * 4])[0]
+                            # print searchFor, timeStart, timeHalf, timeEnd
+
+                        upper = recEnd
+                        # Now I have a pointer to the record I want (recStart)
+                        # and another one (recEnd) to the record where I should
+                        # stop
+                        msFile.seek(lower * reclen)
+                        return msFile.read((upper - lower + 1) * reclen)
+
+            else:
+                raise NoDataAvailable('Error: No data for %s on %d/%d/%d!' %
+                                      ((net, sta, loc, cha), startt.year,
+                                       startt.month, startt.day))
         except:
             raise
 
