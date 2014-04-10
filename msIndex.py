@@ -49,8 +49,10 @@ class IndexedSDS(object):
             try:
                 yield self.getDayRaw(startt, min(endt, eoDay), net, sta,
                                      loc, cha)
-            except:
+            except NoDataAvailable:
                 pass
+            except:
+                raise
 
             startt = datetime.datetime(startt.year, startt.month, startt.day)\
                 + datetime.timedelta(days=1)
@@ -64,8 +66,9 @@ class IndexedSDS(object):
 
         if ((startt.year != endt.year) or (startt.month != endt.month) or
            (startt.day != endt.day)):
-            print "Error: Start and end dates should be in the same day."
-            return None
+            msg = "Error in getDayRaw: only the time can differ between" + \
+                " start and end dates."
+            raise Exception(msg)
 
         # Take into account the case of empty location
         if loc == '--':
