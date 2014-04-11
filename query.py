@@ -198,6 +198,18 @@ class DataSelectQuery(object):
                 n, s, l, c = reqLine
                 auxRoute = self.routes.getRoute(n, s, l, c)[1]
 
+                if n == 'GE' and start.year == 2014:
+
+                    # Empty location case
+                    if l == '':
+                        l = '--'
+
+                    urlList.append('%s %s %s %s %s %s' %
+                                   (n, s, l, c,
+                                    start.strftime('%Y-%m-%dT%H:%M:%S'),
+                                    endt.strftime('%Y-%m-%dT%H:%M:%S')))
+                    continue
+
                 # FIXME This should be a dictionary read from a configuration
                 # file.
                 fdsnws = None
