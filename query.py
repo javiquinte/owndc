@@ -198,8 +198,10 @@ class DataSelectQuery(object):
                 n, s, l, c = reqLine
                 auxRoute = self.routes.getRoute(n, s, l, c)[1]
 
-                if n == 'GE' and start.year == 2014:
-
+                # FIXME This should be a dictionary read from a configuration
+                # file.
+                fdsnws = None
+                if auxRoute == 'GFZ':
                     # Empty location case
                     if l == '':
                         l = '--'
@@ -210,11 +212,7 @@ class DataSelectQuery(object):
                                     endt.strftime('%Y-%m-%dT%H:%M:%S')))
                     continue
 
-                # FIXME This should be a dictionary read from a configuration
-                # file.
-                fdsnws = None
-                if auxRoute == 'GFZ':
-                    fdsnws = 'http://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query'
+                    #fdsnws = 'http://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query'
                 elif auxRoute == 'ODC':
                     fdsnws = 'http://www.orfeus-eu.org/fdsnws/dataselect/1/query'
                 elif auxRoute == 'ETH':
@@ -321,8 +319,9 @@ class DataSelectQuery(object):
             n, s, l, c = reqLine
             auxRoute = self.routes.getRoute(n, s, l, c)[1]
 
-            if n == 'GE' and start.year == 2014:
-
+            # FIXME This should be a dictionary read from a configuration file
+            fdsnws = None
+            if auxRoute == 'GFZ':
                 # Empty location case
                 if l == '':
                     l = '--'
@@ -333,10 +332,7 @@ class DataSelectQuery(object):
                                 endt.strftime('%Y-%m-%dT%H:%M:%S')))
                 continue
 
-            # FIXME This should be a dictionary read from a configuration file
-            fdsnws = None
-            if auxRoute == 'GFZ':
-                fdsnws = 'http://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query'
+                #fdsnws = 'http://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query'
             elif auxRoute == 'ODC':
                 fdsnws = 'http://www.orfeus-eu.org/fdsnws/dataselect/1/query'
             elif auxRoute == 'ETH':
