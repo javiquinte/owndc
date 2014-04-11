@@ -217,10 +217,14 @@ class IndexedSDS(object):
         idxFileName = self._buildPath(startD, net, sta, loc, cha)
         if not os.path.exists(idxFileName):
             fd = None
-            try:
-                msFile = self._getMSName(startD, net, sta, loc, cha)
-                fd = open(msFile, 'rb')
-            except:
+            for msFile in self._getMSName(startD, net, sta, loc, cha):
+                try:
+                    fd = open(msFile, 'rb')
+                    if fd is not None:
+                        break
+                except:
+                    pass
+            else:
                 raise NoDataAvailable('%s does not exist!' % msFile)
 
             self._indexMS(startD, net, sta, loc, cha, fd)
