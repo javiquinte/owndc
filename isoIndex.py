@@ -22,7 +22,7 @@ import datetime
 import zlib
 import iso9660
 from pycdio import ISO_BLOCKSIZE
-from math import ceil, floor
+from math import floor
 from struct import pack, unpack
 import seiscomp.mseedlite
 
@@ -45,9 +45,6 @@ class FileInISO(object):
 
         # Internal buffer to simulate a read operation
         size, self.__header = self.iso.seek_read(self.stat['LSN'])
-        self.__posCByte = 0
-        self.__posUByte = 0
-        self.__posSect = 1
 
         # Check the header
         # First the magic numbers
@@ -64,30 +61,47 @@ class FileInISO(object):
         # Check the block size
         self.bs = 1 << unpack('B', self.__header[13])[0]
 
-        startData = unpack('I', self.__header[16:20])[0]
-        # Check that I will have all the pointers in self.__header
-        if startData >= len(self.__header):
-            size, auxbuf = self.iso.seek_read(self.stat['LSN'] +
-                                              self.__posSect)
-            self.__header += auxbuf
-            self.__posSect += 1
+        # Set the position of the decompressed file
+        self.__fileOffset = 0
+        self.__decblkNum = None
 
         # Next two bytes (14, 15) are reserved
+        # Read the pointer to the first data block
+        startData = unpack('I', self.__header[16:20])[0]
+
+        # Check that I will have all the pointers in self.__header
+        secPtr = self.stat['LSN'] + 1
+        if startData >= len(self.__header):
+            size, auxbuf = self.iso.seek_read(secPtr)
+            self.__header += auxbuf
+            secPtr += 1
 
         # Read the pointers to the blocks
-        numBlocks = ceil(self.length / float(self.bs))
+        # Check in which block is the last byte of the file and add 1 to
+        # translate from block number (f.i. 7) to number of blocks (8).
+        numBlocks = self.__inFileBlock(self.length - 1) + 1
         self.blkPtr = list()
 
         ptr = self.hs
-        for block in range(int(numBlocks)):
+        # Read one pointer more than the number of blocks (signalize the EOF)
+        for block in range(numBlocks + 1):
             self.blkPtr.append(unpack('I', self.__header[ptr:ptr + 4])[0])
             ptr += 4
 
-    def readBlock(self, blkNum):
+    def __inFileBlock(self, offset):
+        return int(floor(offset / float(self.bs)))
+
+    def __inISOBlock(self, offset):
+        return int(floor(offset / float(ISO_BLOCKSIZE)))
+
+    def __readBlock(self, blkNum):
+        if blkNum >= len(self.blkPtr):
+            raise Exception('Error: Block number beyond the end of the file.')
+
         b2read = self.blkPtr[blkNum + 1] - self.blkPtr[blkNum]
 
         cmpBuf = ''
-        curBlk = int(floor(self.blkPtr[blkNum] / float(ISO_BLOCKSIZE)))
+        curBlk = self.__inISOBlock(self.blkPtr[blkNum])
 
         while len(cmpBuf) < b2read:
             size, auxBuf = self.iso.seek_read(self.stat['LSN'] + curBlk)
@@ -101,7 +115,54 @@ class FileInISO(object):
             curBlk += 1
 
         # Decompress exactly the contents of one block of the original file
-        return zlib.decompress(cmpBuf[:b2read])
+        self.__decBuf = zlib.decompress(cmpBuf[:b2read])
+        self.__decblkNum = blkNum
+
+        return self.__decBuf
+
+    def seek(self, offset, whence=0):
+        """Seek operation on the file inside the ISO image.
+        It works exactly as a normal seek method on a regular file.
+        """
+
+        if whence == 0:
+            self.__fileOffset = 0
+        elif whence == 2:
+            self.__fileOffset = self.length
+        else:
+            raise IOError('[Errno 22] Invalid argument')
+
+        self.__fileOffset += offset
+
+    def tell(self):
+        """Tell operation on the file inside the ISO image.
+        It works exactly as a normal teel method on a regular file.
+        """
+        return self.__fileOffset
+
+    def read(self, size=None):
+        """Tell operation on the file inside the ISO image.
+        It works exactly as a normal teel method on a regular file.
+        """
+
+        if (size is None) or (size < 0):
+            size = self.length - self.__fileOffset
+
+        result = ''
+        blkNum = self.__inFileBlock(self.__fileOffset)
+        firstByte = self.__fileOffset % self.bs
+
+        # Check if the first block is already in the buffer or should be read
+        if blkNum != self.__decblkNum:
+            result = self.__readBlock(blkNum)[firstByte:]
+        else:
+            result = self.__decBuf[firstByte:]
+
+        while len(result) < size:
+            result += self.__readBlock(blkNum)
+            blkNum += 1
+
+        return result[:size]
 
 
 class IndexedISO(object):
