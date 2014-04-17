@@ -41,10 +41,10 @@ class FileInISO(object):
         self.pathName = pathName
 
         # Check if the file exists
-        self.stat = self.iso.stat(pathName, translate=True)
+        self.__stat = self.iso.stat(pathName, translate=True)
 
         # Internal buffer to simulate a read operation
-        size, self.__header = self.iso.seek_read(self.stat['LSN'])
+        size, self.__header = self.iso.seek_read(self.__stat['LSN'])
 
         # Check the header
         # First the magic numbers
@@ -53,13 +53,13 @@ class FileInISO(object):
             raise Exception('No magic numbers found in header!')
 
         # Check the length of the decompressed file
-        self.length = unpack('i', self.__header[8:12])[0]
+        self.__length = unpack('i', self.__header[8:12])[0]
 
         # Check the header size
-        self.hs = 1 << unpack('B', self.__header[12])[0]
+        self.__hs = 1 << unpack('B', self.__header[12])[0]
 
         # Check the block size
-        self.bs = 1 << unpack('B', self.__header[13])[0]
+        self.__bs = 1 << unpack('B', self.__header[13])[0]
 
         # Set the position of the decompressed file
         self.__fileOffset = 0
@@ -70,7 +70,7 @@ class FileInISO(object):
         startData = unpack('I', self.__header[16:20])[0]
 
         # Check that I will have all the pointers in self.__header
-        secPtr = self.stat['LSN'] + 1
+        secPtr = self.__stat['LSN'] + 1
         if startData >= len(self.__header):
             size, auxbuf = self.iso.seek_read(secPtr)
             self.__header += auxbuf
@@ -79,38 +79,38 @@ class FileInISO(object):
         # Read the pointers to the blocks
         # Check in which block is the last byte of the file and add 1 to
         # translate from block number (f.i. 7) to number of blocks (8).
-        numBlocks = self.__inFileBlock(self.length - 1) + 1
-        self.blkPtr = list()
+        numBlocks = self.__inFileBlock(self.__length - 1) + 1
+        self.__blkPtr = list()
 
-        ptr = self.hs
+        ptr = self.__hs
         # Read one pointer more than the number of blocks (signalize the EOF)
         for block in range(numBlocks + 1):
-            self.blkPtr.append(unpack('I', self.__header[ptr:ptr + 4])[0])
+            self.__blkPtr.append(unpack('I', self.__header[ptr:ptr + 4])[0])
             ptr += 4
 
     def __inFileBlock(self, offset):
-        return int(floor(offset / float(self.bs)))
+        return int(floor(offset / float(self.__bs)))
 
     def __inISOBlock(self, offset):
         return int(floor(offset / float(ISO_BLOCKSIZE)))
 
     def __readBlock(self, blkNum):
-        if blkNum >= len(self.blkPtr):
+        if blkNum >= len(self.__blkPtr):
             raise Exception('Error: Block number beyond the end of the file.')
 
-        b2read = self.blkPtr[blkNum + 1] - self.blkPtr[blkNum]
+        b2read = self.__blkPtr[blkNum + 1] - self.__blkPtr[blkNum]
 
         cmpBuf = ''
-        curBlk = self.__inISOBlock(self.blkPtr[blkNum])
+        curBlk = self.__inISOBlock(self.__blkPtr[blkNum])
 
         while len(cmpBuf) < b2read:
-            size, auxBuf = self.iso.seek_read(self.stat['LSN'] + curBlk)
+            size, auxBuf = self.iso.seek_read(self.__stat['LSN'] + curBlk)
             # Normally just append what has been read
             if len(cmpBuf):
                 cmpBuf += auxBuf
             else:
                 # but from the first block we should remove teh unwanted bytes
-                cmpBuf = auxBuf[self.blkPtr[blkNum] % ISO_BLOCKSIZE:]
+                cmpBuf = auxBuf[self.__blkPtr[blkNum] % ISO_BLOCKSIZE:]
 
             curBlk += 1
 
@@ -128,7 +128,7 @@ class FileInISO(object):
         if whence == 0:
             self.__fileOffset = 0
         elif whence == 2:
-            self.__fileOffset = self.length
+            self.__fileOffset = self.__length
         else:
             raise IOError('[Errno 22] Invalid argument')
 
@@ -145,12 +145,18 @@ class FileInISO(object):
         It works exactly as a normal teel method on a regular file.
         """
 
+        # If the size is negative or was not passed as a parameter, read until
+        # the end of the file
         if (size is None) or (size < 0):
-            size = self.length - self.__fileOffset
+            size = self.__length - self.__fileOffset
+
+        # If the size goes beyond the end of the file, make it point to EOF
+        if (self.__fileOffset + size > self.__length):
+            size = self.__length - self.__fileOffset
 
         result = ''
         blkNum = self.__inFileBlock(self.__fileOffset)
-        firstByte = self.__fileOffset % self.bs
+        firstByte = self.__fileOffset % self.__bs
 
         # Check if the first block is already in the buffer or should be read
         if blkNum != self.__decblkNum:
