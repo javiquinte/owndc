@@ -37,14 +37,14 @@ class ISONoDataAvailable(Exception):
 
 class FileInISO(object):
     def __init__(self, isoName, pathName):
-        self.iso = iso9660.ISO9660.IFS(source=isoName)
+        self.__iso = iso9660.ISO9660.IFS(source=isoName)
         self.pathName = pathName
 
         # Check if the file exists
-        self.__stat = self.iso.stat(pathName, translate=True)
+        self.__stat = self.__iso.stat(pathName, translate=True)
 
         # Internal buffer to simulate a read operation
-        size, self.__header = self.iso.seek_read(self.__stat['LSN'])
+        size, self.__header = self.__iso.seek_read(self.__stat['LSN'])
 
         # Check the header
         # First the magic numbers
@@ -72,7 +72,7 @@ class FileInISO(object):
         # Check that I will have all the pointers in self.__header
         secPtr = self.__stat['LSN'] + 1
         if startData >= len(self.__header):
-            size, auxbuf = self.iso.seek_read(secPtr)
+            size, auxbuf = self.__iso.seek_read(secPtr)
             self.__header += auxbuf
             secPtr += 1
 
@@ -104,7 +104,7 @@ class FileInISO(object):
         curBlk = self.__inISOBlock(self.__blkPtr[blkNum])
 
         while len(cmpBuf) < b2read:
-            size, auxBuf = self.iso.seek_read(self.__stat['LSN'] + curBlk)
+            size, auxBuf = self.__iso.seek_read(self.__stat['LSN'] + curBlk)
             # Normally just append what has been read
             if len(cmpBuf):
                 cmpBuf += auxBuf
@@ -168,7 +168,15 @@ class FileInISO(object):
             result += self.__readBlock(blkNum)
             blkNum += 1
 
+        self.__fileOffset += size
         return result[:size]
+
+    def close(self):
+        """Close the open file inside the ISO image AND the ISO file.
+        It works exactly as a normal close method on a regular file.
+        """
+
+        pass
 
 
 class IndexedISO(object):
