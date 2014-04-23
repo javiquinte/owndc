@@ -109,6 +109,15 @@ class FileInISO(object):
         # Loop through all directory records
         while pEntry < lenBuf - 1:
             lenDir = unpack('B', buf[pEntry])[0]
+            # If the length of the Directory Record is 0, we could be in
+            # presence of a block of 0's. I have still not found a reason for
+            # this, but this seems a way to skip it and find the next Directory
+            # Record.
+            if not lenDir:
+                pEntry += 2
+                continue
+                # raise Exception('Dir.length: 0. Malformed Directory Record?')
+
             lenFileName = unpack('B', buf[pEntry + 32])[0]
             shortName = buf[pEntry + 33: pEntry + 33 + lenFileName]
             # Check whether the name coincides with the short ISO name
@@ -119,6 +128,7 @@ class FileInISO(object):
             # even position
             offs = 33 + lenFileName + ((lenFileName + 1) % 2)
 
+            # print shortName, lenDir
             # Loop through the SUSP or RRIP fields
             # WARNING! The "-1" below would not be necessary in a normal case
             # BUT there could be an extra padding field of one byte, so that
@@ -126,6 +136,11 @@ class FileInISO(object):
             while offs < lenDir - 1:
                 XX = buf[pEntry + offs: pEntry + offs + 2]
                 lSect = unpack('B', buf[pEntry + offs + 2])[0]
+                # print pEntry, offs, XX
+
+                if not lSect:
+                    raise Exception('Field length: 0. Malformed Directory Record?')
+
                 if XX == 'NM':
                     longName = buf[pEntry + offs + 5: pEntry + offs + lSect]
                     # FIXME The flag CONTINUE should be checked!
@@ -243,13 +258,12 @@ class IndexedISO(object):
                 (root, reqDate.year, net, sta, net, reqDate.year)
         raise StopIteration
 
-    def _getMSNameInISO(self, reqDate, net, sta, loc, cha):
+    def _getMSName(self, reqDate, net, sta, loc, cha):
         loc = loc if loc != '--' else ''
 
         return '/%d/%s/%s/%s.D/%s.%s.%s.%s.D.%d.%s' % \
             (reqDate.year, net, sta, cha, net, sta, loc, cha,
              reqDate.year, reqDate.strftime('%j'))
-        raise StopIteration
 
     def getRawBytes(self, startt, endt, net, sta, loc, cha):
         eoDay = datetime.datetime(startt.year, startt.month, startt.day)\
@@ -265,8 +279,8 @@ class IndexedISO(object):
 
             startt = datetime.datetime(startt.year, startt.month, startt.day)\
                 + datetime.timedelta(days=1)
-            eoDay = datetime.datetime(startt.year, startt.month, startt.day) +\
-                datetime.timedelta(days=1) - datetime.timedelta(milliseconds=1)
+            eoDay = startt + datetime.timedelta(days=1) \
+                - datetime.timedelta(milliseconds=1)
         raise StopIteration
 
     def getDayRaw(self, startt, endt, net, sta, loc, cha):
@@ -290,7 +304,7 @@ class IndexedISO(object):
                 if not os.path.exists(isoFile):
                     continue
 
-                dataFile = self.__getMSName(startt, net, sta, loc, cha)
+                dataFile = self._getMSName(startt, net, sta, loc, cha)
                 try:
                     msFile = FileInISO(isoFile, dataFile)
                 except ISONoDataAvailable:
@@ -306,108 +320,108 @@ class IndexedISO(object):
                     # Read the record length (integer - constant for the whole
                     # file)
                     reclen = unpack('i', buffer[:4])[0]
-                    timeDiffSecs = buffer[4:]
+                    tDiff = buffer[4:]
 
-                    with open(dataFile, 'rb') as msFile:
-                        # Read the baseline for time from the first record
-                        rec = msFile.read(reclen)
-                        msrec = seiscomp.mseedlite.Record(rec)
-                        basetime = msrec.begin_time
+                    # with open(dataFile, 'rb') as msFile:
+                    # Read the baseline for time from the first record
+                    rec = msFile.read(reclen)
+                    msrec = seiscomp.mseedlite.Record(rec)
+                    basetime = msrec.begin_time
 
-                        # Float number that we search for in the index
-                        # THIS IS ONLY TO FIND THE STARTING POINT
-                        searchFor = (startt - basetime).total_seconds()
+                    # Float number that we search for in the index
+                    # THIS IS ONLY TO FIND THE STARTING POINT
+                    searchFor = (startt - basetime).total_seconds()
 
-                        recStart = 0
-                        recEnd = int(len(timeDiffSecs) / 4) - 1
+                    recStart = 0
+                    recEnd = int(len(tDiff) / 4) - 1
 
-                        timeStart = unpack('f',
-                                           timeDiffSecs[recStart * 4:
-                                                        (recStart + 1) * 4])[0]
-                        timeEnd = unpack('f',
-                                         timeDiffSecs[recEnd * 4:
-                                                      (recEnd + 1) * 4])[0]
+                    timeStart = unpack('f',
+                                       tDiff[recStart * 4:
+                                             (recStart + 1) * 4])[0]
+                    timeEnd = unpack('f',
+                                     tDiff[recEnd * 4:
+                                           (recEnd + 1) * 4])[0]
 
+                    recHalf = recStart + int((recEnd - recStart) / 2.0)
+                    timeHalf = unpack('f',
+                                      tDiff[recHalf * 4:
+                                            (recHalf + 1) * 4])[0]
+
+                    # print searchFor, timeStart, timeHalf, timeEnd
+
+                    if searchFor <= timeStart:
+                        recEnd = recStart
+                    if searchFor >= timeEnd:
+                        recStart = recEnd
+
+                    while (recEnd - recStart) > 1:
+                        if searchFor > timeHalf:
+                            recStart = recHalf
+                        else:
+                            recEnd = recHalf
                         recHalf = recStart + int((recEnd - recStart) / 2.0)
+                        # Calculate time
+                        timeStart = unpack('f',
+                                           tDiff[recStart * 4:
+                                                 (recStart + 1) * 4])[0]
+                        timeEnd = unpack('f',
+                                         tDiff[recEnd * 4:
+                                               (recEnd + 1) * 4])[0]
                         timeHalf = unpack('f',
-                                          timeDiffSecs[recHalf * 4:
-                                                       (recHalf + 1) * 4])[0]
-
+                                          tDiff[recHalf * 4:
+                                                (recHalf + 1) * 4])[0]
                         # print searchFor, timeStart, timeHalf, timeEnd
 
-                        if searchFor <= timeStart:
-                            recEnd = recStart
-                        if searchFor >= timeEnd:
-                            recStart = recEnd
+                    lower = recStart
 
-                        while (recEnd - recStart) > 1:
-                            if searchFor > timeHalf:
-                                recStart = recHalf
-                            else:
-                                recEnd = recHalf
-                            recHalf = recStart + int((recEnd - recStart) / 2.0)
-                            # Calculate time
-                            timeStart = unpack('f',
-                                               timeDiffSecs[recStart * 4:
-                                                            (recStart + 1) * 4])[0]
-                            timeEnd = unpack('f',
-                                             timeDiffSecs[recEnd * 4:
-                                                          (recEnd + 1) * 4])[0]
-                            timeHalf = unpack('f',
-                                              timeDiffSecs[recHalf * 4:
-                                                           (recHalf + 1) * 4])[0]
-                            # print searchFor, timeStart, timeHalf, timeEnd
+                    # Float number that we search for in the index
+                    # THIS IS ONLY TO FIND THE END POINT
+                    searchFor = (endt - basetime).total_seconds()
 
-                        lower = recStart
+                    recStart = 0
+                    recEnd = int(len(tDiff) / 4) - 1
 
-                        # Float number that we search for in the index
-                        # THIS IS ONLY TO FIND THE END POINT
-                        searchFor = (endt - basetime).total_seconds()
+                    timeStart = unpack('f',
+                                       tDiff[recStart * 4:
+                                             (recStart + 1) * 4])[0]
+                    timeEnd = unpack('f',
+                                     tDiff[recEnd * 4:
+                                           (recEnd + 1) * 4])[0]
 
-                        recStart = 0
-                        recEnd = int(len(timeDiffSecs) / 4) - 1
+                    recHalf = recStart + int((recEnd - recStart) / 2.0)
+                    timeHalf = unpack('f',
+                                      tDiff[recHalf * 4:
+                                            (recHalf + 1) * 4])[0]
 
-                        timeStart = unpack('f',
-                                           timeDiffSecs[recStart * 4:
-                                                        (recStart + 1) * 4])[0]
-                        timeEnd = unpack('f',
-                                         timeDiffSecs[recEnd * 4:
-                                                      (recEnd + 1) * 4])[0]
+                    if searchFor <= timeStart:
+                        recEnd = recStart
+                    if searchFor >= timeEnd:
+                        recStart = recEnd
 
+                    while (recEnd - recStart) > 1:
+                        if searchFor > timeHalf:
+                            recStart = recHalf
+                        else:
+                            recEnd = recHalf
                         recHalf = recStart + int((recEnd - recStart) / 2.0)
+                        # Calculate time
+                        timeStart = unpack('f',
+                                           tDiff[recStart * 4:
+                                                 (recStart + 1) * 4])[0]
+                        timeEnd = unpack('f',
+                                         tDiff[recEnd * 4:
+                                               (recEnd + 1) * 4])[0]
                         timeHalf = unpack('f',
-                                          timeDiffSecs[recHalf * 4:
-                                                       (recHalf + 1) * 4])[0]
+                                          tDiff[recHalf * 4:
+                                                (recHalf + 1) * 4])[0]
+                        # print searchFor, timeStart, timeHalf, timeEnd
 
-                        if searchFor <= timeStart:
-                            recEnd = recStart
-                        if searchFor >= timeEnd:
-                            recStart = recEnd
-
-                        while (recEnd - recStart) > 1:
-                            if searchFor > timeHalf:
-                                recStart = recHalf
-                            else:
-                                recEnd = recHalf
-                            recHalf = recStart + int((recEnd - recStart) / 2.0)
-                            # Calculate time
-                            timeStart = unpack('f',
-                                               timeDiffSecs[recStart * 4:
-                                                            (recStart + 1) * 4])[0]
-                            timeEnd = unpack('f',
-                                             timeDiffSecs[recEnd * 4:
-                                                          (recEnd + 1) * 4])[0]
-                            timeHalf = unpack('f',
-                                              timeDiffSecs[recHalf * 4:
-                                                           (recHalf + 1) * 4])[0]
-                            # print searchFor, timeStart, timeHalf, timeEnd
-
-                        upper = recEnd
-                        # Now I have a pointer to the record I want (recStart)
-                        # and another one (recEnd) to the record where I should
-                        # stop
-                        msFile.seek(lower * reclen)
-                        return msFile.read((upper - lower + 1) * reclen)
+                    upper = recEnd
+                    # Now I have a pointer to the record I want (recStart)
+                    # and another one (recEnd) to the record where I should
+                    # stop
+                    msFile.seek(lower * reclen)
+                    return msFile.read((upper - lower + 1) * reclen)
 
             else:
                 raise ISONoDataAvailable('Error: No data for %s on %d/%d/%d!' %
@@ -417,11 +431,10 @@ class IndexedISO(object):
             raise
 
     def _buildPath(self, startD, net, sta, loc, cha):
-        relPath = os.path.join(str(startD.year), net, sta, cha)
+        relPath = os.path.join(str(startD.year), net, sta, cha + '.D')
         filename = '%s.%s.%s.%s.D.%d.%d' % (net, sta, loc, cha, startD.year,
                                             startD.timetuple().tm_yday)
-        idxFileName = os.path.join(self.idxRoot, relPath,
-                                   '.%s.idx' % filename)
+        idxFileName = os.path.join(self.idxRoot, relPath, '.%s.idx' % filename)
         return idxFileName
 
     def getIndex(self, startD, net, sta, loc, cha):
@@ -430,14 +443,8 @@ class IndexedISO(object):
             fd = None
             for isoFile in self._getISOName(startD, net, sta):
                 try:
-                    isofd = iso9660.ISO9660.IFS(source=isoFile)
-                    if isofd is not None:
-                        fName = self._getMSName(startD, net, sta, loc, cha)
-                        statbuf = isofd.stat(fName, translate=True)
-                        print statbuf
-                    else:
-                        continue
-
+                    fd = FileInISO(isoFile,
+                                   self._getMSName(startD, net, sta, loc, cha))
                     if fd is not None:
                         break
                 except:
@@ -445,13 +452,10 @@ class IndexedISO(object):
             else:
                 raise ISONoDataAvailable('Requested data not available!')
 
-            self._indexISO(startD, net, sta, fd)
+            self._indexMS(startD, net, sta, loc, cha, fd)
             if fd:
                 fd.close()
         return idxFileName
-
-    def _indexISO(self, reqDate, net, sta, fd):
-        pass
 
     def _indexMS(self, reqDate, net, sta, loc, cha, fd):
         idxFileName = self._buildPath(reqDate, net, sta, loc, cha)
