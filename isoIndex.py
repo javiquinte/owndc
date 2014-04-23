@@ -40,8 +40,13 @@ class FileInISO(object):
         self.__iso = iso9660.ISO9660.IFS(source=isoName)
         self.pathName = pathName
 
+        # Check the presence of the file and corrects the attribute "pathName"
+        # if necessary
+        if not self.__fileExists(pathName):
+            raise ISONoDataAvailable('File is not found in ISO file.')
+
         # Check if the file exists
-        self.__stat = self.__iso.stat(pathName, translate=True)
+        self.__stat = self.__iso.stat(self.pathName)
 
         # Internal buffer to simulate a read operation
         size, self.__header = self.__iso.seek_read(self.__stat['LSN'])
@@ -87,6 +92,52 @@ class FileInISO(object):
         for block in range(numBlocks + 1):
             self.__blkPtr.append(unpack('I', self.__header[ptr:ptr + 4])[0])
             ptr += 4
+
+    def __fileExists(self, pathName):
+        """Method to check the presence of a file inside the ISO image
+        If the filename is not in the short 8+3 ISO form, the attribute
+        "pathName" is corrected to include the short version of the filename.
+
+        """
+
+        path2File, fileName = os.path.split(pathName)
+
+        statDir = self.__iso.stat(path2File)
+        lenBuf, buf = self.__iso.seek_read(statDir['LSN'], statDir['sec_size'])
+
+        pEntry = 0
+        # Loop through all directory records
+        while pEntry < lenBuf - 1:
+            lenDir = unpack('B', buf[pEntry])[0]
+            lenFileName = unpack('B', buf[pEntry + 32])[0]
+            shortName = buf[pEntry + 33: pEntry + 33 + lenFileName]
+            # Check whether the name coincides with the short ISO name
+            if shortName == fileName:
+                return True
+
+            # Adjust the offset so that the next section starts always in an
+            # even position
+            offs = 33 + lenFileName + ((lenFileName + 1) % 2)
+
+            # Loop through the SUSP or RRIP fields
+            # WARNING! The "-1" below would not be necessary in a normal case
+            # BUT there could be an extra padding field of one byte, so that
+            # the new Directory record starts in an even position.
+            while offs < lenDir - 1:
+                XX = buf[pEntry + offs: pEntry + offs + 2]
+                lSect = unpack('B', buf[pEntry + offs + 2])[0]
+                if XX == 'NM':
+                    longName = buf[pEntry + offs + 5: pEntry + offs + lSect]
+                    # FIXME The flag CONTINUE should be checked!
+                    if longName == fileName:
+                        self.pathName = os.path.join(path2File, shortName)
+                        return True
+
+                offs += lSect
+
+            pEntry += lenDir
+
+        return False
 
     def __inFileBlock(self, offset):
         return int(floor(offset / float(self.__bs)))
@@ -359,9 +410,9 @@ class IndexedISO(object):
                         return msFile.read((upper - lower + 1) * reclen)
 
             else:
-                raise NoDataAvailable('Error: No data for %s on %d/%d/%d!' %
-                                      ((net, sta, loc, cha), startt.year,
-                                       startt.month, startt.day))
+                raise ISONoDataAvailable('Error: No data for %s on %d/%d/%d!' %
+                                         ((net, sta, loc, cha), startt.year,
+                                          startt.month, startt.day))
         except:
             raise
 
