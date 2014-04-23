@@ -95,7 +95,7 @@ class IndexedSDS(object):
                     # Read the record length (integer - constant for the whole
                     # file)
                     reclen = unpack('i', buffer[:4])[0]
-                    timeDiffSecs = buffer[4:]
+                    tDiff = buffer[4:]
 
                     with open(dataFile, 'rb') as msFile:
                         # Read the baseline for time from the first record
@@ -108,19 +108,19 @@ class IndexedSDS(object):
                         searchFor = (startt - basetime).total_seconds()
 
                         recStart = 0
-                        recEnd = int(len(timeDiffSecs) / 4) - 1
+                        recEnd = int(len(tDiff) / 4) - 1
 
                         timeStart = unpack('f',
-                                           timeDiffSecs[recStart * 4:
-                                                        (recStart + 1) * 4])[0]
+                                           tDiff[recStart * 4:
+                                                 (recStart + 1) * 4])[0]
                         timeEnd = unpack('f',
-                                         timeDiffSecs[recEnd * 4:
-                                                      (recEnd + 1) * 4])[0]
+                                         tDiff[recEnd * 4:
+                                               (recEnd + 1) * 4])[0]
 
                         recHalf = recStart + int((recEnd - recStart) / 2.0)
                         timeHalf = unpack('f',
-                                          timeDiffSecs[recHalf * 4:
-                                                       (recHalf + 1) * 4])[0]
+                                          tDiff[recHalf * 4:
+                                                (recHalf + 1) * 4])[0]
 
                         # print searchFor, timeStart, timeHalf, timeEnd
 
@@ -137,14 +137,14 @@ class IndexedSDS(object):
                             recHalf = recStart + int((recEnd - recStart) / 2.0)
                             # Calculate time
                             timeStart = unpack('f',
-                                               timeDiffSecs[recStart * 4:
-                                                            (recStart + 1) * 4])[0]
+                                               tDiff[recStart * 4:
+                                                     (recStart + 1) * 4])[0]
                             timeEnd = unpack('f',
-                                             timeDiffSecs[recEnd * 4:
-                                                          (recEnd + 1) * 4])[0]
+                                             tDiff[recEnd * 4:
+                                                   (recEnd + 1) * 4])[0]
                             timeHalf = unpack('f',
-                                              timeDiffSecs[recHalf * 4:
-                                                           (recHalf + 1) * 4])[0]
+                                              tDiff[recHalf * 4:
+                                                    (recHalf + 1) * 4])[0]
                             # print searchFor, timeStart, timeHalf, timeEnd
 
                         lower = recStart
@@ -154,19 +154,19 @@ class IndexedSDS(object):
                         searchFor = (endt - basetime).total_seconds()
 
                         recStart = 0
-                        recEnd = int(len(timeDiffSecs) / 4) - 1
+                        recEnd = int(len(tDiff) / 4) - 1
 
                         timeStart = unpack('f',
-                                           timeDiffSecs[recStart * 4:
-                                                        (recStart + 1) * 4])[0]
+                                           tDiff[recStart * 4:
+                                                 (recStart + 1) * 4])[0]
                         timeEnd = unpack('f',
-                                         timeDiffSecs[recEnd * 4:
-                                                      (recEnd + 1) * 4])[0]
+                                         tDiff[recEnd * 4:
+                                               (recEnd + 1) * 4])[0]
 
                         recHalf = recStart + int((recEnd - recStart) / 2.0)
                         timeHalf = unpack('f',
-                                          timeDiffSecs[recHalf * 4:
-                                                       (recHalf + 1) * 4])[0]
+                                          tDiff[recHalf * 4:
+                                                (recHalf + 1) * 4])[0]
 
                         if searchFor <= timeStart:
                             recEnd = recStart
@@ -181,14 +181,14 @@ class IndexedSDS(object):
                             recHalf = recStart + int((recEnd - recStart) / 2.0)
                             # Calculate time
                             timeStart = unpack('f',
-                                               timeDiffSecs[recStart * 4:
-                                                            (recStart + 1) * 4])[0]
+                                               tDiff[recStart * 4:
+                                                     (recStart + 1) * 4])[0]
                             timeEnd = unpack('f',
-                                             timeDiffSecs[recEnd * 4:
-                                                          (recEnd + 1) * 4])[0]
+                                             tDiff[recEnd * 4:
+                                                   (recEnd + 1) * 4])[0]
                             timeHalf = unpack('f',
-                                              timeDiffSecs[recHalf * 4:
-                                                           (recHalf + 1) * 4])[0]
+                                              tDiff[recHalf * 4:
+                                                    (recHalf + 1) * 4])[0]
                             # print searchFor, timeStart, timeHalf, timeEnd
 
                         upper = recEnd
