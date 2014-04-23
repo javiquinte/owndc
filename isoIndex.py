@@ -43,7 +43,8 @@ class FileInISO(object):
         # Check the presence of the file and corrects the attribute "pathName"
         # if necessary
         if not self.__fileExists(pathName):
-            raise ISONoDataAvailable('File is not found in ISO file.')
+            raise ISONoDataAvailable('File "%s" is not found in ISO file.'
+                                     % pathName)
 
         # Check if the file exists
         self.__stat = self.__iso.stat(self.pathName)

@@ -49,7 +49,7 @@ class ResultFile(object):
     """Define a class that is an iterable. We can start returning the file
     before everything was retrieved from the sources."""
 
-    def __init__(self, urlList, iSDS):
+    def __init__(self, urlList, iSDS=None):
         self.urlList = urlList
         self.iSDS = iSDS
         self.content_type = 'application/vnd.fdsn.mseed'
@@ -120,9 +120,10 @@ class ResultFile(object):
 
 
 class DataSelectQuery(object):
-    def __init__(self, appName, dataPath, sdsRoot=None, idxRoot=None):
+    def __init__(self, appName, dataPath, sdsRoot=None, isoRoot=None,
+                 idxRoot=None):
         if sdsRoot is not None and idxRoot is not None:
-            self.iSDS = IndexedSDS(sdsRoot, idxRoot)
+            self.iSDS = IndexedSDS(sdsRoot, isoRoot, idxRoot)
 
         # initialize SC3 environment
         env = seiscomp3.System.Environment_Instance()
@@ -212,7 +213,8 @@ class DataSelectQuery(object):
                                     endt.strftime('%Y-%m-%dT%H:%M:%S')))
                     continue
 
-                    #fdsnws = 'http://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query'
+                    # The WS address from GFZ is
+                    # 'http://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query'
                 elif auxRoute == 'ODC':
                     fdsnws = 'http://www.orfeus-eu.org/fdsnws/dataselect/1/query'
                 elif auxRoute == 'ETH':
@@ -361,7 +363,7 @@ class DataSelectQuery(object):
 ##################################################################
 
 wi = DataSelectQuery('EIDA FDSN-WS', '/var/www/fdsnws/dataselect/',
-                     '/iso_sds', '/iso_sds/indexes')
+                     '/iso_sds', '/iso_arc', '/iso_sds/indexes')
 
 
 def application(environ, start_response):

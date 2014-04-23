@@ -21,6 +21,7 @@ import os
 import datetime
 from struct import pack, unpack
 import seiscomp.mseedlite
+from isoIndex import FileInISO, ISONoDataAvailable
 
 
 class NoDataAvailable(Exception):
@@ -32,11 +33,17 @@ class NoDataAvailable(Exception):
 
 
 class IndexedSDS(object):
-    def __init__(self, sdsRoot, idxRoot):
+    def __init__(self, sdsRoot, isoRoot, idxRoot):
         if isinstance(sdsRoot, basestring):
             self.sdsRoot = [sdsRoot]
         elif type(sdsRoot) == type(list()):
             self.sdsRoot = sdsRoot
+
+        if isinstance(isoRoot, basestring):
+            self.isoRoot = [isoRoot]
+        elif type(isoRoot) == type(list()):
+            self.isoRoot = isoRoot
+
         self.idxRoot = idxRoot
 
     def _getMSName(self, reqDate, net, sta, loc, cha):
@@ -46,6 +53,19 @@ class IndexedSDS(object):
             yield '%s/%d/%s/%s/%s.D/%s.%s.%s.%s.D.%d.%s' % \
                 (root, reqDate.year, net, sta, cha, net, sta, loc, cha,
                  reqDate.year, reqDate.strftime('%j'))
+        raise StopIteration
+
+    def _getMSNameInISO(self, reqDate, net, sta, loc, cha):
+        loc = loc if loc != '--' else ''
+
+        return '/%d/%s/%s/%s.D/%s.%s.%s.%s.D.%d.%s' % \
+            (reqDate.year, net, sta, cha, net, sta, loc, cha,
+             reqDate.year, reqDate.strftime('%j'))
+
+    def _getISOName(self, reqDate, net, sta):
+        for root in self.isoRoot:
+            yield '%s/%d/%s/%s.%s.%d.iso' % \
+                (root, reqDate.year, net, sta, net, reqDate.year)
         raise StopIteration
 
     def getRawBytes(self, startt, endt, net, sta, loc, cha):
@@ -62,9 +82,117 @@ class IndexedSDS(object):
 
             startt = datetime.datetime(startt.year, startt.month, startt.day)\
                 + datetime.timedelta(days=1)
-            eoDay = datetime.datetime(startt.year, startt.month, startt.day)\
-                + datetime.timedelta(days=2)
+            eoDay = startt + datetime.timedelta(days=1) \
+                - datetime.timedelta(milliseconds=1)
         raise StopIteration
+
+    def __getWaveform(self, startt, endt, idxFile, msFile):
+        buffer = idxFile.read()
+
+        # Read the record length (integer - constant for the whole
+        # file)
+        reclen = unpack('i', buffer[:4])[0]
+        tDiff = buffer[4:]
+
+        # with open(dataFile, 'rb') as msFile:
+        # Read the baseline for time from the first record
+        rec = msFile.read(reclen)
+        msrec = seiscomp.mseedlite.Record(rec)
+        basetime = msrec.begin_time
+
+        # Float number that we search for in the index
+        # THIS IS ONLY TO FIND THE STARTING POINT
+        searchFor = (startt - basetime).total_seconds()
+
+        recStart = 0
+        recEnd = int(len(tDiff) / 4) - 1
+
+        timeStart = unpack('f',
+                           tDiff[recStart * 4:
+                                 (recStart + 1) * 4])[0]
+        timeEnd = unpack('f',
+                         tDiff[recEnd * 4:
+                               (recEnd + 1) * 4])[0]
+
+        recHalf = recStart + int((recEnd - recStart) / 2.0)
+        timeHalf = unpack('f',
+                          tDiff[recHalf * 4:
+                                (recHalf + 1) * 4])[0]
+
+        # print searchFor, timeStart, timeHalf, timeEnd
+
+        if searchFor <= timeStart:
+            recEnd = recStart
+        if searchFor >= timeEnd:
+            recStart = recEnd
+
+        while (recEnd - recStart) > 1:
+            if searchFor > timeHalf:
+                recStart = recHalf
+            else:
+                recEnd = recHalf
+            recHalf = recStart + int((recEnd - recStart) / 2.0)
+            # Calculate time
+            timeStart = unpack('f',
+                               tDiff[recStart * 4:
+                                     (recStart + 1) * 4])[0]
+            timeEnd = unpack('f',
+                             tDiff[recEnd * 4:
+                                   (recEnd + 1) * 4])[0]
+            timeHalf = unpack('f',
+                              tDiff[recHalf * 4:
+                                    (recHalf + 1) * 4])[0]
+            # print searchFor, timeStart, timeHalf, timeEnd
+
+        lower = recStart
+
+        # Float number that we search for in the index
+        # THIS IS ONLY TO FIND THE END POINT
+        searchFor = (endt - basetime).total_seconds()
+
+        recStart = 0
+        recEnd = int(len(tDiff) / 4) - 1
+
+        timeStart = unpack('f',
+                           tDiff[recStart * 4:
+                                 (recStart + 1) * 4])[0]
+        timeEnd = unpack('f',
+                         tDiff[recEnd * 4:
+                               (recEnd + 1) * 4])[0]
+
+        recHalf = recStart + int((recEnd - recStart) / 2.0)
+        timeHalf = unpack('f',
+                          tDiff[recHalf * 4:
+                                (recHalf + 1) * 4])[0]
+
+        if searchFor <= timeStart:
+            recEnd = recStart
+        if searchFor >= timeEnd:
+            recStart = recEnd
+
+        while (recEnd - recStart) > 1:
+            if searchFor > timeHalf:
+                recStart = recHalf
+            else:
+                recEnd = recHalf
+            recHalf = recStart + int((recEnd - recStart) / 2.0)
+            # Calculate time
+            timeStart = unpack('f',
+                               tDiff[recStart * 4:
+                                     (recStart + 1) * 4])[0]
+            timeEnd = unpack('f',
+                             tDiff[recEnd * 4:
+                                   (recEnd + 1) * 4])[0]
+            timeHalf = unpack('f',
+                              tDiff[recHalf * 4:
+                                    (recHalf + 1) * 4])[0]
+            # print searchFor, timeStart, timeHalf, timeEnd
+
+        upper = recEnd
+        # Now I have a pointer to the record I want (lower) adn another one
+        # (upper) to the record where I should stop
+        msFile.seek(lower * reclen)
+        return msFile.read((upper - lower + 1) * reclen)
 
     def getDayRaw(self, startt, endt, net, sta, loc, cha):
         """Retrieve records from an SDS archive. The start and end dates must
@@ -87,118 +215,36 @@ class IndexedSDS(object):
                 if not os.path.exists(dataFile):
                     continue
 
+                # print 'Try %s on %s' % (dataFile, startt)
                 # Open the index file
                 with open(self.getIndex(startt, net, sta, loc, cha), 'rb') \
                         as idxFile:
-                    buffer = idxFile.read()
-
-                    # Read the record length (integer - constant for the whole
-                    # file)
-                    reclen = unpack('i', buffer[:4])[0]
-                    tDiff = buffer[4:]
-
                     with open(dataFile, 'rb') as msFile:
-                        # Read the baseline for time from the first record
-                        rec = msFile.read(reclen)
-                        msrec = seiscomp.mseedlite.Record(rec)
-                        basetime = msrec.begin_time
-
-                        # Float number that we search for in the index
-                        # THIS IS ONLY TO FIND THE STARTING POINT
-                        searchFor = (startt - basetime).total_seconds()
-
-                        recStart = 0
-                        recEnd = int(len(tDiff) / 4) - 1
-
-                        timeStart = unpack('f',
-                                           tDiff[recStart * 4:
-                                                 (recStart + 1) * 4])[0]
-                        timeEnd = unpack('f',
-                                         tDiff[recEnd * 4:
-                                               (recEnd + 1) * 4])[0]
-
-                        recHalf = recStart + int((recEnd - recStart) / 2.0)
-                        timeHalf = unpack('f',
-                                          tDiff[recHalf * 4:
-                                                (recHalf + 1) * 4])[0]
-
-                        # print searchFor, timeStart, timeHalf, timeEnd
-
-                        if searchFor <= timeStart:
-                            recEnd = recStart
-                        if searchFor >= timeEnd:
-                            recStart = recEnd
-
-                        while (recEnd - recStart) > 1:
-                            if searchFor > timeHalf:
-                                recStart = recHalf
-                            else:
-                                recEnd = recHalf
-                            recHalf = recStart + int((recEnd - recStart) / 2.0)
-                            # Calculate time
-                            timeStart = unpack('f',
-                                               tDiff[recStart * 4:
-                                                     (recStart + 1) * 4])[0]
-                            timeEnd = unpack('f',
-                                             tDiff[recEnd * 4:
-                                                   (recEnd + 1) * 4])[0]
-                            timeHalf = unpack('f',
-                                              tDiff[recHalf * 4:
-                                                    (recHalf + 1) * 4])[0]
-                            # print searchFor, timeStart, timeHalf, timeEnd
-
-                        lower = recStart
-
-                        # Float number that we search for in the index
-                        # THIS IS ONLY TO FIND THE END POINT
-                        searchFor = (endt - basetime).total_seconds()
-
-                        recStart = 0
-                        recEnd = int(len(tDiff) / 4) - 1
-
-                        timeStart = unpack('f',
-                                           tDiff[recStart * 4:
-                                                 (recStart + 1) * 4])[0]
-                        timeEnd = unpack('f',
-                                         tDiff[recEnd * 4:
-                                               (recEnd + 1) * 4])[0]
-
-                        recHalf = recStart + int((recEnd - recStart) / 2.0)
-                        timeHalf = unpack('f',
-                                          tDiff[recHalf * 4:
-                                                (recHalf + 1) * 4])[0]
-
-                        if searchFor <= timeStart:
-                            recEnd = recStart
-                        if searchFor >= timeEnd:
-                            recStart = recEnd
-
-                        while (recEnd - recStart) > 1:
-                            if searchFor > timeHalf:
-                                recStart = recHalf
-                            else:
-                                recEnd = recHalf
-                            recHalf = recStart + int((recEnd - recStart) / 2.0)
-                            # Calculate time
-                            timeStart = unpack('f',
-                                               tDiff[recStart * 4:
-                                                     (recStart + 1) * 4])[0]
-                            timeEnd = unpack('f',
-                                             tDiff[recEnd * 4:
-                                                   (recEnd + 1) * 4])[0]
-                            timeHalf = unpack('f',
-                                              tDiff[recHalf * 4:
-                                                    (recHalf + 1) * 4])[0]
-                            # print searchFor, timeStart, timeHalf, timeEnd
-
-                        upper = recEnd
-                        # Now I have a pointer to the record I want (recStart)
-                        # and another one (recEnd) to the record where I should
-                        # stop
-                        msFile.seek(lower * reclen)
-                        return msFile.read((upper - lower + 1) * reclen)
-
+                        return self.__getWaveform(startt, endt, idxFile,
+                                                  msFile)
             else:
+                # Check that the data file exists
+                for isoFile in self._getISOName(startt, net, sta):
+                    if not os.path.exists(isoFile):
+                        continue
+
+                    dataFile = self._getMSNameInISO(startt, net, sta, loc, cha)
+                    try:
+                        msFile = FileInISO(isoFile, dataFile)
+                        # print '%s opened' % msFile
+                    except ISONoDataAvailable as e:
+                        print e
+                        continue
+                    except:
+                        raise
+
+                    # Open the index file
+                    with open(self.getIndex(startt, net, sta, loc, cha), 'rb')\
+                            as idxFile:
+                        # print '%s opened' % idxFile
+                        return self.__getWaveform(startt, endt, idxFile,
+                                                  msFile)
+
                 raise NoDataAvailable('Error: No data for %s on %d/%d/%d!' %
                                       ((net, sta, loc, cha), startt.year,
                                        startt.month, startt.day))
@@ -206,7 +252,7 @@ class IndexedSDS(object):
             raise
 
     def _buildPath(self, startD, net, sta, loc, cha):
-        relPath = os.path.join(str(startD.year), net, sta, cha)
+        relPath = os.path.join(str(startD.year), net, sta, cha + '.D')
         filename = '%s.%s.%s.%s.D.%d.%d' % (net, sta, loc, cha, startD.year,
                                             startD.timetuple().tm_yday)
         idxFileName = os.path.join(self.idxRoot, relPath,
@@ -219,13 +265,26 @@ class IndexedSDS(object):
             fd = None
             for msFile in self._getMSName(startD, net, sta, loc, cha):
                 try:
+                    # print 'Try to open %s' % msFile
                     fd = open(msFile, 'rb')
                     if fd is not None:
                         break
                 except:
                     pass
             else:
-                raise NoDataAvailable('%s does not exist!' % msFile)
+                for isoFile in self._getISOName(startD, net, sta):
+                    try:
+                        # print 'Try to open %s' % \
+                        #     self._getMSNameInISO(startD, net, sta, loc, cha)
+                        fd = FileInISO(isoFile,
+                                       self._getMSNameInISO(startD, net, sta,
+                                                            loc, cha))
+                        if fd is not None:
+                            break
+                    except:
+                        pass
+                else:
+                    raise NoDataAvailable('%s does not exist!' % msFile)
 
             self._indexMS(startD, net, sta, loc, cha, fd)
             if fd:
