@@ -115,7 +115,7 @@ class FileInISO(object):
             # this, but this seems a way to skip it and find the next Directory
             # Record.
             if not lenDir:
-                pEntry += 2
+                pEntry += 1
                 continue
                 # raise Exception('Dir.length: 0. Malformed Directory Record?')
 
