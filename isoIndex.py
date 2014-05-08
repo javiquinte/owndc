@@ -47,7 +47,10 @@ class FileInISO(object):
                                      % pathName)
 
         # Check if the file exists
-        self.__stat = self.__iso.stat(self.pathName)
+        # We must use long file name here. Short name does not work,
+        # at least not with SUSE 11.4.
+        #self.__stat = self.__iso.stat(self.pathName)
+        self.__stat = self.__iso.stat(pathName)
 
         # Internal buffer to simulate a read operation
         size, self.__header = self.__iso.seek_read(self.__stat['LSN'])
@@ -56,7 +59,10 @@ class FileInISO(object):
         # First the magic numbers
         magic = '\x37\xe4\x53\x96\xc9\xdb\xd6\x07'
         if not self.__header[:8] == magic:
-            raise Exception('No magic numbers found in header!')
+            # We don't want to crash if a file is corrupt.
+            #raise Exception('No magic numbers found in header!')
+            raise ISONoDataAvailable('%s: No magic numbers found in header!'
+                                     % pathName)
 
         # Check the length of the decompressed file
         self.__length = unpack('i', self.__header[8:12])[0]
@@ -103,7 +109,12 @@ class FileInISO(object):
 
         path2File, fileName = os.path.split(pathName)
 
-        statDir = self.__iso.stat(path2File)
+        try:
+            statDir = self.__iso.stat(path2File)
+    
+        except:
+            return False
+
         lenBuf, buf = self.__iso.seek_read(statDir['LSN'], statDir['sec_size'])
 
         pEntry = 0
@@ -162,7 +173,7 @@ class FileInISO(object):
         return int(floor(offset / float(ISO_BLOCKSIZE)))
 
     def __readBlock(self, blkNum):
-        if blkNum >= len(self.__blkPtr):
+        if blkNum >= len(self.__blkPtr) - 1:
             raise Exception('Error: Block number beyond the end of the file.')
 
         b2read = self.__blkPtr[blkNum + 1] - self.__blkPtr[blkNum]
@@ -203,13 +214,13 @@ class FileInISO(object):
 
     def tell(self):
         """Tell operation on the file inside the ISO image.
-        It works exactly as a normal teel method on a regular file.
+        It works exactly as a normal tell method on a regular file.
         """
         return self.__fileOffset
 
     def read(self, size=None):
         """Tell operation on the file inside the ISO image.
-        It works exactly as a normal teel method on a regular file.
+        It works exactly as a normal read method on a regular file.
         """
 
         # If the size is negative or was not passed as a parameter, read until
@@ -220,6 +231,9 @@ class FileInISO(object):
         # If the size goes beyond the end of the file, make it point to EOF
         if (self.__fileOffset + size > self.__length):
             size = self.__length - self.__fileOffset
+
+        if size == 0:
+            return ''
 
         result = ''
         blkNum = self.__inFileBlock(self.__fileOffset)
