@@ -197,30 +197,8 @@ class DataSelectQuery(object):
 
             for reqLine in self.ic.expand(net, sta, loc, cha, start, endt):
                 n, s, l, c = reqLine
-                auxRoute = self.routes.getRoute(n, s, l, c)[1]
-
-                # FIXME This should be a dictionary read from a configuration
-                # file.
-                fdsnws = None
-                if auxRoute == 'GFZ':
-                    # Empty location case
-                    if l == '':
-                        l = '--'
-
-                    urlList.append('%s %s %s %s %s %s' %
-                                   (n, s, l, c,
-                                    start.strftime('%Y-%m-%dT%H:%M:%S'),
-                                    endt.strftime('%Y-%m-%dT%H:%M:%S')))
-                    continue
-
-                    # The WS address from GFZ is
-                    # 'http://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query'
-                elif auxRoute == 'ODC':
-                    fdsnws = 'http://www.orfeus-eu.org/fdsnws/dataselect/1/query'
-                elif auxRoute == 'ETH':
-                    fdsnws = 'http://eida.ethz.ch/fdsnws/dataselect/1/query'
-                elif auxRoute == 'RESIF':
-                    fdsnws = 'http://ws.resif.fr/fdsnws/dataselect/1/query'
+                fdsnws = self.routes.getRoute(n, s, l, c, start, endt,
+                                              'dataselect')
 
                 url = fdsnws + '?network=' + n
                 url += '&station=' + s
@@ -317,30 +295,11 @@ class DataSelectQuery(object):
             return 'Error while converting endtime parameter.'
 
         urlList = []
+
         for reqLine in self.ic.expand(net, sta, loc, cha, start, endt):
             n, s, l, c = reqLine
-            auxRoute = self.routes.getRoute(n, s, l, c)[1]
-
-            # FIXME This should be a dictionary read from a configuration file
-            fdsnws = None
-            if auxRoute == 'GFZ':
-                # Empty location case
-                if l == '':
-                    l = '--'
-
-                urlList.append('%s %s %s %s %s %s' %
-                               (n, s, l, c,
-                                start.strftime('%Y-%m-%dT%H:%M:%S'),
-                                endt.strftime('%Y-%m-%dT%H:%M:%S')))
-                continue
-
-                #fdsnws = 'http://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query'
-            elif auxRoute == 'ODC':
-                fdsnws = 'http://www.orfeus-eu.org/fdsnws/dataselect/1/query'
-            elif auxRoute == 'ETH':
-                fdsnws = 'http://eida.ethz.ch/fdsnws/dataselect/1/query'
-            elif auxRoute == 'RESIF':
-                fdsnws = 'http://ws.resif.fr/fdsnws/dataselect/1/query'
+            fdsnws = self.routes.getRoute(n, s, l, c, start, endt,
+                                          'dataselect')
 
             url = fdsnws + '?network=' + n
             url += '&station=' + s
