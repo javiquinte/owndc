@@ -42,15 +42,17 @@ class FileInISO(object):
 
         # Check the presence of the file and corrects the attribute "pathName"
         # if necessary
-        if not self.__fileExists(pathName):
-            raise ISONoDataAvailable('File "%s" is not found in ISO file.'
-                                     % pathName)
+        #if not self.__fileExists(pathName):
+        #    raise ISONoDataAvailable('File "%s" is not found in ISO file.'
+        #                             % pathName)
 
         # Check if the file exists
-        # We must use long file name here. Short name does not work,
-        # at least not with SUSE 11.4.
-        #self.__stat = self.__iso.stat(self.pathName)
-        self.__stat = self.__iso.stat(pathName)
+        try:
+            self.__stat = self.__iso.stat(self.pathName)
+
+        except: # TypeError: 'NoneType' object is not subscriptable
+            raise ISONoDataAvailable('File "%s" is not found in ISO file.'
+                                     % pathName)
 
         # Internal buffer to simulate a read operation
         size, self.__header = self.__iso.seek_read(self.__stat['LSN'])
@@ -61,8 +63,8 @@ class FileInISO(object):
         if not self.__header[:8] == magic:
             # We don't want to crash if a file is corrupt.
             #raise Exception('No magic numbers found in header!')
-            raise ISONoDataAvailable('%s: No magic numbers found in header!'
-                                     % pathName)
+            raise ISONoDataAvailable('%s: No magic numbers found in header! self.__stat=%s'
+                                     % (pathName, str(self.__stat)))
 
         # Check the length of the decompressed file
         self.__length = unpack('i', self.__header[8:12])[0]
@@ -100,6 +102,7 @@ class FileInISO(object):
             self.__blkPtr.append(unpack('I', self.__header[ptr:ptr + 4])[0])
             ptr += 4
 
+    # This method is not used
     def __fileExists(self, pathName):
         """Method to check the presence of a file inside the ISO image
         If the filename is not in the short 8+3 ISO form, the attribute
