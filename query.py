@@ -59,7 +59,10 @@ class ResultFile(object):
         self.filename = 'eidaws-%s.mseed' % nowStr
 
     def __iter__(self):
-        blockSize = 100 * 1024
+        # Read a maximum of 25 blocks of 4k (or 200 of 512b) each time
+        # This will allow us to use threads and multiplex records from
+        # different sources
+        blockSize = 25 * 4096
 
         for pos, url in enumerate(self.urlList):
             # Check if the data should be searched locally at the SDS archive
@@ -333,11 +336,6 @@ def application(environ, start_response):
     GEOFON team, February 2014
 
     """
-
-    # Read the URI and save the first word in fname
-    #fname = environ['PATH_INFO'].split("/")[-1]
-    #fname = environ['PATH_INFO'].lstrip('/').split("/")[0]
-    #print "environ['PATH_INFO'].lstrip('/')", environ['PATH_INFO'].lstrip('/')
 
     fname = environ['PATH_INFO']
 
