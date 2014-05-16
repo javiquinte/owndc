@@ -59,7 +59,10 @@ class ResultFile(object):
         self.filename = 'eidaws-%s.mseed' % nowStr
 
     def __iter__(self):
-        blockSize = 100 * 1024
+        # Read a maximum of 25 blocks of 4k (or 200 of 512b) each time
+        # This will allow us to use threads and multiplex records from
+        # different sources
+        blockSize = 25 * 4096
 
         for pos, url in enumerate(self.urlList):
             # Check if the data should be searched locally at the SDS archive
@@ -197,30 +200,8 @@ class DataSelectQuery(object):
 
             for reqLine in self.ic.expand(net, sta, loc, cha, start, endt):
                 n, s, l, c = reqLine
-                auxRoute = self.routes.getRoute(n, s, l, c)[1]
-
-                # FIXME This should be a dictionary read from a configuration
-                # file.
-                fdsnws = None
-                if auxRoute == 'GFZ':
-                    # Empty location case
-                    if l == '':
-                        l = '--'
-
-                    urlList.append('%s %s %s %s %s %s' %
-                                   (n, s, l, c,
-                                    start.strftime('%Y-%m-%dT%H:%M:%S'),
-                                    endt.strftime('%Y-%m-%dT%H:%M:%S')))
-                    continue
-
-                    # The WS address from GFZ is
-                    # 'http://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query'
-                elif auxRoute == 'ODC':
-                    fdsnws = 'http://www.orfeus-eu.org/fdsnws/dataselect/1/query'
-                elif auxRoute == 'ETH':
-                    fdsnws = 'http://eida.ethz.ch/fdsnws/dataselect/1/query'
-                elif auxRoute == 'RESIF':
-                    fdsnws = 'http://ws.resif.fr/fdsnws/dataselect/1/query'
+                fdsnws = self.routes.getRoute(n, s, l, c, start, endt,
+                                              'dataselect')
 
                 url = fdsnws + '?network=' + n
                 url += '&station=' + s
@@ -317,30 +298,11 @@ class DataSelectQuery(object):
             return 'Error while converting endtime parameter.'
 
         urlList = []
+
         for reqLine in self.ic.expand(net, sta, loc, cha, start, endt):
             n, s, l, c = reqLine
-            auxRoute = self.routes.getRoute(n, s, l, c)[1]
-
-            # FIXME This should be a dictionary read from a configuration file
-            fdsnws = None
-            if auxRoute == 'GFZ':
-                # Empty location case
-                if l == '':
-                    l = '--'
-
-                urlList.append('%s %s %s %s %s %s' %
-                               (n, s, l, c,
-                                start.strftime('%Y-%m-%dT%H:%M:%S'),
-                                endt.strftime('%Y-%m-%dT%H:%M:%S')))
-                continue
-
-                #fdsnws = 'http://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query'
-            elif auxRoute == 'ODC':
-                fdsnws = 'http://www.orfeus-eu.org/fdsnws/dataselect/1/query'
-            elif auxRoute == 'ETH':
-                fdsnws = 'http://eida.ethz.ch/fdsnws/dataselect/1/query'
-            elif auxRoute == 'RESIF':
-                fdsnws = 'http://ws.resif.fr/fdsnws/dataselect/1/query'
+            fdsnws = self.routes.getRoute(n, s, l, c, start, endt,
+                                          'dataselect')
 
             url = fdsnws + '?network=' + n
             url += '&station=' + s
@@ -374,11 +336,6 @@ def application(environ, start_response):
     GEOFON team, February 2014
 
     """
-
-    # Read the URI and save the first word in fname
-    #fname = environ['PATH_INFO'].split("/")[-1]
-    #fname = environ['PATH_INFO'].lstrip('/').split("/")[0]
-    #print "environ['PATH_INFO'].lstrip('/')", environ['PATH_INFO'].lstrip('/')
 
     fname = environ['PATH_INFO']
 
