@@ -114,7 +114,7 @@ class FileInISO(object):
 
         try:
             statDir = self.__iso.stat(path2File)
-    
+
         except:
             return False
 
@@ -248,6 +248,7 @@ class FileInISO(object):
         else:
             result = self.__decBuf[firstByte:]
 
+        blkNum += 1
         while len(result) < size:
             result += self.__readBlock(blkNum)
             blkNum += 1
