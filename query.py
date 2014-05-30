@@ -19,6 +19,7 @@ version. For more information, see http://www.gnu.org/
 
 """
 
+import sys
 import cgi
 import datetime
 import urllib2
@@ -95,6 +96,9 @@ class ResultFile(object):
             # Prepare Request
             req = urllib2.Request(url)
 
+            sys.stdout.write('\n%d / %d - (%s) Buffer: ' % (pos,
+                                                           len(self.urlList),
+                                                           url.split('?')[1]))
             # Connect to the proper FDSN-WS
             try:
                 u = urllib2.urlopen(req)
@@ -102,9 +106,7 @@ class ResultFile(object):
                 # Read the data in blocks of predefined size
                 buffer = u.read(blockSize)
                 while len(buffer):
-                    print '%d / %d - (%s) Buffer: %s bytes' \
-                        % (pos, len(self.urlList), url.split('?')[1],
-                           len(buffer))
+                    sys.stdout.write(' %d' % len(buffer))
                     # Return one block of data
                     yield buffer
                     buffer = u.read(blockSize)
