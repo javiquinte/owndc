@@ -97,14 +97,18 @@ class ResultFile(object):
             req = urllib2.Request(url)
 
             sys.stdout.write('\n%d / %d - (%s) Buffer: ' % (pos,
-                                                           len(self.urlList),
-                                                           url.split('?')[1]))
+                                                            len(self.urlList),
+                                                            url))
             # Connect to the proper FDSN-WS
             try:
                 u = urllib2.urlopen(req)
 
                 # Read the data in blocks of predefined size
                 buffer = u.read(blockSize)
+                if not len(buffer):
+                    print 'Error code: ', u.getcode()
+                    print 'Info: ', u.info()
+
                 while len(buffer):
                     sys.stdout.write(' %d' % len(buffer))
                     # Return one block of data
@@ -120,6 +124,8 @@ class ResultFile(object):
                 elif hasattr(e, 'code'):
                     print 'The server couldn\'t fulfill the request.'
                     print 'Error code: ', e.code
+            except Exception as e:
+                print e
 
         raise StopIteration
 
@@ -161,7 +167,8 @@ class DataSelectQuery(object):
 
         # Add routing cache here, to be accessible to all modules
         routesFile = dataPath + '/routing.xml'
-        self.routes = RoutingCache(routesFile)
+        masterFile = dataPath + '/masterTable.xml'
+        self.routes = RoutingCache(routesFile, masterFile)
 
         self.ID = str(datetime.datetime.now())
 
