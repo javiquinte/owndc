@@ -212,7 +212,7 @@ class DataSelectQuery(object):
                 fdsnws = self.routes.getRoute(n, s, l, c, start, endt,
                                               'dataselect')
 
-                url = fdsnws + '?network=' + n
+                url = fdsnws[0] + '?network=' + n
                 url += '&station=' + s
                 if len(l):
                     url += '&location=' + l
@@ -313,7 +313,7 @@ class DataSelectQuery(object):
             fdsnws = self.routes.getRoute(n, s, l, c, start, endt,
                                           'dataselect')
 
-            url = fdsnws + '?network=' + n
+            url = fdsnws[0] + '?network=' + n
             url += '&station=' + s
             if len(l):
                 url += '&location=' + l
