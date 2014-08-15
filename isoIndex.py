@@ -50,7 +50,8 @@ class FileInISO(object):
         try:
             self.__stat = self.__iso.stat(self.pathName)
 
-        except: # TypeError: 'NoneType' object is not subscriptable
+        except:  # TypeError: 'NoneType' object is not subscriptable
+            self.__iso.close()
             raise ISONoDataAvailable('File "%s" is not found in ISO file.'
                                      % pathName)
 
