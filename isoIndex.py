@@ -261,7 +261,11 @@ class FileInISO(object):
         """Close the open file inside the ISO image AND the ISO file.
         It works exactly as a normal close method on a regular file.
         """
-        self.__iso.close()
+        if self.__iso is not None:
+            self.__iso.close()
+
+    def __del__(self):
+        self.close()
 
 
 class IndexedISO(object):
@@ -328,8 +332,10 @@ class IndexedISO(object):
                 try:
                     msFile = FileInISO(isoFile, dataFile)
                 except ISONoDataAvailable:
+                    msFile.close()
                     continue
                 except:
+                    msFile.close()
                     raise
 
                 # Open the index file
@@ -441,7 +447,9 @@ class IndexedISO(object):
                     # and another one (recEnd) to the record where I should
                     # stop
                     msFile.seek(lower * reclen)
-                    return msFile.read((upper - lower + 1) * reclen)
+                    buff = msFile.read((upper - lower + 1) * reclen)
+                    msFile.close()
+                    return buff
 
             else:
                 raise ISONoDataAvailable('Error: No data for %s on %d/%d/%d!' %
