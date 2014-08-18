@@ -295,21 +295,22 @@ class IndexedSDS(object):
         idxFileName = self._buildPath(reqDate, net, sta, loc, cha)
         if not os.path.exists(os.path.dirname(idxFileName)):
             os.makedirs(os.path.dirname(idxFileName))
-        idxFile = open(idxFileName, 'wb')
 
-        baseTime = None
-        # Loop through the records in the file
-        for msrec in seiscomp.mseedlite.Input(fd):
-            # setup the base time for the whole file
-            if baseTime is None:
-                baseTime = msrec.begin_time
-                reclen = msrec.size
-                print "Indexing %s on %d/%d/%d with records of %d bytes" % \
-                    ((net, sta, loc, cha), reqDate.year, reqDate.month,
-                     reqDate.day, reclen)
-                idxFile.write(pack('i', reclen))
+        with open(idxFileName, 'wb') as idxFile:
 
-            diffSeconds = (msrec.begin_time - baseTime).total_seconds()
-            idxFile.write(pack('f', diffSeconds))
+            baseTime = None
+            # Loop through the records in the file
+            for msrec in seiscomp.mseedlite.Input(fd):
+                # setup the base time for the whole file
+                if baseTime is None:
+                    baseTime = msrec.begin_time
+                    reclen = msrec.size
+                    print "Indexing %s on %d/%d/%d with records of %d bytes" %\
+                        ((net, sta, loc, cha), reqDate.year, reqDate.month,
+                         reqDate.day, reclen)
+                    idxFile.write(pack('i', reclen))
+
+                diffSeconds = (msrec.begin_time - baseTime).total_seconds()
+                idxFile.write(pack('f', diffSeconds))
 
         idxFile.close()
