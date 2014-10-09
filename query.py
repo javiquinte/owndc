@@ -31,7 +31,12 @@ import seiscomp3.Config
 import seiscomp3.Logging
 
 from seiscomp import logs
-from wsgicomm import *
+from wsgicomm import WIError
+from wsgicomm import send_plain_response
+from wsgicomm import send_xml_response
+from wsgicomm import send_html_response
+from wsgicomm import send_dynamicfile_response
+from wsgicomm import send_file_response
 from inventorycache import InventoryCache
 from routing import RoutingCache
 from routing import applyFormat
@@ -313,10 +318,13 @@ class DataSelectQuery(object):
 
         for reqLine in self.ic.expand(net, sta, loc, cha, start, endt):
             n, s, l, c = reqLine
-            fdsnws = self.routes.getRoute(n, s, l, c, start, endt,
-                                          'dataselect')
+            try:
+                fdsnws = self.routes.getRoute(n, s, l, c, start, endt,
+                                              'dataselect')
+                urlList.extend(applyFormat(fdsnws, 'get').splitlines())
 
-            urlList.extend(applyFormat(fdsnws, 'get').splitlines())
+            except WIError:
+                pass
 
         iterObj = ResultFile(urlList)
         return iterObj
@@ -347,6 +355,7 @@ def application(environ, start_response):
     # Among others, this will filter wrong function names,
     # but also the favicon.ico request, for instance.
     if fname is None:
+        status = '400 Bad Request'
         return send_html_response(status, 'Error! ' + status, start_response)
 
     try:
@@ -397,7 +406,10 @@ def application(environ, start_response):
 
     elif fname == 'query':
         makeQuery = getattr(wi, 'makeQuery%s' % environ['REQUEST_METHOD'])
-        iterObj = makeQuery(form)
+        try:
+            iterObj = makeQuery(form)
+        except WIError as w:
+            return send_plain_response(w.status, w.body, start_response)
 
     if isinstance(iterObj, basestring):
         status = '200 OK'
