@@ -19,6 +19,7 @@ version. For more information, see http://www.gnu.org/
 
 """
 
+import os
 import sys
 import cgi
 import datetime
@@ -33,6 +34,7 @@ from seiscomp import logs
 from wsgicomm import *
 from inventorycache import InventoryCache
 from routing import RoutingCache
+from routing import applyFormat
 from msIndex import IndexedSDS
 
 # Verbosity level a la SeisComP logging.level: 1=ERROR, ... 4=DEBUG
@@ -131,7 +133,7 @@ class ResultFile(object):
 
 
 class DataSelectQuery(object):
-    def __init__(self, appName, dataPath, sdsRoot=None, isoRoot=None,
+    def __init__(self, appName, sdsRoot=None, isoRoot=None,
                  idxRoot=None):
         if sdsRoot is not None and idxRoot is not None:
             self.iSDS = IndexedSDS(sdsRoot, isoRoot, idxRoot)
@@ -162,12 +164,13 @@ class DataSelectQuery(object):
         env.initConfig(self.__cfg, appName, env.CS_FIRST, env.CS_LAST, True)
 
         # Add inventory cache here, to be accessible to all modules
-        inventory = dataPath + '/Arclink-inventory.xml'
+        here = os.path.dirname(__file__)
+        inventory = os.path.join(here, 'Arclink-inventory.xml')
         self.ic = InventoryCache(inventory)
 
         # Add routing cache here, to be accessible to all modules
-        routesFile = dataPath + '/routing.xml'
-        masterFile = dataPath + '/masterTable.xml'
+        routesFile = os.path.join(here, 'routing.xml')
+        masterFile = os.path.join(here, 'masterTable.xml')
         self.routes = RoutingCache(routesFile, masterFile)
 
         self.ID = str(datetime.datetime.now())
@@ -222,7 +225,7 @@ class DataSelectQuery(object):
 
                 urlList.append(url)
 
-        iterObj = ResultFile(urlList, self.iSDS)
+        iterObj = ResultFile(urlList)
         return iterObj
 
     def makeQueryGET(self, parameters):
@@ -240,9 +243,9 @@ class DataSelectQuery(object):
 
         try:
             if 'network' in parameters:
-                net = parameters['network'].value
+                net = parameters['network'].value.upper()
             elif 'net' in parameters:
-                net = parameters['net'].value
+                net = parameters['net'].value.upper()
             else:
                 net = '*'
         except:
@@ -250,9 +253,9 @@ class DataSelectQuery(object):
 
         try:
             if 'station' in parameters:
-                sta = parameters['station'].value
+                sta = parameters['station'].value.upper()
             elif 'sta' in parameters:
-                sta = parameters['sta'].value
+                sta = parameters['sta'].value.upper()
             else:
                 sta = '*'
         except:
@@ -260,9 +263,9 @@ class DataSelectQuery(object):
 
         try:
             if 'location' in parameters:
-                loc = parameters['location'].value
+                loc = parameters['location'].value.upper()
             elif 'loc' in parameters:
-                loc = parameters['loc'].value
+                loc = parameters['loc'].value.upper()
             else:
                 loc = '*'
         except:
@@ -270,9 +273,9 @@ class DataSelectQuery(object):
 
         try:
             if 'channel' in parameters:
-                cha = parameters['channel'].value
+                cha = parameters['channel'].value.upper()
             elif 'cha' in parameters:
-                cha = parameters['cha'].value
+                cha = parameters['cha'].value.upper()
             else:
                 cha = '*'
         except:
@@ -281,11 +284,11 @@ class DataSelectQuery(object):
         try:
             if 'starttime' in parameters:
                 start = datetime.datetime.strptime(
-                    parameters['starttime'].value,
+                    parameters['starttime'].value.upper(),
                     '%Y-%m-%dT%H:%M:%S')
             elif 'start' in parameters:
                 start = datetime.datetime.strptime(
-                    parameters['start'].value,
+                    parameters['start'].value.upper(),
                     '%Y-%m-%dT%H:%M:%S')
             else:
                 raise Exception
@@ -295,11 +298,11 @@ class DataSelectQuery(object):
         try:
             if 'endtime' in parameters:
                 endt = datetime.datetime.strptime(
-                    parameters['endtime'].value,
+                    parameters['endtime'].value.upper(),
                     '%Y-%m-%dT%H:%M:%S')
             elif 'end' in parameters:
                 endt = datetime.datetime.strptime(
-                    parameters['end'].value,
+                    parameters['end'].value.upper(),
                     '%Y-%m-%dT%H:%M:%S')
             else:
                 raise Exception
@@ -313,17 +316,9 @@ class DataSelectQuery(object):
             fdsnws = self.routes.getRoute(n, s, l, c, start, endt,
                                           'dataselect')
 
-            url = fdsnws[0] + '?network=' + n
-            url += '&station=' + s
-            if len(l):
-                url += '&location=' + l
-            url += '&channel=' + c
-            url += '&starttime=' + start.strftime('%Y-%m-%dT%H:%M:%S')
-            url += '&endtime=' + endt.strftime('%Y-%m-%dT%H:%M:%S')
+            urlList.extend(applyFormat(fdsnws, 'get').splitlines())
 
-            urlList.append(url)
-
-        iterObj = ResultFile(urlList, self.iSDS)
+        iterObj = ResultFile(urlList)
         return iterObj
 
 
@@ -333,8 +328,7 @@ class DataSelectQuery(object):
 #
 ##################################################################
 
-wi = DataSelectQuery('EIDA FDSN-WS', '/var/www/fdsnws/dataselect/',
-                     '/iso_sds', '/iso_arc', '/iso_sds/indexes')
+wi = DataSelectQuery('EIDA FDSN-WS')
 
 
 def application(environ, start_response):
@@ -394,7 +388,8 @@ def application(environ, start_response):
 
     if fname == 'application.wadl':
         iterObj = ''
-        with open('/var/www/fdsnws/dataselect/application.wadl', 'r') \
+        here = os.path.dirname(__file__)
+        with open(os.path.join(here, 'application.wadl'), 'r') \
                 as appFile:
             iterObj = appFile.read()
             status = '200 OK'
