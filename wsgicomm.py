@@ -10,20 +10,62 @@
 
 """Functions and resources to communicate via a WSGI module
 
-(c) 2013 GEOFON, GFZ Potsdam
+   :Copyright:
+       GEOFON, GFZ Potsdam <geofon@gfz-potsdam.de>
+   :License:
+       To be decided!
+   :Platform:
+       Linux
 
-The list of functions in this module and the information it returns is:
-- query: different network types (the name should change. See what returns.)
-
-The internal functions are:
-- __init_session: triple containing session-key, username and password.
-
-This program is free software; you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published by the
-Free Software Foundation; either version 2, or (at your option) any later
-version. For more information, see http://www.gnu.org/
+.. moduleauthor:: Javier Quinteros <javier@gfz-potsdam.de>, GEOFON, GFZ Potsdam
 
 """
+
+import sys
+
+
+class Logs(object):
+    """
+:synopsis: Given a log level and a stream, it redirects the output to the
+           proper destination
+:platform: Linux
+
+"""
+
+    def __init__(self, level=2, outstr=sys.stdout):
+        self.setLevel(level)
+        self.outstr = outstr
+
+    def setLevel(self, level):
+        """Set the level of the log
+
+:param level: Log level (1: Error, 2: Warning, 3: Info, 4: Debug)
+:type level: int
+
+        """
+
+        # Remap the functions in agreement with the output level
+        # Default values are the following
+        self.error = self.__pass
+        self.warning = self.__pass
+        self.info = self.__pass
+        self.debug = self.__pass
+
+        if level >= 1:
+            self.error = self.__write
+        if level >= 2:
+            self.warning = self.__write
+        if level >= 3:
+            self.info = self.__write
+        if level >= 4:
+            self.debug = self.__write
+
+    def __write(self, msg):
+        self.outstr.write(msg)
+        self.outstr.flush()
+
+    def __pass(self, msg):
+        pass
 
 
 ##################################################################
@@ -39,8 +81,6 @@ class PlsRedirect(Exception):
     The constructor of the class receives a string, which is the
     URL where the web browser is going to be redirected.
 
-    Begun by Javier Quinteros <javier@gfz-potsdam.de>, GEOFON team, June 2013
-
     """
 
     def __init__(self, url):
@@ -51,17 +91,25 @@ class PlsRedirect(Exception):
 
 
 class WIError(Exception):
-    """Exception to signal that an error occurred while doing something,
-    that the web client should see.
-
-    Inputs:
-      status     - string, like "200 Good", "400 Bad"
-      body       - string, plain text content to display to the client
-      verbosity  - integer, 0 = silent, 4 = debug
-
     """
+:synopsis: Exception to signal that an error occurred while doing something,
+           that the web client should see.
+:platform: Linux
+
+"""
 
     def __init__(self, status, body, verbosity=1):
+        """Constructor
+
+:param status: An HTTP code number the short description associated to it
+:type status: str
+:param body: plain text content to display to the client
+:type body: str
+:param verbosity: 0 = silent, 4 = debug
+:type verbosity: int
+
+        """
+
         self.status = status
         self.body = body
         self.verbosity = verbosity
@@ -72,21 +120,46 @@ class WIError(Exception):
 
 
 class WIContentError(WIError):
+    """
+:synopsis: Exception to signal that no content has been found for the
+           parameters in the request. (204)
+:platform: Linux
+
+"""
+
     def __init__(self, *args, **kwargs):
         WIError.__init__(self, "204 No Content", *args, **kwargs)
 
 
 class WIClientError(WIError):
+    """
+:synopsis: Exception to signal that an invalid request was received (400)
+:platform: Linux
+
+"""
+
     def __init__(self, *args, **kwargs):
         WIError.__init__(self, "400 Bad Request", *args, **kwargs)
 
 
 class WIInternalError(WIError):
+    """
+:synopsis: Exception to signal that an internal server error occurred (500)
+:platform: Linux
+
+"""
+
     def __init__(self, *args, **kwargs):
         WIError.__init__(self, "500 Internal Server Error", *args, **kwargs)
 
 
 class WIServiceError(WIError):
+    """
+:synopsis: Exception to signal that the service is unavailable (503)
+:platform: Linux
+
+"""
+
     def __init__(self, *args, **kwargs):
         WIError.__init__(self, "503 Service Unavailable", *args, **kwargs)
 
@@ -98,11 +171,11 @@ class WIServiceError(WIError):
 ##################################################################
 
 def redirect_page(url, start_response):
-    """Tells the web client through the WSGI module to redirect to an URL.
-
-    Begun by Javier Quinteros <javier@gfz-potsdam.de>, GEOFON team, June 2013
-
     """
+:synopsis: Tells the web client through the WSGI module to redirect to a URL
+:platform: Linux
+
+"""
 
     response_headers = [('Location', url)]
     start_response('301 Moved Permanently', response_headers)
@@ -110,11 +183,11 @@ def redirect_page(url, start_response):
 
 
 def send_html_response(status, body, start_response):
-    """Sends an HTML response in WSGI style.
-
-    Begun by Javier Quinteros <javier@gfz-potsdam.de>, GEOFON team, June 2013
-
     """
+:synopsis: Sends an HTML response in WSGI style
+:platform: Linux
+
+"""
 
     response_headers = [('Content-Type', 'text/html; charset=UTF-8'),
                         ('Content-Length', str(len(body)))]
@@ -123,9 +196,9 @@ def send_html_response(status, body, start_response):
 
 
 def send_xml_response(status, body, start_response):
-    """Sends an XML response in WSGI style.
-
-    Begun by Javier Quinteros <javier@gfz-potsdam.de>, GEOFON team, June 2013
+    """
+    :synopsis: Sends an XML response in WSGI style.
+    :platform: Linux
 
     """
 
@@ -136,9 +209,9 @@ def send_xml_response(status, body, start_response):
 
 
 def send_plain_response(status, body, start_response):
-    """Sends a plain response in WSGI style.
-
-    Begun by Javier Quinteros <javier@gfz-potsdam.de>, GEOFON team, June 2013
+    """
+    :synopsis: Sends a plain response in WSGI style
+    :platform: Linux
 
     """
 
@@ -149,11 +222,13 @@ def send_plain_response(status, body, start_response):
 
 
 def send_file_response(status, body, start_response):
-    """Sends a file or similar object.
-
-    Caller must set the filename, size and content_type attributes of body.
+    """
+    :synopsis: Sends a file or a similar object. Caller must set the
+               filename, size and content_type attributes of body.
+    :platform: Linux
 
     """
+
     response_headers = [('Content-Type', body.content_type),
                         ('Content-Length', str(body.size)),
                         ('Content-Disposition', 'attachment; filename=%s' %
@@ -163,9 +238,9 @@ def send_file_response(status, body, start_response):
 
 
 def send_dynamicfile_response(status, body, start_response):
-    """Sends a file or similar object.
-
-    Caller must set the filename, size and content_type attributes of body.
+    """
+:synopsis: Sends a file or similar object. Caller must set the filename, size \
+           and content_type attributes of body.
 
     """
 
@@ -179,8 +254,8 @@ def send_dynamicfile_response(status, body, start_response):
 
             # Content-length cannot be set because the file size is unknown
             response_headers = [('Content-Type', body.content_type),
-                                ('Content-Disposition', 'attachment; filename=%s' %
-                                 (body.filename))]
+                                ('Content-Disposition',
+                                 'attachment; filename=%s' % (body.filename))]
             start_response(status, response_headers)
 
         # Increment the loop count
