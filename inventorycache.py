@@ -2,25 +2,18 @@
 #
 # InventoryCache for the Arclink web interface
 #
-# Begun by Javier Quinteros, GEOFON team, June 2013
+# (c) 2014 Javier Quinteros, GEOFON team
 # <javier@gfz-potsdam.de>
 #
 # ----------------------------------------------------------------------
 
+"""Provides a reduced version of the inventory cached in memory (or disk)
 
-"""InventoryCache for the Arclink web interface
+   :Copyright: GEOFON, GFZ Potsdam <geofon@gfz-potsdam.de>
+   :License: To be decided!
+   :Platform: Linux
 
-(c) 2013 GEOFON, GFZ Potsdam
-
-Encapsulate and manage the information of networks,
-stations, locations and streams read from an Arclink XML file inventory.
-
-
-This program is free software; you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published by the
-Free Software Foundation; either version 2, or (at your option) any later
-version. For more information, see http://www.gnu.org/
-
+.. moduleauthor:: Javier Quinteros <javier@gfz-potsdam.de>, GEOFON, GFZ Potsdam
 """
 
 ##################################################################
@@ -32,32 +25,41 @@ version. For more information, see http://www.gnu.org/
 
 import datetime
 import os
-###import tempfile
 import math
 import cPickle as pickle
 import xml.etree.cElementTree as ET
-import json
 import fnmatch
 from collections import defaultdict
 
 import wsgicomm
-from seiscomp import logs
-import seiscomp3.Math as Math
-
-###tempdir = tempfile.gettempdir()
 
 
 class InventoryCache(object):
-    """Encapsulate and manage the information of networks,
-    stations, locations and streams read from an Arclink XML file inventory.
-
-    Begun by Javier Quinteros <javier@gfz-potsdam.de>, GEOFON team, June 2013
-
+    """
+:synopsis: Encapsulate and manage the information of networks, stations,
+           locations and streams read from an Arclink XML file inventory
+:platform: Any
     """
 
-    def __init__(self, inventory):
+
+    def __init__(self, inventory, logs=wsgicomm.Logs(2)):
+        """InventoryCache constructor
+
+        :param inventory: file name containing inventory information in
+                          Arclink-XML format
+        :type inventory: str
+        :param logs: Logging class supporting methods to write dependeing on
+                     the verbosity level.
+        :type logs: :class:`~wsgicomm.logs` (or other class implementing the
+                    expected methods)
+
+        """
+
         # Arclink inventory file in XML format
         self.inventory = inventory
+
+        # Check where should we log all our output
+        self.logs = logs
 
         # Temporary file to store the internal representation of the cache
         # in pickle format
@@ -102,6 +104,10 @@ class InventoryCache(object):
         self.update()
 
     def __indexStreams(self):
+        """Read all the streams in the inventory and index them
+
+        """
+
         self.streamidx = {}
 
         for stream in self.streams:
@@ -129,7 +135,7 @@ class InventoryCache(object):
         necessary attributes are stored. This relies on the idea
         that some other agent should update the inventory file at
         a regular period of time.
-        If the XML file have been already processed by other instance of
+        If the XML file has been already processed by other instance of
         this class, we could look for a temporary file containing a memory
         dump of the generated structures, avoiding the time invested in
         the construction.
@@ -180,12 +186,12 @@ class InventoryCache(object):
                 with open(self.cachefile) as cache:
                     (self.networks, self.stations, self.sensorsLoc,
                      self.streams, self.streamidx) = pickle.load(cache)
-                    logs.info('Inventory loaded from pickle version')
+                    self.logs.info('Inventory loaded from pickle version')
                     return
             except:
                 pass
 
-        logs.info('Processing XML: %s' % start_time)
+        self.logs.info('Processing XML: %s' % start_time)
 
         sensors = {}
         dataloggers = {}
@@ -199,7 +205,7 @@ class InventoryCache(object):
             invfile = open(self.inventory)
         except IOError:
             msg = 'Error: Arclink-inventory.xml could not be opened.'
-            logs.error(msg)
+            self.logs.error(msg)
             raise wsgicomm.WIInternalError, msg
 
         for parsetype in ['SENSDAT', 'NET_STA']:
@@ -211,7 +217,7 @@ class InventoryCache(object):
                 context = ET.iterparse(invfile, events=("start", "end"))
             except IOError:
                 msg = 'Error while trying to parse Arclink-inventory.xml.'
-                logs.error(msg)
+                self.logs.error(msg)
                 raise wsgicomm.WIInternalError, msg
 
             # turn it into an iterator
@@ -223,7 +229,7 @@ class InventoryCache(object):
             # Check that it is really an inventory
             if root.tag[-len('inventory'):] != 'inventory':
                 msg = 'The file parsed seems not to be an inventory (XML).'
-                logs.error(msg)
+                self.logs.error(msg)
                 raise wsgicomm.WIInternalError, msg
 
             # Extract the namespace from the root node
@@ -477,7 +483,7 @@ class InventoryCache(object):
 
         end_time = datetime.datetime.now()
         # Python 2.7: (end_time - start_time).total_seconds())
-        logs.info('Done with XML:  %s' % (end_time))
+        self.logs.info('Done with XML:  %s' % (end_time))
 
         self.__indexStreams()
 
@@ -487,11 +493,12 @@ class InventoryCache(object):
                 os.chmod(lockfile, 0666)
                 lck.close()
             except:
-                logs.warning(('Error while attempting to create a lockfile' +
-                              ' (%s). Check whether the inventory is parsed' +
-                              ' every %d seconds. This could potentialy' +
-                              ' make some requests slower.') %
-                             (lockfile, self.time2refresh))
+                self.logs.warning(('Error while attempting to create a ' +
+                                   'lockfile (%s). Check whether the ' +
+                                   'inventory is parsed every %d seconds. ' +
+                                   'This could potentialy make some ' +
+                                   'requests slower.') %
+                                  (lockfile, self.time2refresh))
                 return
 
             with open(self.cachefile, 'wb') as cache:
@@ -502,16 +509,34 @@ class InventoryCache(object):
             try:
                 os.remove(lockfile)
             except:
-                logs.error(('Error by removing lockfile (%s). Remove it' +
-                            ' manually or the pickle version will be always' +
-                            ' skipped.') % lockfile)
+                self.logs.error(('Error by removing lockfile (%s). Remove it' +
+                                 ' manually or the pickle version will be ' +
+                                 'always skipped.') % lockfile)
 
     def expand(self, n='*', s='*', l='*', c='*',
-               start=datetime.datetime(1980, 1, 1, 0, 0, 0),
-               end=datetime.datetime.now(), restricted=False):
+               start=None, end=None, restricted=False):
         """Expand to a list of networks, stations, locations and channels
-        The result is a list of (N, S, L, C) without wildcards.
-        If restricted is True, restricted streams will be included."""
+The result is a list of (N, S, L, C) **without** wildcards.
+If *restricted* is True, restricted streams will be included.
+
+:param n: Network
+:type n: str
+:param s: Station
+:type s: str
+:param l: Location
+:type l: str
+:param c: Channel
+:type c: str
+:param start: Start time of the timewindow
+:type start: datetime
+:param end: End time of the timewindow
+:type end: datetime
+:param restricted: Specify whether the restricted streams should be included
+:type restricted: Bool
+:returns: List of tuples with (N, S, L, C)
+:rtype: list
+
+"""
 
         # If there are no wildcards, return exactly the stream received.
         if ('*' not in n + s + l + c) and ('?' not in n + s + l + c):
@@ -522,7 +547,7 @@ class InventoryCache(object):
             # Check that the first and last station (children) are defined
             # Also that the network is not restricted
             if ((net[1] is None) or (net[2] is None) or
-                (net[7] == 1 and not restricted)):
+                    (net[7] == 1 and not restricted)):
                 continue
             if fnmatch.fnmatch(net[0], n):
                 first_child_sta = net[1]
@@ -543,31 +568,38 @@ class InventoryCache(object):
                                 for chaidx in xrange(first_child_cha,
                                                      last_child_cha):
                                     ptCha = self.streams[chaidx]
-                                    # print ptCha
                                     # Check whether stream is restricted or not
                                     if (ptCha[8] == 1 and not restricted):
                                         continue
                                     if fnmatch.fnmatch(ptCha[1], c):
                                         if ((ptCha[7] is not None) and
-                                           (start > ptCha[7])):
+                                           ((start is not None) and
+                                                (start > ptCha[7]))):
                                             continue
-                                        if end < ptCha[6]:
+                                        if ((end is not None) and
+                                                (end < ptCha[6])):
                                             continue
                                         result.append((net[0],
                                                        ptSta[4],
                                                        ptLoc[4],
                                                        ptCha[1]))
 
-        if not len(result):
-            result.append((n, s, l, c))
+        # FIXME I think we can delete this as it could give wrong results.
+        # F.i. 4C * * * will return exactly the same, but we do not expect
+        # wildcards!
+        # if not len(result):
+        #    result.append((n, s, l, c))
         return result
 
     # Method to select networks from the parameters passed
     def __selectNetworks(self, params):
         """Select networks filtered by the input parameters.
 
-        A list of indexes is returned. These indexes indicate the networks that
-        satisfy the constraints indicated by the input parameters.
+:param params: Parameters to filter/select the networks
+:type params: dictionary
+:returns: The values are actually the indexes, that indicate the
+          networks that satisfy the constraints from the input parameters
+:rtype: list
 
         """
 
@@ -700,9 +732,11 @@ class InventoryCache(object):
     def __selectStations(self, params):
         """Select stations filtered by the input parameters.
 
-        Returns a set of indexes. These indexes indicate the
-        stations that satisfy the constraints indicated by the
-        input parameters.
+:param params: Parameters to filter/select the stations
+:type params: dictionary
+:returns: The values are actually the indexes, that indicate the
+          stations that satisfy the constraints from the input parameters
+:rtype: list
 
         """
 
@@ -810,19 +844,24 @@ class InventoryCache(object):
                            preferredsps=None, start=None, end=None):
         """Build a list of streams based on a station index
 
-        Inputs:
-          statidx: Station index on self.stations
-          streamFilter: a list of tuples with two
-                        components. The first one is the location code, while
-                        the second one is the two first letters of the
-                        channel. For instance, ('00', 'BH')
-          sensortype:   as received in parameters
-          preferredsps: the preferred sample rate. At least one stream is
-                        selected from each station.
-          start:        start year in datetime format from parameters sent by
-                        the web client
-          end:          end year in datetime format from parameters sent by
-                        the web client
+:param statidx: Station index on self.stations
+:type statidx: int
+:param streamFilter: A list of tuples with two components. The first one has
+                     the location code and the two first letters of the
+                     channel. For instance, ('00', 'BH'). The second indicates
+                     if the stream is restricted.
+:type streamFilter: list of tuples with two str
+:param sensortype: Sensor type used to filter the streams
+:type sensortype: str
+:param preferredsps: the preferred sample rate. At least one stream is selected
+                     from each station.
+:type preferredsps: int/float
+:param start: start year of the timewindow
+:type start: datetime
+:param end: end year of the timewindow
+:type end: datetime
+:returns: A list of tuples with the streams that fulfill the filter criteria
+:rtype: list
 
         """
 
@@ -907,7 +946,12 @@ class InventoryCache(object):
         This method is public and appends the necessary
         information to the networks actually selected by
         __selectNetworks. It contains only a couple of columns
-        because it is used in the menus.
+        because it was designed to be used in the menus of WebDC3.
+
+:param params: Parameters to filter/select the networks
+:type params: dictionary
+:rtype: list
+:returns: A list of networks that satisfy the filter criteria
 
         """
 
@@ -936,7 +980,12 @@ class InventoryCache(object):
         This method is public and appends the necessary
         information to the stations actually selected by
         __selectStations. It contains only a couple of columns
-        because it is used in the menus.
+        because it was designed to be used in the menus of WebDC3.
+
+:param params: Parameters to filter/select the stations
+:type params: dictionary
+:rtype: list
+:returns: A list of stations that satisfy the filter criteria
 
         """
 
@@ -965,7 +1014,13 @@ class InventoryCache(object):
         This method is public and appends the necessary
         information to the streams that belong to the stations
         actually selected by __selectStations. It contains only a
-        couple of columns because it is used in the menus.
+        couple of columns
+        because it was designed to be used in the menus of WebDC3.
+
+:param params: Parameters to filter/select the streams
+:type params: dictionary
+:rtype: list
+:returns: A list of streams that satisfy the filter criteria
 
         """
 
@@ -1003,8 +1058,13 @@ class InventoryCache(object):
         This method is public and appends the necessary
         information to the streams that belong to the stations
         actually selected by __selectStations. It contains many
-        columns, as it is the list to show in the construction of
-        the request package.
+        columns, because it was designed to be used in the list to construct
+        the request package in WebDC3.
+
+:param params: Parameters to filter/select the streams
+:type params: dictionary
+:rtype: list
+:returns: A list of streams that satisfy the filter criteria
 
         """
 
@@ -1124,10 +1184,10 @@ class InventoryCache(object):
             msg = 'Error: maxazimuth must be a float number.'
             raise wsgicomm.WIClientError, msg
 
-        try:
-            events = params.get('events', None)
-        except:
-            events = None
+        #try:
+        #    events = params.get('events', None)
+        #except:
+        #    events = None
 
         # Try to check parameters for different modes of selecting stations
         # One or all stations have been selected and also lat/lon parameters
@@ -1221,54 +1281,6 @@ class InventoryCache(object):
                                   ptNets[parent_net][8], ptNets[parent_net][9],
                                   ptNets[parent_net][10], loc_ch, restricted))
 
-        elif events is not None:
-
-            events = json.loads(events)
-
-            for st in statsOK:
-                # Pointer to the parent network
-                parent_net = ptStats[st][0]
-
-                # Retrieve latitude and longitude of station
-                slat = ptStats[st][5]
-                slon = ptStats[st][6]
-
-                for evt in events:
-                    # Retrieve latitude and longitude of event
-                    lat = evt[0]
-                    lon = evt[1]
-
-                    # Calculate radial distance and azimuth
-                    (dist, azi, other) = Math.delazi(slat, slon, lat, lon)
-
-                    if (minradius < dist) and (dist < maxradius) and \
-                       (minazimuth < azi) and (azi < maxazimuth):
-                        (loc_ch, restricted) = \
-                            self.__buildStreamsList(st, streams, sensortype,
-                                                    preferredsps, start_date,
-                                                    end_date)
-
-                        if len(loc_ch):
-                            stats.append(('%s-%s-%s-%s%s%s' %
-                                          (ptNets[parent_net][0],
-                                           ptNets[parent_net][4],
-                                           ptStats[st][4],
-                                           ptStats[st][8].year,
-                                           ptStats[st][8].month,
-                                           ptStats[st][8].day),
-                                          ptNets[parent_net][0],
-                                          ptStats[st][4], ptStats[st][5],
-                                          ptStats[st][6],
-                                          ptStats[st][11],
-                                          ptNets[parent_net][8],
-                                          ptNets[parent_net][9],
-                                          ptNets[parent_net][10], loc_ch,
-                                          restricted))
-
-                        # Stop the loop through events and go for the
-                        # next station
-                        break
-
         else:
             msg = 'Error: not enough parameters have been given.'
             raise wsgicomm.WIClientError, msg
@@ -1282,10 +1294,29 @@ class InventoryCache(object):
         return stats
 
     def getStreamInfo(self, start_time, end_time, net, sta, cha, loc):
+        """Retrieve information for a stream in a particular timewindow. The
+returned data includes latitude, longitude, elevation and estimated size.
+
+:param start_time: Start time of the timewindow
+:type start_time: datetime
+:param end_time: End time of the timewindow
+:type end_time: datetime
+:param net: Network code
+:type net: str
+:param sta: Station code
+:type sta: str
+:param cha: Channel code
+:type cha: str
+:param loc: Location code
+:type loc: str
+:returns: Information for the stream in the specified timewindow
+:rtype: dict
+
+"""
         try:
             stream_epochs = self.streamidx[(net, sta, cha, loc)]
         except KeyError:
-            logs.error("%s,%s,%s,%s not found" % (net, sta, cha, loc))
+            self.logs.error("%s,%s,%s,%s not found" % (net, sta, cha, loc))
             return None
 
         for stream in stream_epochs:
@@ -1293,7 +1324,7 @@ class InventoryCache(object):
                 station = self.stations[self.sensorsLoc[stream[0]][0]]
 
             except IndexError:
-                logs.error("cache inconsistency")
+                self.logs.error("cache inconsistency")
                 return None
 
             # stream_start = datetime.datetime(station[8], 1, 1)
