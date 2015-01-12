@@ -9,7 +9,7 @@
 import os
 import sys	
 
-sys.path.append('/var/www/eidaws/dataselect')
+sys.path.append('/var/www/eidaws/dataselect/1')
 import query
 
 application = query.application
