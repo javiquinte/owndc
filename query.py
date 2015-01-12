@@ -25,12 +25,7 @@ import cgi
 import datetime
 import urllib2
 
-# SC3 stuff
-import seiscomp3.System
-import seiscomp3.Config
-import seiscomp3.Logging
-
-from seiscomp import logs
+from wsgicomm import Logs
 from wsgicomm import WIError
 from wsgicomm import send_plain_response
 from wsgicomm import send_xml_response
@@ -38,9 +33,9 @@ from wsgicomm import send_html_response
 from wsgicomm import send_dynamicfile_response
 from wsgicomm import send_file_response
 from inventorycache import InventoryCache
-from routing import RoutingCache
+from utils import RoutingCache
 from routing import applyFormat
-from msIndex import IndexedSDS
+#from msIndex import IndexedSDS
 
 # Verbosity level a la SeisComP logging.level: 1=ERROR, ... 4=DEBUG
 # (global parameters, settable in wsgi file)
@@ -57,9 +52,8 @@ class ResultFile(object):
     """Define a class that is an iterable. We can start returning the file
     before everything was retrieved from the sources."""
 
-    def __init__(self, urlList, iSDS=None):
+    def __init__(self, urlList):
         self.urlList = urlList
-        self.iSDS = iSDS
         self.content_type = 'application/vnd.fdsn.mseed'
         now = datetime.datetime.now()
         nowStr = '%d%d%d-%d%d%d' % (now.year, now.month, now.day,
@@ -73,33 +67,6 @@ class ResultFile(object):
         blockSize = 25 * 4096
 
         for pos, url in enumerate(self.urlList):
-            # Check if the data should be searched locally at the SDS archive
-            if url[:4] != 'http':
-                params = url.split()
-
-                try:
-                    startParts = params[4].replace('-', ' ').replace('T', ' ')
-                    startParts = startParts.replace(':', ' ').replace('.', ' ')
-                    startParts = startParts.replace('Z', '').split()
-                    params[4] = datetime.datetime(*map(int, startParts))
-                except:
-                    print 'Error while converting START parameter.'
-
-                try:
-                    endParts = params[5].replace('-', ' ').replace('T', ' ')
-                    endParts = endParts.replace(':', ' ').replace('.', ' ')
-                    endParts = endParts.replace('Z', '').split()
-                    params[5] = datetime.datetime(*map(int, endParts))
-                except:
-                    print 'Error while converting END parameter.'
-
-                # Iterator over MS files. Final result is returned in chunks.
-                for buffer in self.iSDS.getRawBytes(params[4], params[5],
-                                                    params[0], params[1],
-                                                    params[2], params[3]):
-                    yield buffer
-                continue
-
             # Prepare Request
             req = urllib2.Request(url)
 
@@ -138,35 +105,11 @@ class ResultFile(object):
 
 
 class DataSelectQuery(object):
-    def __init__(self, appName, sdsRoot=None, isoRoot=None,
-                 idxRoot=None):
-        if sdsRoot is not None and idxRoot is not None:
-            self.iSDS = IndexedSDS(sdsRoot, isoRoot, idxRoot)
-
-        # initialize SC3 environment
-        env = seiscomp3.System.Environment_Instance()
-
+    def __init__(self, appName):
         # set up logging
-        self.__syslog = seiscomp3.Logging.SyslogOutput()
-        self.__syslog.open(appName, syslog_facility)
+        self.logs = Logs(verbosity)
 
-        for (v, c) in ((1, "error"), (2, "warning"), (2, "notice"),
-                       (3, "info"), (4, "debug")):
-            if verbosity >= v:
-                self.__syslog.subscribe(seiscomp3.Logging.getGlobalChannel(c))
-
-        logs.debug = seiscomp3.Logging.debug
-        logs.info = seiscomp3.Logging.info
-        logs.notice = seiscomp3.Logging.notice
-        logs.warning = seiscomp3.Logging.warning
-        logs.error = seiscomp3.Logging.error
-
-        logs.notice("Starting EIDA Dataselect Web Service")
-
-        # load SC3 config files from all standard locations (SEISCOMP_ROOT
-        # must be set)
-        self.__cfg = seiscomp3.Config.Config()
-        env.initConfig(self.__cfg, appName, env.CS_FIRST, env.CS_LAST, True)
+        self.logs.info("Starting EIDA Dataselect Web Service")
 
         # Add inventory cache here, to be accessible to all modules
         here = os.path.dirname(__file__)
@@ -174,13 +117,13 @@ class DataSelectQuery(object):
         self.ic = InventoryCache(inventory)
 
         # Add routing cache here, to be accessible to all modules
-        routesFile = os.path.join(here, 'routing.xml')
-        masterFile = os.path.join(here, 'masterTable.xml')
+        routesFile = os.path.join(here, 'data', 'routing.xml')
+        masterFile = os.path.join(here, 'data', 'masterTable.xml')
         self.routes = RoutingCache(routesFile, masterFile)
 
         self.ID = str(datetime.datetime.now())
 
-        logs.debug(str(self))
+        self.logs.debug(str(self))
 
     def makeQueryPOST(self, lines):
 
@@ -348,6 +291,7 @@ def application(environ, start_response):
 
     """
 
+    logs = Logs(verbosity)
     fname = environ['PATH_INFO']
 
     logs.debug('fname: %s' % (fname))
