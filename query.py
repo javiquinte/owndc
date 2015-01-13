@@ -39,8 +39,7 @@ from routing import applyFormat
 
 # Verbosity level a la SeisComP logging.level: 1=ERROR, ... 4=DEBUG
 # (global parameters, settable in wsgi file)
-verbosity = 3
-syslog_facility = 'local0'
+verbosity = 4
 
 # Maximum size of POST data, in bytes? Or roubles?
 cgi.maxlen = 1000000
@@ -59,6 +58,7 @@ class ResultFile(object):
         nowStr = '%d%d%d-%d%d%d' % (now.year, now.month, now.day,
                                     now.hour, now.minute, now.second)
         self.filename = 'eidaws-%s.mseed' % nowStr
+        self.logs = Logs(verbosity)
 
     def __iter__(self):
         # Read a maximum of 25 blocks of 4k (or 200 of 512b) each time
@@ -70,9 +70,9 @@ class ResultFile(object):
             # Prepare Request
             req = urllib2.Request(url)
 
-            sys.stdout.write('\n%d / %d - (%s) Buffer: ' % (pos,
-                                                            len(self.urlList),
-                                                            url))
+            self.logs.debug('\n%d / %d - (%s) Buffer: ' % (pos,
+                                                           len(self.urlList),
+                                                           url))
             # Connect to the proper FDSN-WS
             try:
                 u = urllib2.urlopen(req)
@@ -80,11 +80,11 @@ class ResultFile(object):
                 # Read the data in blocks of predefined size
                 buffer = u.read(blockSize)
                 if not len(buffer):
-                    print 'Error code: ', u.getcode()
-                    print 'Info: ', u.info()
+                    self.logs.error('Error code: %s' % u.getcode())
+                    self.logs.error('Info: %s' % u.info())
 
                 while len(buffer):
-                    sys.stdout.write(' %d' % len(buffer))
+                    self.logs.debug(' %d' % len(buffer))
                     # Return one block of data
                     yield buffer
                     buffer = u.read(blockSize)
@@ -94,12 +94,12 @@ class ResultFile(object):
 
             except urllib2.URLError as e:
                 if hasattr(e, 'reason'):
-                    print '%s - Reason: %s' % (url, e.reason)
+                    self.logs.error('%s - Reason: %s' % (url, e.reason))
                 elif hasattr(e, 'code'):
-                    print 'The server couldn\'t fulfill the request.'
-                    print 'Error code: ', e.code
+                    self.logs.error('The server couldn\'t fulfill the request.')
+                    self.logs.error('Error code: %s' % e.code)
             except Exception as e:
-                print e
+                self.logs.error('%s' % e)
 
         raise StopIteration
 
