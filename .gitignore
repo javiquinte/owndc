@@ -4,3 +4,6 @@ doc/.build/
 *.pyc
 *.cfg
 *.bck
+data
+routing.py
+utils.py
