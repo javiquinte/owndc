@@ -35,7 +35,7 @@ from wsgicomm import send_file_response
 from inventorycache import InventoryCache
 from utils import RoutingCache
 from routing import applyFormat
-#from msIndex import IndexedSDS
+from routing import lsNSLC
 
 # Verbosity level a la SeisComP logging.level: 1=ERROR, ... 4=DEBUG
 # (global parameters, settable in wsgi file)
@@ -158,20 +158,10 @@ class DataSelectQuery(object):
             except:
                 return 'Error while converting starttime parameter.'
 
-            for reqLine in self.ic.expand(net, sta, loc, cha, start, endt):
-                n, s, l, c = reqLine
-                fdsnws = self.routes.getRoute(n, s, l, c, start, endt,
-                                              'dataselect')
+            fdsnws = self.routes.getRoute(net, sta, loc, cha, start, endt,
+                                          'dataselect')
 
-                url = fdsnws[0] + '?network=' + n
-                url += '&station=' + s
-                if len(l):
-                    url += '&location=' + l
-                url += '&channel=' + c
-                url += '&starttime=' + start.strftime('%Y-%m-%dT%H:%M:%S')
-                url += '&endtime=' + endt.strftime('%Y-%m-%dT%H:%M:%S')
-
-                urlList.append(url)
+            urlList.extend(applyFormat(fdsnws, 'get').splitlines())
 
         iterObj = ResultFile(urlList)
         return iterObj
@@ -196,8 +186,9 @@ class DataSelectQuery(object):
                 net = parameters['net'].value.upper()
             else:
                 net = '*'
+            net = net.split(',')
         except:
-            net = '*'
+            net = ['*']
 
         try:
             if 'station' in parameters:
@@ -206,8 +197,9 @@ class DataSelectQuery(object):
                 sta = parameters['sta'].value.upper()
             else:
                 sta = '*'
+            sta = sta.split(',')
         except:
-            sta = '*'
+            sta = ['*']
 
         try:
             if 'location' in parameters:
@@ -216,8 +208,9 @@ class DataSelectQuery(object):
                 loc = parameters['loc'].value.upper()
             else:
                 loc = '*'
+            loc = loc.split(',')
         except:
-            loc = '*'
+            loc = ['*']
 
         try:
             if 'channel' in parameters:
@@ -226,8 +219,9 @@ class DataSelectQuery(object):
                 cha = parameters['cha'].value.upper()
             else:
                 cha = '*'
+            cha = cha.split(',')
         except:
-            cha = '*'
+            cha = ['*']
 
         try:
             if 'starttime' in parameters:
@@ -259,8 +253,7 @@ class DataSelectQuery(object):
 
         urlList = []
 
-        for reqLine in self.ic.expand(net, sta, loc, cha, start, endt):
-            n, s, l, c = reqLine
+        for (n, s, l, c) in lsNSLC(net, sta, loc, cha):
             try:
                 fdsnws = self.routes.getRoute(n, s, l, c, start, endt,
                                               'dataselect')
