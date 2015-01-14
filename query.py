@@ -24,6 +24,8 @@ import cgi
 import datetime
 import urllib2
 import fcntl
+import smtplib
+from email.mime.text import MIMEText
 
 from wsgicomm import Logs
 from wsgicomm import WIError
@@ -60,12 +62,25 @@ class Accounting(object):
         self.lFD.flush()
         fcntl.flock(self.lFD, fcntl.LOCK_UN)
 
+        if user is not None:
+            msg = MIMEText(data)
+            msg['Subject'] = 'Feedback from the Dataselect web service'
+            msg['From'] = 'javier@gfz-potsdam.de'
+            msg['To'] = user
+
+            # Send the message via our own SMTP server, but don't include the
+            # envelope header.
+            s = smtplib.SMTP('smtp.gfz-potsdam.de')
+            s.sendmail('javier@gfz-potsdam.de', [user],
+                       msg.as_string())
+            s.quit()
+
 
 class ResultFile(object):
     """Define a class that is an iterable. We can start returning the file
     before everything was retrieved from the sources."""
 
-    def __init__(self, urlList, callback=None):
+    def __init__(self, urlList, callback=None, user=None):
         self.urlList = urlList
         self.content_type = 'application/vnd.fdsn.mseed'
         now = datetime.datetime.now()
@@ -74,6 +89,7 @@ class ResultFile(object):
         self.filename = 'eidaws-%s.mseed' % nowStr
         self.logs = Logs(verbosity)
         self.callback = callback
+        self.user = user
 
     def __iter__(self):
         # Read a maximum of 25 blocks of 4k (or 200 of 512b) each time
@@ -125,7 +141,7 @@ class ResultFile(object):
                                              httpErr, url, totalBytes)
 
         if self.callback is not None:
-            self.callback(status)
+            self.callback(status, self.user)
 
         raise StopIteration
 
@@ -203,7 +219,8 @@ class DataSelectQuery(object):
                          'loc', 'location',
                          'cha', 'channel',
                          'start', 'starttime',
-                         'end', 'endtime']
+                         'end', 'endtime',
+                         'user']
 
         for param in parameters:
             if param not in allowedParams:
@@ -281,6 +298,14 @@ class DataSelectQuery(object):
         except:
             return 'Error while converting endtime parameter.'
 
+        try:
+            if 'user' in parameters:
+                user = parameters['user'].value
+            else:
+                user = None
+        except:
+            return 'Error while checking the user parameter'
+
         urlList = []
 
         for (n, s, l, c) in lsNSLC(net, sta, loc, cha):
@@ -293,7 +318,7 @@ class DataSelectQuery(object):
                 pass
 
         iterObj = ResultFile(urlList, self.acc.log if self.acc is not None
-                             else None)
+                             else None, user)
         return iterObj
 
 
