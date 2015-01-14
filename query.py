@@ -32,7 +32,7 @@ from wsgicomm import send_xml_response
 from wsgicomm import send_html_response
 from wsgicomm import send_dynamicfile_response
 from wsgicomm import send_file_response
-from inventorycache import InventoryCache
+#from inventorycache import InventoryCache
 from utils import RoutingCache
 from routing import applyFormat
 from routing import lsNSLC
@@ -114,7 +114,7 @@ class DataSelectQuery(object):
         # Add inventory cache here, to be accessible to all modules
         here = os.path.dirname(__file__)
         inventory = os.path.join(here, 'data', 'Arclink-inventory.xml')
-        self.ic = InventoryCache(inventory)
+        #self.ic = InventoryCache(inventory)
 
         # Add routing cache here, to be accessible to all modules
         routesFile = os.path.join(here, 'data', 'routing.xml')
