@@ -20,10 +20,10 @@ version. For more information, see http://www.gnu.org/
 """
 
 import os
-import sys
 import cgi
 import datetime
 import urllib2
+import fcntl
 
 from wsgicomm import Logs
 from wsgicomm import WIError
@@ -32,7 +32,6 @@ from wsgicomm import send_xml_response
 from wsgicomm import send_html_response
 from wsgicomm import send_dynamicfile_response
 from wsgicomm import send_file_response
-#from inventorycache import InventoryCache
 from utils import RoutingCache
 from routing import applyFormat
 from routing import lsNSLC
@@ -47,11 +46,26 @@ cgi.maxlen = 1000000
 ##################################################################
 
 
+class Accounting(object):
+    """Receive information about all the requests and log it in a file disk
+    or send it per Mail."""
+
+    def __init__(self, logName):
+        self.logName = logName
+        self.lFD = open(logName, 'a')
+
+    def log(self, data, user=None):
+        fcntl.flock(self.lFD, fcntl.LOCK_EX)
+        self.lFD.write(data)
+        self.lFD.flush()
+        fcntl.flock(self.lFD, fcntl.LOCK_UN)
+
+
 class ResultFile(object):
     """Define a class that is an iterable. We can start returning the file
     before everything was retrieved from the sources."""
 
-    def __init__(self, urlList):
+    def __init__(self, urlList, callback=None):
         self.urlList = urlList
         self.content_type = 'application/vnd.fdsn.mseed'
         now = datetime.datetime.now()
@@ -59,6 +73,7 @@ class ResultFile(object):
                                     now.hour, now.minute, now.second)
         self.filename = 'eidaws-%s.mseed' % nowStr
         self.logs = Logs(verbosity)
+        self.callback = callback
 
     def __iter__(self):
         # Read a maximum of 25 blocks of 4k (or 200 of 512b) each time
@@ -66,13 +81,14 @@ class ResultFile(object):
         # different sources
         blockSize = 25 * 4096
 
+        status = ''
+
         for pos, url in enumerate(self.urlList):
             # Prepare Request
             req = urllib2.Request(url)
 
-            self.logs.debug('\n%d / %d - (%s) Buffer: ' % (pos,
-                                                           len(self.urlList),
-                                                           url))
+            totalBytes = 0
+            httpErr = 200
             # Connect to the proper FDSN-WS
             try:
                 u = urllib2.urlopen(req)
@@ -84,7 +100,7 @@ class ResultFile(object):
                     self.logs.error('Info: %s' % u.info())
 
                 while len(buffer):
-                    self.logs.debug(' %d' % len(buffer))
+                    totalBytes += len(buffer)
                     # Return one block of data
                     yield buffer
                     buffer = u.read(blockSize)
@@ -96,32 +112,45 @@ class ResultFile(object):
                 if hasattr(e, 'reason'):
                     self.logs.error('%s - Reason: %s' % (url, e.reason))
                 elif hasattr(e, 'code'):
-                    self.logs.error('The server couldn\'t fulfill the request.')
+                    self.logs.error('The server couldn\'t fulfill the request')
                     self.logs.error('Error code: %s' % e.code)
+
+                if hasattr(e, 'code'):
+                    httpErr = e.code
             except Exception as e:
                 self.logs.error('%s' % e)
+
+            if self.callback is not None:
+                status += '%s %s %s %s\n' % (datetime.datetime.now().isoformat(),
+                                             httpErr, url, totalBytes)
+
+        if self.callback is not None:
+            self.callback(status)
 
         raise StopIteration
 
 
 class DataSelectQuery(object):
-    def __init__(self, appName):
+    def __init__(self, appName, logName=None):
         # set up logging
         self.logs = Logs(verbosity)
 
         self.logs.info("Starting EIDA Dataselect Web Service")
 
-        # Add inventory cache here, to be accessible to all modules
+        # Add routing cache here, to be accessible to all modules
         here = os.path.dirname(__file__)
         inventory = os.path.join(here, 'data', 'Arclink-inventory.xml')
-        #self.ic = InventoryCache(inventory)
-
-        # Add routing cache here, to be accessible to all modules
         routesFile = os.path.join(here, 'data', 'routing.xml')
         masterFile = os.path.join(here, 'data', 'masterTable.xml')
-        self.routes = RoutingCache(routesFile, inventory)
+        self.routes = RoutingCache(routesFile, inventory, masterFile)
 
         self.ID = str(datetime.datetime.now())
+
+        if logName is not None:
+            here = os.path.dirname(__file__)
+            self.acc = Accounting(os.path.join(here, logName))
+        else:
+            self.acc = None
 
         self.logs.debug(str(self))
 
@@ -163,7 +192,8 @@ class DataSelectQuery(object):
 
             urlList.extend(applyFormat(fdsnws, 'get').splitlines())
 
-        iterObj = ResultFile(urlList)
+        iterObj = ResultFile(urlList, self.acc.log if self.acc is not None
+                             else None)
         return iterObj
 
     def makeQueryGET(self, parameters):
@@ -262,7 +292,8 @@ class DataSelectQuery(object):
             except WIError:
                 pass
 
-        iterObj = ResultFile(urlList)
+        iterObj = ResultFile(urlList, self.acc.log if self.acc is not None
+                             else None)
         return iterObj
 
 
@@ -272,7 +303,7 @@ class DataSelectQuery(object):
 #
 ##################################################################
 
-wi = DataSelectQuery('EIDA FDSN-WS')
+wi = DataSelectQuery('EIDA FDSN-WS', 'virtual-ds.log')
 
 
 def application(environ, start_response):
