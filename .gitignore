@@ -4,6 +4,7 @@ doc/.build/
 *.pyc
 *.cfg
 *.bck
+*.log
 data
 routing.py
 utils.py
