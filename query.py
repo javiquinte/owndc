@@ -340,6 +340,7 @@ def application(environ, start_response):
 
     """
 
+    version = '1.1.0'
     logs = Logs(verbosity)
     fname = environ['PATH_INFO']
 
@@ -380,7 +381,7 @@ def application(environ, start_response):
         return send_plain_response("400 Bad Request", str(e), start_response)
 
     # Check whether the function called is implemented
-    implementedFunctions = ['query', 'application.wadl']
+    implementedFunctions = ['query', 'application.wadl', 'version']
 
     fname = environ['PATH_INFO'].split('/')[-1]
     if fname not in implementedFunctions:
@@ -396,6 +397,10 @@ def application(environ, start_response):
             iterObj = appFile.read()
             status = '200 OK'
             return send_xml_response(status, iterObj, start_response)
+
+    elif fname == 'version':
+        status = '200 OK'
+        return send_plain_response(status, version, start_response)
 
     elif fname == 'query':
         makeQuery = getattr(wi, 'makeQuery%s' % environ['REQUEST_METHOD'])
