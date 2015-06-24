@@ -29,12 +29,14 @@ from email.mime.text import MIMEText
 
 from wsgicomm import Logs
 from wsgicomm import WIError
+from wsgicomm import WIContentError
 from wsgicomm import send_plain_response
 from wsgicomm import send_xml_response
 from wsgicomm import send_html_response
 from wsgicomm import send_dynamicfile_response
 from wsgicomm import send_file_response
 from utils import RoutingCache
+from utils import RoutingException
 from routing import applyFormat
 from routing import lsNSLC
 
@@ -85,7 +87,8 @@ class ResultFile(object):
         self.content_type = 'application/vnd.fdsn.mseed'
         now = datetime.datetime.now()
         nowStr = '%04d%02d%02d-%02d%02d%02d' % (now.year, now.month, now.day,
-                                    now.hour, now.minute, now.second)
+                                                now.hour, now.minute,
+                                                now.second)
         self.filename = 'eidaws-%s.mseed' % nowStr
         self.logs = Logs(verbosity)
         self.callback = callback
@@ -137,8 +140,9 @@ class ResultFile(object):
                 self.logs.error('%s' % e)
 
             if self.callback is not None:
-                status += '%s %s %s %s\n' % (datetime.datetime.now().isoformat(),
-                                             httpErr, url, totalBytes)
+                status += '%s %s %s %s\n' % \
+                    (datetime.datetime.now().isoformat(), httpErr, url,
+                     totalBytes)
 
         if self.callback is not None:
             self.callback(status, self.user)
@@ -167,8 +171,6 @@ class DataSelectQuery(object):
             self.acc = Accounting(os.path.join(here, logName))
         else:
             self.acc = None
-
-        self.logs.debug(str(self))
 
     def makeQueryPOST(self, lines):
 
@@ -207,6 +209,9 @@ class DataSelectQuery(object):
                                           'dataselect')
 
             urlList.extend(applyFormat(fdsnws, 'get').splitlines())
+
+        if not len(urlList):
+            raise WIContentError('No routes have been found!')
 
         iterObj = ResultFile(urlList, self.acc.log if self.acc is not None
                              else None)
@@ -314,8 +319,11 @@ class DataSelectQuery(object):
                                               'dataselect')
                 urlList.extend(applyFormat(fdsnws, 'get').splitlines())
 
-            except WIError:
+            except RoutingException:
                 pass
+
+        if not len(urlList):
+            raise WIContentError('No routes have been found!')
 
         iterObj = ResultFile(urlList, self.acc.log if self.acc is not None
                              else None, user)
@@ -341,10 +349,7 @@ def application(environ, start_response):
     """
 
     version = '1.1.0'
-    logs = Logs(verbosity)
     fname = environ['PATH_INFO']
-
-    logs.debug('fname: %s' % (fname))
 
     # Among others, this will filter wrong function names,
     # but also the favicon.ico request, for instance.
