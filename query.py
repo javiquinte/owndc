@@ -84,7 +84,7 @@ class ResultFile(object):
         self.urlList = urlList
         self.content_type = 'application/vnd.fdsn.mseed'
         now = datetime.datetime.now()
-        nowStr = '%d%d%d-%d%d%d' % (now.year, now.month, now.day,
+        nowStr = '%04d%02d%02d-%02d%02d%02d' % (now.year, now.month, now.day,
                                     now.hour, now.minute, now.second)
         self.filename = 'eidaws-%s.mseed' % nowStr
         self.logs = Logs(verbosity)
