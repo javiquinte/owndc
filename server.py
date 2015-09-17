@@ -19,10 +19,12 @@ import SocketServer
 import logging
 import cgi
 import os
-
 import sys
+from query import DataSelectQuery
+from wsgicomm import WIError
 
 version = '1.0.0'
+wi = DataSelectQuery('EIDA FDSN-WS', 'virtual-ds.log')
 
 if len(sys.argv) > 2:
     PORT = int(sys.argv[2])
@@ -84,22 +86,34 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             self.__send_plain(200, 'OK', version)
             return
 
-        elif fname == 'query':
-            begPar = reqStr.find('?')
-            if begPar < 0:
-                self.__send_plain(400, 'Bad Request', 'Not enough parameters!')
-                return
-
-            listPar = reqStr[begPar + 1:].split('&')
-            logging.error(listPar)
-            dictPar = dict()
-            for i in listPar:
-                k, v = i.split('=')
-                dictPar[k] = v
-            logging.debug(dictPar)
-
-            self.__send_plain(200, 'OK', str(dictPar))
+        elif fname != 'query':
+            self.__send_plain(400, 'Bad Request',
+                              'Unrecognized method %s' % fname)
             return
+
+        # Here only the "query" case should remain
+        begPar = reqStr.find('?')
+        if begPar < 0:
+            self.__send_plain(400, 'Bad Request', 'Not enough parameters!')
+            return
+
+        listPar = reqStr[begPar + 1:].split('&')
+        logging.error(listPar)
+        dictPar = dict()
+        for i in listPar:
+            k, v = i.split('=')
+            dictPar[k] = v
+        logging.debug(dictPar)
+
+        try:
+            logging.warning('Entering try')
+            iterObj = wi.makeQueryGET(dictPar)
+            logging.warning(iterObj)
+        except WIError as w:
+            return self.__send_plain(w.status, '', w.body)
+
+        self.__send_plain(200, 'OK', str(dictPar))
+        return
         #SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self)
 
     def do_POST(self):
