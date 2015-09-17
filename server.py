@@ -8,7 +8,7 @@ serving on 0.0.0.0:8001
 or simply
 
 >>> python server.py
-Serving on localhost:8000
+Serving on localhost:7000
 
 You can use this to test GET and POST methods.
 
@@ -33,7 +33,7 @@ elif len(sys.argv) > 1:
     PORT = int(sys.argv[1])
     I = ""
 else:
-    PORT = 8000
+    PORT = 7000
     I = ""
 
 
@@ -174,7 +174,54 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         for item in form.list:
             logging.warning(item)
         logging.warning("\n")
-        SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self)
+
+
+        # To be tested!
+        urlList = []
+        for line in lines.split('\n'):
+            # Skip empty lines
+            if not len(line):
+                continue
+
+            try:
+                net, sta, loc, cha, start, endt = line.split(' ')
+            except:
+                continue
+
+            # Empty location
+            if loc == '--':
+                loc = ''
+
+            try:
+                startParts = start.replace('-', ' ').replace('T', ' ')
+                startParts = startParts.replace(':', ' ').replace('.', ' ')
+                startParts = startParts.replace('Z', '').split()
+                start = datetime.datetime(*map(int, startParts))
+            except:
+                return 'Error while converting starttime parameter.'
+
+            try:
+                endParts = endt.replace('-', ' ').replace('T', ' ')
+                endParts = endParts.replace(':', ' ').replace('.', ' ')
+                endParts = endParts.replace('Z', '').split()
+                endt = datetime.datetime(*map(int, endParts))
+            except:
+                return 'Error while converting starttime parameter.'
+
+            fdsnws = self.routes.getRoute(net, sta, loc, cha, start, endt,
+                                          'dataselect')
+
+            urlList.extend(applyFormat(fdsnws, 'get').splitlines())
+
+        if not len(urlList):
+            raise WIContentError('No routes have been found!')
+
+        iterObj = ResultFile(urlList, self.acc.log if self.acc is not None
+                             else None)
+        return iterObj
+
+
+        #SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self)
 
 Handler = ServerHandler
 
