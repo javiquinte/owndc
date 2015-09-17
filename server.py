@@ -37,6 +37,16 @@ else:
     I = ""
 
 
+class FakeStorage(dict):
+    def __init__(self, s=None):
+        self.value = s
+    def getvalue(self, k):
+        return self[k]
+    def __str__(self):
+        return str(self.value)
+    def __repr__(self):
+        return str(self.value)
+
 class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
     def __send_plain(self, code, error, msg):
@@ -51,6 +61,38 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         self.send_header('Content-Type', 'text/xml')
         self.end_headers()
         self.wfile.write(msg)
+        return
+
+    def __send_dynamicfile(self, code, msg, iterFile):
+        """
+    :synopsis: Sends a file or similar object. Caller must set the filename, size \
+               and content_type attributes of body.
+    
+        """
+    
+        # Cycle through the iterator in order to retrieve one chunck at a time
+        loop = 0
+        for data in iterFile:
+            if loop == 0:
+                # The first thing to do is to send the headers.
+                # This needs to be done here so that we are sure that there is
+                # ACTUALLY data to send
+    
+                self.send_response(code, msg)
+                # Content-length cannot be set because the file size is unknown
+                self.send_header('Content-Type', iterFile.content_type)
+                self.send_header('Content-Disposition',
+                                 'attachment; filename=%s' % (iterFile.filename))
+                self.end_headers()
+    
+            # Increment the loop count
+            loop += 1
+            # and send data
+            self.wfile.write(data)
+    
+        if loop == 0:
+            self.send_response(204, 'No Content')
+            self.end_headers()
         return
 
     def do_GET(self):
@@ -97,22 +139,25 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             self.__send_plain(400, 'Bad Request', 'Not enough parameters!')
             return
 
+        # Parse the string and create a similar object to FieldStorage
+        # so that the code of RoutingCache works
         listPar = reqStr[begPar + 1:].split('&')
-        logging.error(listPar)
         dictPar = dict()
         for i in listPar:
             k, v = i.split('=')
-            dictPar[k] = v
-        logging.debug(dictPar)
+            dictPar[k] = FakeStorage(v)
+        logging.warning(dictPar)
 
         try:
-            logging.warning('Entering try')
             iterObj = wi.makeQueryGET(dictPar)
             logging.warning(iterObj)
+            self.__send_dynamicfile(200, 'OK', iterObj)
+            return
+
         except WIError as w:
             return self.__send_plain(w.status, '', w.body)
 
-        self.__send_plain(200, 'OK', str(dictPar))
+        self.__send_plain(400, 'Bad Request', str(dictPar))
         return
         #SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self)
 
