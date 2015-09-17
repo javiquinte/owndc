@@ -159,10 +159,10 @@ class DataSelectQuery(object):
 
         # Add routing cache here, to be accessible to all modules
         here = os.path.dirname(__file__)
-        inventory = os.path.join(here, 'data', 'Arclink-inventory.xml')
+        #inventory = os.path.join(here, 'data', 'Arclink-inventory.xml')
         routesFile = os.path.join(here, 'data', 'routing.xml')
         masterFile = os.path.join(here, 'data', 'masterTable.xml')
-        self.routes = RoutingCache(routesFile, inventory, masterFile)
+        self.routes = RoutingCache(routesFile, masterFile)
 
         self.ID = str(datetime.datetime.now())
 
