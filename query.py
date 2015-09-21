@@ -189,6 +189,7 @@ class DataSelectQuery(object):
             try:
                 net, sta, loc, cha, start, endt = line.split(' ')
             except:
+                logging.error('Cannot parse line: %s' % line)
                 continue
 
             # Empty location
@@ -201,7 +202,8 @@ class DataSelectQuery(object):
                 startParts = startParts.replace('Z', '').split()
                 start = datetime.datetime(*map(int, startParts))
             except:
-                return 'Error while converting starttime parameter.'
+                logging.error('Cannot convert "starttime" parameter.')
+                continue
 
             try:
                 endParts = endt.replace('-', ' ').replace('T', ' ')
@@ -209,12 +211,17 @@ class DataSelectQuery(object):
                 endParts = endParts.replace('Z', '').split()
                 endt = datetime.datetime(*map(int, endParts))
             except:
-                return 'Error while converting starttime parameter.'
+                logging.error('Cannot convert "endtime" parameter.')
+                continue
 
-            fdsnws = self.routes.getRoute(net, sta, loc, cha, start, endt,
-                                          'dataselect')
+            try:
+                fdsnws = self.routes.getRoute(net, sta, loc, cha, start, endt,
+                                              'dataselect')
+                urlList.extend(applyFormat(fdsnws, 'get').splitlines())
 
-            urlList.extend(applyFormat(fdsnws, 'get').splitlines())
+            except RoutingException:
+                continue
+                #pass
 
         if not len(urlList):
             raise WIContentError('No routes have been found!')
