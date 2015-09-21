@@ -155,7 +155,7 @@ class DataSelectQuery(object):
         # set up logging
         self.logs = Logs(verbosity)
 
-        self.logs.info("Starting EIDA Dataselect Web Service")
+        self.logs.info("Starting EIDA Dataselect Web Service\n")
 
         # Add routing cache here, to be accessible to all modules
         here = os.path.dirname(__file__)
@@ -336,7 +336,7 @@ class DataSelectQuery(object):
 #
 ##################################################################
 
-wi = DataSelectQuery('EIDA FDSN-WS', 'virtual-ds.log')
+#wi = DataSelectQuery('EIDA FDSN-WS', 'virtual-ds.log')
 
 
 def application(environ, start_response):
