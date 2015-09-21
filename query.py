@@ -220,6 +220,7 @@ class DataSelectQuery(object):
                 urlList.extend(applyFormat(fdsnws, 'get').splitlines())
 
             except RoutingException:
+                logging.warning('No route could be found for %s' % line)
                 continue
                 #pass
 
