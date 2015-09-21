@@ -24,6 +24,7 @@ from email.mime.text import MIMEText
 
 #from wsgicomm import Logs
 import logging
+import ConfigParser
 from wsgicomm import WIError
 from wsgicomm import WIContentError
 from wsgicomm import send_plain_response
@@ -39,6 +40,14 @@ from routing import lsNSLC
 # Verbosity level a la SeisComP logging.level: 1=ERROR, ... 4=DEBUG
 # (global parameters, settable in wsgi file)
 #verbosity = 4
+config = ConfigParser.RawConfigParser()
+here = os.path.dirname(__file__)
+config.read(os.path.join(here, 'routing.cfg'))
+#verbo = config.getint('Service', 'verbosity')
+verbo = config.get('Service', 'verbosity')
+# "WARNING" is the default value
+verboNum = getattr(logging, verbo.upper(), 30)
+logging.basicConfig(level=verboNum)
 
 # Maximum size of POST data, in bytes? Or roubles?
 cgi.maxlen = 1000000
