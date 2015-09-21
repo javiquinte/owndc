@@ -1,13 +1,13 @@
 #!/usr/bin/python
-# FDSN-WS Dataselect prototype
+# FDSN-WS Virtual Datacentre prototype
 #
-# (c) 2014 Javier Quinteros, GEOFON team
+# (c) 2015 Javier Quinteros, GEOFON team
 # <javier@gfz-potsdam.de>
 #
 # ----------------------------------------------------------------------
 
 
-"""FDSN-WS Dataselect prototype
+"""FDSN-WS Virtual Datacentre prototype
 
 (c) 2015 Javier Quinteros, GEOFON, GFZ Potsdam
 
@@ -35,7 +35,7 @@ from wsgicomm import WIError
 version = '1.0.0'
 
 # Create the object that will resolve and execute all the queries
-wi = DataSelectQuery('EIDA FDSN-WS', 'virtual-ds.log')
+wi = DataSelectQuery('VDC', 'virtualdc.log')
 
 # Check arguments (IP, port) and assign default values if needed
 if len(sys.argv) > 2:
@@ -214,12 +214,10 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
         self.__send_plain(400, 'Bad Request', lines)
         return
-        #SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self)
 
 Handler = ServerHandler
-
 httpd = SocketServer.TCPServer(("", PORT), Handler)
 
-print "Virtual Dataselect at: http://%s:%s/fdsnws/dataselect/1/" % (I, PORT)
+print "Virtual Datacentre at: http://%s:%s/fdsnws/dataselect/1/" % (I, PORT)
 httpd.serve_forever()
 
