@@ -1,7 +1,16 @@
 #!/usr/bin/python
+# FDSN-WS Dataselect prototype
+#
+# (c) 2014 Javier Quinteros, GEOFON team
+# <javier@gfz-potsdam.de>
+#
+# ----------------------------------------------------------------------
 
-"""
-Save this file as server.py
+
+"""FDSN-WS Dataselect prototype
+
+(c) 2015 Javier Quinteros, GEOFON, GFZ Potsdam
+
 >>> python server.py 0.0.0.0 8001
 serving on 0.0.0.0:8001
 
@@ -10,33 +19,38 @@ or simply
 >>> python server.py
 Serving on localhost:7000
 
-You can use this to test GET and POST methods.
-
 """
 
 import SimpleHTTPServer
 import SocketServer
 import logging
+import datetime
 import cgi
 import os
 import sys
 from query import DataSelectQuery
 from wsgicomm import WIError
 
+# Version of this software
 version = '1.0.0'
+
+# Create the object that will resolve and execute all the queries
 wi = DataSelectQuery('EIDA FDSN-WS', 'virtual-ds.log')
 
+# Check arguments (IP, port) and assign default values if needed
 if len(sys.argv) > 2:
     PORT = int(sys.argv[2])
     I = sys.argv[1]
 elif len(sys.argv) > 1:
     PORT = int(sys.argv[1])
-    I = ""
+    I = "localhost"
 else:
     PORT = 7000
-    I = ""
+    I = "localhost"
 
 
+# Wrap parsed values in the GET method with this class to mimic FieldStorage
+# syntax and be compatible with underlying classes, which use ".value"
 class FakeStorage(dict):
     def __init__(self, s=None):
         self.value = s
@@ -47,6 +61,7 @@ class FakeStorage(dict):
     def __repr__(self):
         return str(self.value)
 
+# Implement the web server
 class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
     def __send_plain(self, code, error, msg):
@@ -65,8 +80,8 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
     def __send_dynamicfile(self, code, msg, iterFile):
         """
-    :synopsis: Sends a file or similar object. Caller must set the filename, size \
-               and content_type attributes of body.
+:synopsis: Sends a file or similar object. Caller must set the filename, size \
+           and content_type attributes of the iterFile.
     
         """
     
@@ -96,11 +111,12 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         return
 
     def do_GET(self):
-        logging.warning("======= GET STARTED =======")
-        logging.warning(self.headers)
+        logging.debug("======= GET STARTED =======")
+        logging.debug(self.headers)
 
         if not self.path.startswith('/fdsnws/dataselect/1/'):
-            self.__send_plain(400, 'Wrong path. Not FDSNWS compliant', 'Sarasa')
+            self.__send_plain(400, 'Bad Request',
+                              'Wrong path. Not FDSN compliant')
             return
 
         reqStr = self.path[len('/fdsnws/dataselect/1/'):]
@@ -146,11 +162,10 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         for i in listPar:
             k, v = i.split('=')
             dictPar[k] = FakeStorage(v)
-        logging.warning(dictPar)
+        logging.info('GET request for %s' % dictPar)
 
         try:
             iterObj = wi.makeQueryGET(dictPar)
-            logging.warning(iterObj)
             self.__send_dynamicfile(200, 'OK', iterObj)
             return
 
@@ -162,72 +177,49 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         #SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self)
 
     def do_POST(self):
-        logging.warning("======= POST STARTED =======")
-        logging.warning(self.headers)
-        form = cgi.FieldStorage(
-            fp=self.rfile,
-            headers=self.headers,
-            environ={'REQUEST_METHOD':'POST',
-                     'CONTENT_TYPE':self.headers['Content-Type'],
-                     })
-        logging.warning("======= POST VALUES =======")
-        for item in form.list:
-            logging.warning(item)
-        logging.warning("\n")
+        logging.debug("======= POST STARTED =======")
+        logging.debug(self.headers)
 
+        # Check that the user calls "query". It is the only option via POST
+        if not self.path.startswith('/fdsnws/dataselect/1/query'):
+            self.__send_plain(400, 'Bad Request',
+                              'Wrong path. Not FDSN compliant')
+            return
 
-        # To be tested!
-        urlList = []
-        for line in lines.split('\n'):
-            # Skip empty lines
-            if not len(line):
-                continue
+        # CITATION: http://stackoverflow.com/questions/4233218/python-basehttprequesthandler-post-variables
+        ctype, pdict = cgi.parse_header(self.headers['content-type'])
 
-            try:
-                net, sta, loc, cha, start, endt = line.split(' ')
-            except:
-                continue
+        #if ctype == 'multipart/form-data':
+        #    postvars = cgi.parse_multipart(self.rfile, pdict)
+        #elif ctype == 'application/x-www-form-urlencoded':
+        if ctype == 'application/x-www-form-urlencoded':
+            length = int(self.headers['content-length'])
+            logging.debug('Length: %s' % length)
+            lines = self.rfile.read(length)
+        else:
+            msg = 'Content-Type must be application/x-www-form-urlencoded'
+            self.__send_plain(400, 'Bad Request', msg)
+            return
 
-            # Empty location
-            if loc == '--':
-                loc = ''
+        # Show request
+        logging.info('POST request with %s lines' % len(lines.split('\n')))
 
-            try:
-                startParts = start.replace('-', ' ').replace('T', ' ')
-                startParts = startParts.replace(':', ' ').replace('.', ' ')
-                startParts = startParts.replace('Z', '').split()
-                start = datetime.datetime(*map(int, startParts))
-            except:
-                return 'Error while converting starttime parameter.'
+        try:
+            iterObj = wi.makeQueryPOST(lines)
+            self.__send_dynamicfile(200, 'OK', iterObj)
+            return
 
-            try:
-                endParts = endt.replace('-', ' ').replace('T', ' ')
-                endParts = endParts.replace(':', ' ').replace('.', ' ')
-                endParts = endParts.replace('Z', '').split()
-                endt = datetime.datetime(*map(int, endParts))
-            except:
-                return 'Error while converting starttime parameter.'
+        except WIError as w:
+            return self.__send_plain(w.status, '', w.body)
 
-            fdsnws = self.routes.getRoute(net, sta, loc, cha, start, endt,
-                                          'dataselect')
-
-            urlList.extend(applyFormat(fdsnws, 'get').splitlines())
-
-        if not len(urlList):
-            raise WIContentError('No routes have been found!')
-
-        iterObj = ResultFile(urlList, self.acc.log if self.acc is not None
-                             else None)
-        return iterObj
-
-
+        self.__send_plain(400, 'Bad Request', lines)
+        return
         #SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self)
 
 Handler = ServerHandler
 
 httpd = SocketServer.TCPServer(("", PORT), Handler)
 
-print "@rochacbruno Python http server version 0.1 (for testing purposes only)"
-print "Serving at: http://%(interface)s:%(port)s" % dict(interface=I or "localhost", port=PORT)
+print "Virtual Dataselect at: http://%s:%s/fdsnws/dataselect/1/" % (I, PORT)
 httpd.serve_forever()
 
