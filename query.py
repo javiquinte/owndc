@@ -1,21 +1,16 @@
 #!/usr/bin/env python
 #
-# FDSN-WS Dataselect prototype
+# FDSN-WS Virtual Datacentre prototype
 #
-# (c) 2014 Javier Quinteros, GEOFON team
+# (c) 2015 Javier Quinteros, GEOFON team
 # <javier@gfz-potsdam.de>
 #
 # ----------------------------------------------------------------------
 
 
-"""FDSN-WS Dataselect prototype
+"""FDSN-WS Virtual Datacentre prototype
 
-(c) 2014 Javier Quinteros, GEOFON, GFZ Potsdam
-
-This program is free software; you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published by the
-Free Software Foundation; either version 2, or (at your option) any later
-version. For more information, see http://www.gnu.org/
+(c) 2015 Javier Quinteros, GEOFON, GFZ Potsdam
 
 """
 
@@ -27,7 +22,8 @@ import fcntl
 import smtplib
 from email.mime.text import MIMEText
 
-from wsgicomm import Logs
+#from wsgicomm import Logs
+import logging
 from wsgicomm import WIError
 from wsgicomm import WIContentError
 from wsgicomm import send_plain_response
@@ -42,7 +38,7 @@ from routing import lsNSLC
 
 # Verbosity level a la SeisComP logging.level: 1=ERROR, ... 4=DEBUG
 # (global parameters, settable in wsgi file)
-verbosity = 4
+#verbosity = 4
 
 # Maximum size of POST data, in bytes? Or roubles?
 cgi.maxlen = 1000000
@@ -90,7 +86,8 @@ class ResultFile(object):
                                                 now.hour, now.minute,
                                                 now.second)
         self.filename = 'eidaws-%s.mseed' % nowStr
-        self.logs = Logs(verbosity)
+        #self.logs = Logs(verbosity)
+        self.logs = logging.getLogger('ResultFile')
         self.callback = callback
         self.user = user
 
@@ -153,13 +150,13 @@ class ResultFile(object):
 class DataSelectQuery(object):
     def __init__(self, appName, logName=None):
         # set up logging
-        self.logs = Logs(verbosity)
+        #self.logs = Logs(verbosity)
+        self.logs = logging.getLogger('DataSelectQuery')
 
-        self.logs.info("Starting EIDA Dataselect Web Service\n")
+        self.logs.info("Starting Virtual Datacentre Web Service\n")
 
         # Add routing cache here, to be accessible to all modules
         here = os.path.dirname(__file__)
-        #inventory = os.path.join(here, 'data', 'Arclink-inventory.xml')
         routesFile = os.path.join(here, 'data', 'routing.xml')
         masterFile = os.path.join(here, 'data', 'masterTable.xml')
         self.routes = RoutingCache(routesFile, masterFile)
