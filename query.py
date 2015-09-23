@@ -110,6 +110,7 @@ class ResultFile(object):
 
         for pos, url in enumerate(self.urlList):
             # Prepare Request
+            self.logs.debug('%s/%s - Connecting %s' % (pos, len(self.urlList), url))
             req = urllib2.Request(url)
 
             totalBytes = 0
@@ -131,6 +132,8 @@ class ResultFile(object):
                     buffer = u.read(blockSize)
 
                 # Close the connection to avoid overloading the server
+                self.logs.info('%s/%s - %s bytes from %s' % 
+                               (pos, len(self.urlList), totalBytes, url))
                 u.close()
 
             except urllib2.URLError as e:
