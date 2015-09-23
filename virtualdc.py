@@ -189,17 +189,14 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         # CITATION: http://stackoverflow.com/questions/4233218/python-basehttprequesthandler-post-variables
         ctype, pdict = cgi.parse_header(self.headers['content-type'])
 
-        #if ctype == 'multipart/form-data':
-        #    postvars = cgi.parse_multipart(self.rfile, pdict)
-        #elif ctype == 'application/x-www-form-urlencoded':
-        if ctype == 'application/x-www-form-urlencoded':
-            length = int(self.headers['content-length'])
-            logging.debug('Length: %s' % length)
-            lines = self.rfile.read(length)
-        else:
-            msg = 'Content-Type must be application/x-www-form-urlencoded'
-            self.__send_plain(400, 'Bad Request', msg)
-            return
+        #if ctype == 'application/x-www-form-urlencoded':
+        length = int(self.headers['content-length'])
+        logging.debug('Length: %s' % length)
+        lines = self.rfile.read(length)
+        #else:
+        #    msg = 'Content-Type must be application/x-www-form-urlencoded'
+        #    self.__send_plain(400, 'Bad Request', msg)
+        #    return
 
         # Show request
         logging.info('POST request with %s lines' % len(lines.split('\n')))
