@@ -17,14 +17,12 @@
 import os
 import cgi
 import datetime
-import urllib2
 import fcntl
 import smtplib
 from email.mime.text import MIMEText
 
 #from wsgicomm import Logs
 import logging
-import ConfigParser
 from wsgicomm import WIError
 from wsgicomm import WIContentError
 from wsgicomm import send_plain_response
@@ -37,10 +35,22 @@ from utils import RoutingException
 from routing import applyFormat
 from routing import lsNSLC
 
+try:
+    # 3.x name
+    import configparser
+except ImportError:
+    # 2.x name
+    import ConfigParser as configparser
+
+try:
+    import urllib.request as ul
+except ImportError:
+    import urllib2 as ul
+
 # Verbosity level a la SeisComP logging.level: 1=ERROR, ... 4=DEBUG
 # (global parameters, settable in wsgi file)
 #verbosity = 4
-config = ConfigParser.RawConfigParser()
+config = configparser.RawConfigParser()
 here = os.path.dirname(__file__)
 config.read(os.path.join(here, 'routing.cfg'))
 #verbo = config.getint('Service', 'verbosity')
@@ -111,16 +121,21 @@ class ResultFile(object):
         for pos, url in enumerate(self.urlList):
             # Prepare Request
             self.logs.debug('%s/%s - Connecting %s' % (pos, len(self.urlList), url))
-            req = urllib2.Request(url)
+            req = ul.Request(url)
 
             totalBytes = 0
             httpErr = 200
             # Connect to the proper FDSN-WS
             try:
-                u = urllib2.urlopen(req)
+                u = ul.urlopen(req)
+                self.logs.debug('%s/%s - Connected to %s' % (pos, len(self.urlList), url))
 
                 # Read the data in blocks of predefined size
-                buffer = u.read(blockSize)
+                try:
+                    buffer = u.read(blockSize)
+                except:
+                    self.logs.error('Oops!')
+
                 if not len(buffer):
                     self.logs.error('Error code: %s' % u.getcode())
                     self.logs.error('Info: %s' % u.info())
@@ -129,14 +144,19 @@ class ResultFile(object):
                     totalBytes += len(buffer)
                     # Return one block of data
                     yield buffer
-                    buffer = u.read(blockSize)
+                    try:
+                        buffer = u.read(blockSize)
+                    except:
+                        self.logs.error('Oops!')
+                    self.logs.debug('%s/%s - %s bytes from %s' % 
+                                    (pos, len(self.urlList), totalBytes, url))
 
                 # Close the connection to avoid overloading the server
                 self.logs.info('%s/%s - %s bytes from %s' % 
                                (pos, len(self.urlList), totalBytes, url))
                 u.close()
 
-            except urllib2.URLError as e:
+            except ul.URLError as e:
                 if hasattr(e, 'reason'):
                     self.logs.error('%s - Reason: %s' % (url, e.reason))
                 elif hasattr(e, 'code'):
@@ -392,7 +412,7 @@ def application(environ, start_response):
         else:
             raise Exception
 
-    except ValueError, e:
+    except ValueError as e:
         if str(e) == "Maximum content length exceeded":
             # Add some user-friendliness (this message triggers an alert
             # box on the client)
