@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# FDSN-WS Virtual Datacentre prototype
+# ownDC: An FDSN Virtual Datacentre prototype
 #
 # (c) 2015 Javier Quinteros, GEOFON team
 # <javier@gfz-potsdam.de>
@@ -7,16 +7,16 @@
 # ----------------------------------------------------------------------
 
 
-"""FDSN-WS Virtual Datacentre prototype
+"""ownDC: An FDSN-WS Virtual Datacentre prototype
 
 (c) 2015 Javier Quinteros, GEOFON, GFZ Potsdam
 
->>> python server.py 0.0.0.0 8001
+>>> python ownDC.py 0.0.0.0 8001
 serving on 0.0.0.0:8001
 
 or simply
 
->>> python server.py
+>>> python ownDC.py
 Serving on localhost:7000
 
 """
@@ -35,7 +35,7 @@ from wsgicomm import WIError
 version = '1.0.0'
 
 # Create the object that will resolve and execute all the queries
-wi = DataSelectQuery('VDC', 'virtualdc.log')
+wi = DataSelectQuery('VDC', 'ownDC.log')
 
 # Check arguments (IP, port) and assign default values if needed
 if len(sys.argv) > 2:
