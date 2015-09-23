@@ -21,15 +21,25 @@ Serving on localhost:7000
 
 """
 
-import SimpleHTTPServer
-import SocketServer
 import logging
 import datetime
 import cgi
 import os
 import sys
+import errno
+import socket
 from query import DataSelectQuery
 from wsgicomm import WIError
+
+try:
+    import http.server as htserv
+except ImportError:
+    import SimpleHTTPServer as htserv
+
+try:
+    import socketserver as socsrv
+except ImportError:
+    import SocketServer as socsrv
 
 # Version of this software
 version = '1.0.0'
@@ -61,8 +71,36 @@ class FakeStorage(dict):
     def __repr__(self):
         return str(self.value)
 
+# Patch a bug in the SocketServer affecting the TCPServer
+class MyTCPServer(socsrv.TCPServer):
+    acceptable_errors = (errno.EPIPE, errno.ECONNABORTED)
+
+    #def handle_error(self, request, client_address):
+    #    error = sys.exc_value
+
+    #    if isinstance(error, socket.error) and isinstance(error.args, tuple) \
+    #            and error.args[0] in self.acceptable_errors:
+    #        logging.warning('%s detected and skipped' % error)
+    #        pass
+    #    else:
+    #        logging.error(error)
+
 # Implement the web server
-class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
+class ServerHandler(htserv.SimpleHTTPRequestHandler):
+
+    def finish(self):
+        try:
+            logging.debug('Enter try')
+            if not self.wfile.closed:
+                logging.debug('Want to flush')
+                self.wfile.flush()
+                logging.debug('Want to close')
+                self.wfile.close()
+        except socket.error:
+            # An final socket error may have occurred here, such as
+            # the local error ECONNABORTED.
+            pass
+        self.rfile.close()
 
     def __send_plain(self, code, error, msg):
         self.send_response(code, error)
@@ -103,7 +141,10 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             # Increment the loop count
             loop += 1
             # and send data
-            self.wfile.write(data)
+            try:
+                self.wfile.write(data)
+            except:
+                logging.error('wfile.closed: %s' % self.wfile.closed)
     
         if loop == 0:
             self.send_response(204, 'No Content')
@@ -213,8 +254,10 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         return
 
 Handler = ServerHandler
-httpd = SocketServer.TCPServer(("", PORT), Handler)
+#httpd = socsrv.TCPServer(("", PORT), Handler)
+httpd = MyTCPServer(("", PORT), Handler)
 
-print "Virtual Datacentre at: http://%s:%s/fdsnws/dataselect/1/" % (I, PORT)
+logging.info("Virtual Datacentre at: http://%s:%s/fdsnws/dataselect/1/" %
+             (I, PORT))
 httpd.serve_forever()
 
