@@ -12,6 +12,16 @@ Contents:
    :maxdepth: 2
 
 
+Roadmap and things to do
+========================
+
+ #. Upload to Github
+ #. Fix the incompatibility with scolv
+ #. Add to the SeisComP3 Github repository
+ #. Add the Station WS also
+
+.. todo:: blah, blah
+
 Documentation for developers
 ============================
 
