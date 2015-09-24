@@ -19,6 +19,7 @@
 .. moduleauthor:: Javier Quinteros <javier@gfz-potsdam.de>, GEOFON, GFZ Potsdam
 """
 
+import argparse
 import logging
 import datetime
 import cgi
@@ -39,23 +40,6 @@ try:
     import socketserver as socsrv
 except ImportError:
     import SocketServer as socsrv
-
-# Version of this software
-version = '0.9a1'
-
-# Create the object that will resolve and execute all the queries
-wi = DataSelectQuery('VDC', 'ownDC.log')
-
-# Check arguments (IP, port) and assign default values if needed
-if len(sys.argv) > 2:
-    PORT = int(sys.argv[2])
-    I = sys.argv[1]
-elif len(sys.argv) > 1:
-    PORT = int(sys.argv[1])
-    I = "localhost"
-else:
-    PORT = 7000
-    I = "localhost"
 
 
 # Wrap parsed values in the GET method with this class to mimic FieldStorage
@@ -270,11 +254,39 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
         self.__send_plain(400, 'Bad Request', lines)
         return
 
-Handler = ServerHandler
-#httpd = socsrv.TCPServer(("", PORT), Handler)
-httpd = MyTCPServer(("", PORT), Handler)
 
-logging.info("Virtual Datacentre at: http://%s:%s/fdsnws/dataselect/1/" %
-             (I, PORT))
-httpd.serve_forever()
+def main():
+    # Version of this software
+    version = '0.9a1'
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-H', '--host',
+                        help='Address where this server listens.',
+                        default='localhost')
+    parser.add_argument('-P', '--port',
+                        help='Port where this server listens.',
+                        default='7000')
+    args = parser.parse_args()
 
+    # Create the object that will resolve and execute all the queries
+    wi = DataSelectQuery('OwnDC', 'ownDC.log')
+    
+    # Check arguments (IP, port)
+    host = args.host
+    
+    try:
+        port = int(args.port)
+    except:
+        logging.error('Error while interpreting port %s' % args.port)
+        sys.exit(-1)
+
+    Handler = ServerHandler
+    #httpd = socsrv.TCPServer(("", PORT), Handler)
+    httpd = MyTCPServer((host, port), Handler)
+    
+    logging.info("Virtual Datacentre at: http://%s:%s/fdsnws/dataselect/1/" %
+                 (host, port))
+    httpd.serve_forever()
+
+if __name__ == '__main__':
+    main()
