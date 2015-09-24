@@ -12,6 +12,74 @@ Contents:
    :maxdepth: 2
 
 
+Documentation for developers
+============================
+
+Query module
+------------
+
+.. automodule:: query
+
+DataSelectQuery class
+^^^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: query.DataSelectQuery
+   :members:
+   :undoc-members:
+
+ResultFile class
+^^^^^^^^^^^^^^^^
+
+.. autoclass:: query.ResultFile
+   :members:
+   :undoc-members:
+
+Routing module
+--------------
+
+.. automodule:: routing
+   :members:
+   :undoc-members:
+
+Utils module
+------------
+
+.. automodule:: utils
+
+Route class
+^^^^^^^^^^^
+
+.. autoclass:: utils.Route
+   :members:
+   :undoc-members:
+
+Stream class
+^^^^^^^^^^^^
+
+.. autoclass:: utils.Stream
+   :members:
+   :undoc-members:
+
+TW (timewindow)  class
+^^^^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: utils.TW
+   :members:
+   :undoc-members:
+
+RouteMT class
+^^^^^^^^^^^^^
+
+.. autoclass:: utils.RouteMT
+   :members:
+   :undoc-members:
+
+RequestMerge class
+^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: utils.RequestMerge
+   :members:
+   :undoc-members:
 
 Indices and tables
 ==================

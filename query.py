@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# FDSN-WS Virtual Datacentre prototype
+# OwnDC - An FDSN-WS compliant Virtual Datacentre prototype
 #
 # (c) 2015 Javier Quinteros, GEOFON team
 # <javier@gfz-potsdam.de>
@@ -8,10 +8,16 @@
 # ----------------------------------------------------------------------
 
 
-"""FDSN-WS Virtual Datacentre prototype
+"""OwnDC - An FDSN-WS compliant Virtual Datacentre prototype
 
-(c) 2015 Javier Quinteros, GEOFON, GFZ Potsdam
+   :Platform:
+       Linux
+   :Copyright:
+       GEOFON, GFZ Potsdam <geofon@gfz-potsdam.de>
+   :License:
+       To be decided!
 
+.. moduleauthor:: Javier Quinteros <javier@gfz-potsdam.de>, GEOFON, GFZ Potsdam
 """
 
 import os
@@ -21,7 +27,6 @@ import fcntl
 import smtplib
 from email.mime.text import MIMEText
 
-#from wsgicomm import Logs
 import logging
 from wsgicomm import WIError
 from wsgicomm import WIContentError
@@ -35,6 +40,7 @@ from utils import RoutingException
 from routing import applyFormat
 from routing import lsNSLC
 
+# These tries arre needed to be Python3 compliant
 try:
     # 3.x name
     import configparser
@@ -47,13 +53,10 @@ try:
 except ImportError:
     import urllib2 as ul
 
-# Verbosity level a la SeisComP logging.level: 1=ERROR, ... 4=DEBUG
-# (global parameters, settable in wsgi file)
-#verbosity = 4
+# Read verbosity to configure the logging system
 config = configparser.RawConfigParser()
 here = os.path.dirname(__file__)
 config.read(os.path.join(here, 'routing.cfg'))
-#verbo = config.getint('Service', 'verbosity')
 verbo = config.get('Service', 'verbosity')
 # "WARNING" is the default value
 verboNum = getattr(logging, verbo.upper(), 30)
@@ -67,7 +70,7 @@ cgi.maxlen = 1000000
 
 class Accounting(object):
     """Receive information about all the requests and log it in a file disk
-    or send it per Mail."""
+    or send it per Mail. This class is still being tested and debugged."""
 
     def __init__(self, logName):
         self.logName = logName
@@ -104,16 +107,21 @@ class ResultFile(object):
         nowStr = '%04d%02d%02d-%02d%02d%02d' % (now.year, now.month, now.day,
                                                 now.hour, now.minute,
                                                 now.second)
-        self.filename = 'eidaws-%s.mseed' % nowStr
-        #self.logs = Logs(verbosity)
+
+        # FIXME The filename prefix should be read from the configuration
+        self.filename = 'OwnDC-%s.mseed' % nowStr
+
         self.logs = logging.getLogger('ResultFile')
         self.callback = callback
         self.user = user
 
     def __iter__(self):
-        # Read a maximum of 25 blocks of 4k (or 200 of 512b) each time
-        # This will allow us to use threads and multiplex records from
-        # different sources
+        """
+        Read a maximum of 25 blocks of 4k (or 200 of 512b) each time.
+        This will allow us to use threads and multiplex records from
+        different sources.
+        """
+
         blockSize = 25 * 4096
 
         status = ''
@@ -184,8 +192,6 @@ class DataSelectQuery(object):
         # set up logging
         #self.logs = Logs(verbosity)
         self.logs = logging.getLogger('DataSelectQuery')
-
-        self.logs.info("Starting Virtual Datacentre Web Service\n")
 
         # Add routing cache here, to be accessible to all modules
         here = os.path.dirname(__file__)

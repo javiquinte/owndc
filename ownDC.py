@@ -9,16 +9,14 @@
 
 """ownDC: An FDSN-WS Virtual Datacentre prototype
 
-(c) 2015 Javier Quinteros, GEOFON, GFZ Potsdam
+   :Platform:
+       Linux
+   :Copyright:
+       GEOFON, GFZ Potsdam <geofon@gfz-potsdam.de>
+   :License:
+       To be decided!
 
->>> python ownDC.py 0.0.0.0 8001
-serving on 0.0.0.0:8001
-
-or simply
-
->>> python ownDC.py
-Serving on localhost:7000
-
+.. moduleauthor:: Javier Quinteros <javier@gfz-potsdam.de>, GEOFON, GFZ Potsdam
 """
 
 import logging
@@ -31,6 +29,7 @@ import socket
 from query import DataSelectQuery
 from wsgicomm import WIError
 
+# These "tries" are needed to support also Python3
 try:
     import http.server as htserv
 except ImportError:
@@ -42,7 +41,7 @@ except ImportError:
     import SocketServer as socsrv
 
 # Version of this software
-version = '1.0.0'
+version = '0.9a1'
 
 # Create the object that will resolve and execute all the queries
 wi = DataSelectQuery('VDC', 'ownDC.log')
@@ -87,22 +86,32 @@ class MyTCPServer(socsrv.TCPServer):
 
 # Implement the web server
 class ServerHandler(htserv.SimpleHTTPRequestHandler):
+    """
+:synopsis: Implements the methods to handle the Dataselect requests via
+           GET and POST.
+:platform: Linux    
+    """
 
-    def finish(self):
-        try:
-            logging.debug('Enter try')
-            if not self.wfile.closed:
-                logging.debug('Want to flush')
-                self.wfile.flush()
-                logging.debug('Want to close')
-                self.wfile.close()
-        except socket.error:
-            # An final socket error may have occurred here, such as
-            # the local error ECONNABORTED.
-            pass
-        self.rfile.close()
+    #def finish(self):
+    #    try:
+    #        logging.debug('Enter try')
+    #        if not self.wfile.closed:
+    #            logging.debug('Want to flush')
+    #            self.wfile.flush()
+    #            logging.debug('Want to close')
+    #            self.wfile.close()
+    #    except socket.error:
+    #        # An final socket error may have occurred here, such as
+    #        # the local error ECONNABORTED.
+    #        pass
+    #    self.rfile.close()
 
     def __send_plain(self, code, error, msg):
+        """
+        :synopsis: Sends a plain response in HTTP style
+        :platform: Linux
+
+        """
         self.send_response(code, error)
         self.send_header('Content-Type', 'text/plain')
         self.end_headers()
@@ -110,6 +119,11 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
         return
 
     def __send_xml(self, code, error, msg):
+        """
+        :synopsis: Sends an XML response in HTTP style
+        :platform: Linux
+
+        """
         self.send_response(code, error)
         self.send_header('Content-Type', 'text/xml')
         self.end_headers()
@@ -118,8 +132,8 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
 
     def __send_dynamicfile(self, code, msg, iterFile):
         """
-:synopsis: Sends a file or similar object. Caller must set the filename, size \
-           and content_type attributes of the iterFile.
+:synopsis: Sends a file or similar object. iterFile is expected to have the
+           following attributes: filename and content_type.
     
         """
     
@@ -152,6 +166,11 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
         return
 
     def do_GET(self):
+        """
+        :synopsis: Handle a GET request. Input data is read from self.path.
+        :platform: Linux
+
+        """
         logging.debug("======= GET STARTED =======")
         logging.debug(self.headers)
 
@@ -218,6 +237,12 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
         #SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self)
 
     def do_POST(self):
+        """
+        :synopsis: Handle a POST request. Input data is read from self.rfile
+                   and output is written to self.wfile.
+        :platform: Linux
+
+        """
         logging.debug("======= POST STARTED =======")
         logging.debug(self.headers)
 
@@ -227,17 +252,9 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
                               'Wrong path. Not FDSN compliant')
             return
 
-        # CITATION: http://stackoverflow.com/questions/4233218/python-basehttprequesthandler-post-variables
-        ctype, pdict = cgi.parse_header(self.headers['content-type'])
-
-        #if ctype == 'application/x-www-form-urlencoded':
         length = int(self.headers['content-length'])
         logging.debug('Length: %s' % length)
         lines = self.rfile.read(length)
-        #else:
-        #    msg = 'Content-Type must be application/x-www-form-urlencoded'
-        #    self.__send_plain(400, 'Bad Request', msg)
-        #    return
 
         # Show request
         logging.info('POST request with %s lines' % len(lines.split('\n')))
