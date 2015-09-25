@@ -1,0 +1,21 @@
+[Arclink]
+# Arclink server where the routing information should be downloaded from
+server = eida.gfz-potsdam.de
+port = 18002
+
+[Service]
+# String that must be returned when the method "config" is called
+info = Routing information from the Arclink Server at GEOFON
+# Time at which the routing and inventory information must be updated
+# updateTime = 01:00 02:00 03:00
+updateTime = 03:00
+# Should the routing information be updated and overwritten by the data from
+# the configured Arclink server when updateAll.py is run?
+overwrite = true
+# Verbosity of the logging system
+# Possible values are:
+# CRITICAL, ERROR, WARNING, INFO, DEBUG
+verbosity = INFO
+synchronize =
+allowoverlap = false
+
