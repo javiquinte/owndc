@@ -55,7 +55,7 @@ configuration files from the Routing Service. ::
   $ ln -s ../routing/routing.py routing.py
   $ ln -s ../routing/utils.py utils.py
   $ cp ../routing/routing.cfg.sample routing.cfg
-  $ cp ../routing/data data
+  $ cp -R ../routing/data data
 
 Configuration
 -------------
@@ -68,7 +68,7 @@ use and the locations of the services. We provide an easy way to get an
 automatic configuration specifying an updated state of the EIDA routing
 table. ::
 
-  $ cd data
+  $ cd tools
   $ python getEIDAconfig.py
 
 When the script finishes you should find a file called ``routing.xml``
@@ -86,7 +86,8 @@ If you would like to configure extra routes, you need to create the
 ``masterTable.xml`` file. A sample version of the file can be copied from the
 Routing Service code and later edited. ::
 
-  $ cp ../../routing/data/masterTable.xml.sample ./masterTable.xml
+  $ cd ../data
+  $ cp masterTable.xml.sample masterTable.xml
 
 
 .. note:: There are two main differences between the information provided in
