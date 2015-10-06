@@ -6,7 +6,3 @@ doc/_build/
 *.cfg
 *.bck
 *.log
-data
-routing.py
-utils.py
-inventorycache.py
