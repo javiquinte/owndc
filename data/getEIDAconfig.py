@@ -2,16 +2,24 @@
 
 import os
 import sys
-import ConfigParser
 import telnetlib
-import cPickle as pickle
 from time import sleep
+
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
+
+try:
+    import configparser
+except ImportError:
+    import ConfigParser as configparser
 
 sys.path.append('..')
 
 from utils import addRemote
 from utils import addRoutes
-from wsgicomm import Logs
+import logging
 
 """
 .. todo::
@@ -20,6 +28,247 @@ from wsgicomm import Logs
     and services following the same table that we had previously.
 
 """
+
+def arc2fdsnws(filein, fileout):
+    """Read the routing file in XML format and add the Dataselect and Station
+routes based on the Arclink information. The resulting table is stored in 
+
+:param filein: Input file with routes (usually from an Arclink server).
+:type filein: str
+:param fileout: Output file with all routes from the input file plus new
+                Station and Dataselect routes based on the Arclink route.
+:type fileout: str
+"""
+
+    logs = logging.getLogger('addRoutes')
+    logs.debug('Entering addRoutes(%s)\n' % fileName)
+
+    # Read the configuration file and checks when do we need to update
+    # the routes
+    config = configparser.RawConfigParser()
+
+    here = os.path.dirname(__file__)
+    config.read(os.path.join(here, configF))
+
+    if 'allowoverlap' in config.options('Service'):
+        allowOverlap = config.getboolean('Service', 'allowoverlap')
+    else:
+        allowOverlap = False
+
+    logs.info('Overlaps between routes will ' +
+              '' if allowOverlap else 'NOT ' + 'be allowed')
+
+    with open(fileName, 'r') as testFile:
+        # Parse the routing file
+        # Traverse through the networks
+        # get an iterable
+        try:
+            context = ET.iterparse(testFile, events=("start", "end"))
+        except IOError:
+            msg = 'Error: %s could not be parsed. Skipping it!\n' % fileName
+            logs.error(msg)
+            return ptRT
+
+        # turn it into an iterator
+        context = iter(context)
+
+        # get the root element
+        if hasattr(context, 'next'):
+            event, root = context.next()
+        else:
+            event, root = next(context)
+
+        # Check that it is really an inventory
+        if root.tag[-len('routing'):] != 'routing':
+            msg = '%s seems not to be a routing file (XML). Skipping it!\n' \
+                % fileName
+            logs.error(msg)
+            return ptRT
+
+        # Extract the namespace from the root node
+        namesp = root.tag[:-len('routing')]
+
+        for event, route in context:
+            # The tag of this node should be "route".
+            # Now it is not being checked because
+            # we need all the data, but if we need to filter, this
+            # is the place.
+            #
+            if event == "end":
+                if route.tag == namesp + 'route':
+
+                    # Extract the location code
+                    try:
+                        locationCode = route.get('locationCode')
+                        if len(locationCode) == 0:
+                            locationCode = '*'
+
+                        # Do not allow "?" wildcard in the input, because it
+                        # will be impossible to match with the user input if
+                        # this also has a mixture of "*" and "?"
+                        if '?' in locationCode:
+                            logging.error('Wildcard "?" is not allowed!')
+                            continue
+
+                    except:
+                        locationCode = '*'
+
+                    # Extract the network code
+                    try:
+                        networkCode = route.get('networkCode')
+                        if len(networkCode) == 0:
+                            networkCode = '*'
+
+                        # Do not allow "?" wildcard in the input, because it
+                        # will be impossible to match with the user input if
+                        # this also has a mixture of "*" and "?"
+                        if '?' in networkCode:
+                            logging.error('Wildcard "?" is not allowed!')
+                            continue
+
+                    except:
+                        networkCode = '*'
+
+                    # Extract the station code
+                    try:
+                        stationCode = route.get('stationCode')
+                        if len(stationCode) == 0:
+                            stationCode = '*'
+                    
+                        # Do not allow "?" wildcard in the input, because it
+                        # will be impossible to match with the user input if
+                        # this also has a mixture of "*" and "?"
+                        if '?' in stationCode:
+                            logging.error('Wildcard "?" is not allowed!')
+                            continue
+
+                    except:
+                        stationCode = '*'
+
+                    # Extract the stream code
+                    try:
+                        streamCode = route.get('streamCode')
+                        if len(streamCode) == 0:
+                            streamCode = '*'
+
+                        # Do not allow "?" wildcard in the input, because it
+                        # will be impossible to match with the user input if
+                        # this also has a mixture of "*" and "?"
+                        if '?' in streamCode:
+                            logging.error('Wildcard "?" is not allowed!')
+                            continue
+
+                    except:
+                        streamCode = '*'
+
+                    # Traverse through the sources
+                    for serv in route:
+                        assert serv.tag[:len(namesp)] == namesp
+
+                        service = serv.tag[len(namesp):]
+                        att = serv.attrib
+
+                        # Extract the address (mandatory)
+                        try:
+                            address = att.get('address')
+                            if len(address) == 0:
+                                logs.error('Could not add %s' %att)
+                                continue
+                        except:
+                            logs.error('Could not add %s' %att)
+                            continue
+
+                        try:
+                            startD = att.get('start', None)
+                            if len(startD):
+                                startParts = startD.replace('-', ' ')
+                                startParts = startParts.replace('T', ' ')
+                                startParts = startParts.replace(':', ' ')
+                                startParts = startParts.replace('.', ' ')
+                                startParts = startParts.replace('Z', '')
+                                startParts = startParts.split()
+                                startD = datetime.datetime(*map(int,
+                                                                startParts))
+                            else:
+                                startD = None
+                        except:
+                            startD = None
+                            #msg = 'Error while converting START attribute\n'
+                            #logs.error(msg)
+
+                        # Extract the end datetime
+                        try:
+                            endD = att.get('end', None)
+                            if len(endD):
+                                endParts = endD.replace('-', ' ')
+                                endParts = endParts.replace('T', ' ')
+                                endParts = endParts.replace(':', ' ')
+                                endParts = endParts.replace('.', ' ')
+                                endParts = endParts.replace('Z', '').split()
+                                endD = datetime.datetime(*map(int,
+                                                              endParts))
+                            else:
+                                endD = None
+                        except:
+                            endD = None
+                            #msg = 'Error while converting END attribute.\n'
+                            #logs.error(msg)
+
+                        # Extract the priority
+                        try:
+                            priority = att.get('priority', '99')
+                            if len(priority) == 0:
+                                priority = 99
+                            else:
+                                priority = int(priority)
+                        except:
+                            priority = 99
+
+                        # Append the network to the list of networks
+                        st = Stream(networkCode, stationCode, locationCode,
+                                    streamCode)
+                        tw = TW(startD, endD)
+
+                        try:
+                            # Check the overlap between the routes to import
+                            # and the ones already present in the main Routing
+                            # table
+                            addIt = True
+                            logs.debug('[RT] Checking %s\n' % str(st))
+                            for testStr in ptRT.keys():
+                                # This checks the overlap of Streams and also
+                                # of timewindows and priority
+                                if checkOverlap(testStr, ptRT[testStr], st,
+                                                Route(service, address, tw, priority)):
+                                    msg = '%s: Overlap between %s and %s!\n'\
+                                        % (fileName, st, testStr)
+                                    logs.error(msg)
+                                    if not allowOverlap:
+                                        logs.error('Skipping %s\n' % str(st))
+                                        addIt = False
+                                    break
+
+                            if addIt:
+                                ptRT[st].append(Route(service, address, tw, priority))
+                            else:
+                                logs.warning('Skip %s - %s\n' %
+                                             (st, Route(service, address, tw,
+                                                        priority)))
+
+                        except KeyError:
+                            ptRT[st] = [Route(service, address, tw, priority)]
+                        serv.clear()
+
+                    route.clear()
+
+                root.clear()
+
+    # Order the routes by priority
+    for keyDict in ptRT:
+        ptRT[keyDict] = sorted(ptRT[keyDict])
+
+    return ptRT
+
 
 def getArcRoutes(arcServ='eida.gfz-potsdam.de', arcPort=18001):
     """Connects via telnet to an Arclink server to get routing information.
@@ -39,7 +288,7 @@ operating with an EIDA default configuration.
 
     """
 
-    logs = Logs(4)
+    logs = logging.getLogger('getArcRoutes')
 
     tn = telnetlib.Telnet(arcServ, arcPort)
     tn.write('HELLO\n')
@@ -131,7 +380,9 @@ start operating with an EIDA default configuration.
 
     """
 
-    logs = Logs(4)
+    logs = logging.getLogger('getArcInv')
+
+    logs.warning('This function should probably not be used! Be carefull!')
 
     tn = telnetlib.Telnet(arcServ, arcPort)
     tn.write('HELLO\n')
@@ -237,20 +488,18 @@ start operating with an EIDA default configuration.
     logs.info('\nInventory read from Arclink!\n')
 
 
-def mergeRoutes(synchroList, logs=Logs(2)):
-    """Retrieve routes from different sources and merge them witht he local
-ones in the three usual routing tables (main, seedlink, station). The
-configuration file is checked to see whether overlapping routes are allowed
-or not. A pickled version of the three routing tables is saved in
-``routing.bin``.
+def mergeRoutes(synchroList):
+    """Retrieve routes from different sources and merge them with the local
+ones in the routing table. The configuration file is checked to see whether
+overlapping routes are allowed or not. A pickled version of the three routing
+tables is saved in ``routing.bin``.
 
 :param synchroList: List of data centres where routes should be imported from
 :type synchroList: str
-:param logs: Logging object supporting the methods :func:`~Logs.error`,
-    :func:`~Logs.warning` and so on.
-:type logs: :class:`~Logs`
 
 """
+
+    logs = logging.getLogger('mergeRoutes')
 
     ptRT = addRoutes('./routing.xml')
 
@@ -283,28 +532,24 @@ or not. A pickled version of the three routing tables is saved in
 
 
 def main(logLevel=2):
-    logs = Logs(logLevel)
+    # FIXME logLevel must be used via argparser
+    # Check verbosity in the output
+    config = configparser.RawConfigParser()
+    here = os.path.dirname(__file__)
+    config.read(os.path.join(here, '..', 'ownDC.cfg'))
+    #verbo = config.getint('Service', 'verbosity')
+    verbo = config.get('Service', 'verbosity')
+    # Warning is the default value
+    verboNum = getattr(logging, verbo.upper(), 30)
+
+    logging.basicConfig(level=verboNum)
+    logs = logging.getLogger('getEIDAconfig')
 
     # Check Arclink server that must be contacted to get a routing table
-    config = ConfigParser.RawConfigParser()
-
-    here = os.path.dirname(__file__)
-    config.read(os.path.join(here, '../routing.cfg'))
     arcServ = config.get('Arclink', 'server')
     arcPort = config.getint('Arclink', 'port')
 
-    if config.getboolean('Service', 'ArclinkBased'):
-        getArcRoutes(arcServ, arcPort)
-    else:
-        print 'Skipping routing information. Config file does not allow to ' \
-            + 'overwrite the information. (../routing.cfg)'
-
-    synchroList = ''
-    if 'synchronize' in config.options('Service'):
-        synchroList = config.get('Service', 'synchronize')
-
-    mergeRoutes(synchroList, logs)
-
+    getArcRoutes(arcServ, arcPort)
     #getArcInv(arcServ, arcPort)
 
 

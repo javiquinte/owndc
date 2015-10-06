@@ -107,7 +107,7 @@ a regular period of time.
         try:
             context = ET.iterparse(testFile, events=("start", "end"))
         except IOError:
-            msg = 'Error: %s could not be opened. Skipping it!\n' % fileName
+            msg = 'Error: %s could not be parsed. Skipping it!\n' % fileName
             logs.error(msg)
             return ptRT
 
