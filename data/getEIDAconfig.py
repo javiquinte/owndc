@@ -58,14 +58,14 @@ routes based on the Arclink information. The resulting table is stored in
     logs.info('Overlaps between routes will ' +
               '' if allowOverlap else 'NOT ' + 'be allowed')
 
-    with open(fileName, 'r') as testFile:
+    with open(filein, 'r') as testFile:
         # Parse the routing file
         # Traverse through the networks
         # get an iterable
         try:
             context = ET.iterparse(testFile, events=("start", "end"))
         except IOError:
-            msg = 'Error: %s could not be parsed. Skipping it!\n' % fileName
+            msg = 'Error: %s could not be parsed. Skipping it!\n' % filein
             logs.error(msg)
             return ptRT
 
@@ -248,6 +248,8 @@ routes based on the Arclink information. The resulting table is stored in
                                         addIt = False
                                     break
 
+                            # FIXME I need to add here the code to write the new
+                            # XML file containing the new routes
                             if addIt:
                                 ptRT[st].append(Route(service, address, tw, priority))
                             else:
@@ -270,15 +272,17 @@ routes based on the Arclink information. The resulting table is stored in
     return ptRT
 
 
-def getArcRoutes(arcServ='eida.gfz-potsdam.de', arcPort=18001):
+def getArcRoutes(arcServ='eida.gfz-potsdam.de', arcPort=18001, foutput='routing.xml'):
     """Connects via telnet to an Arclink server to get routing information.
-The data is saved in the file ``routing.xml``. Generally used to start
+The data is saved in the file specified by foutput. Generally used to start
 operating with an EIDA default configuration.
 
 :param arcServ: Arclink server address
 :type arcServ: str
 :param arcPort: Arclink server port
 :type arcPort: int
+:param foutput: Filename where the output must be saved
+:type foutput: str
 
 .. warning::
 
@@ -338,22 +342,22 @@ operating with an EIDA default configuration.
 
     here = os.path.dirname(__file__)
     try:
-        os.remove(os.path.join(here, 'routing.xml.download'))
+        os.remove(os.path.join(here, '%s.download' % foutput))
     except:
         pass
 
-    with open(os.path.join(here, 'routing.xml.download'), 'w') as fout:
+    with open(os.path.join(here, '%s.download' % foutput), 'w') as fout:
         fout.write(routTable[routTable.find('<'):-3])
 
     try:
-        os.rename(os.path.join(here, './routing.xml'),
-                  os.path.join(here, './routing.xml.bck'))
+        os.rename(os.path.join(here, foutput),
+                  os.path.join(here, '%s.bck' % foutput))
     except:
         pass
 
     try:
-        os.rename(os.path.join(here, './routing.xml.download'),
-                  os.path.join(here, './routing.xml'))
+        os.rename(os.path.join(here, '%s.download' % foutput),
+                  os.path.join(here, foutput))
     except:
         pass
 
@@ -549,8 +553,9 @@ def main(logLevel=2):
     arcServ = config.get('Arclink', 'server')
     arcPort = config.getint('Arclink', 'port')
 
-    getArcRoutes(arcServ, arcPort)
+    getArcRoutes(arcServ, arcPort, 'ownDC-routes.xml')
     #getArcInv(arcServ, arcPort)
+    arc2fdsnws('ownDC-routes.xml', 'ownDC-routes2.xml')
 
 
 if __name__ == '__main__':
