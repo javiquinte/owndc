@@ -29,6 +29,53 @@ import logging
 
 """
 
+def mapArcFDSN(route):
+    """Map from an Arclink address to a Dataselect one
+
+:param route: Arclink route
+:type route: str
+:returns: Base URL equivalent of the given Arclink route
+:rtype: str
+:raises: Exception
+
+    """
+
+    gfz = 'http://geofon.gfz-potsdam.de'
+    odc = 'http://www.orfeus-eu.org'
+    eth = 'http://eida.ethz.ch'
+    resif = 'http://ws.resif.fr'
+    ingv = 'http://webservices.rm.ingv.it'
+    bgr = 'http://eida.bgr.de'
+    lmu = 'http://erde.geophysik.uni-muenchen.de'
+    ipgp = 'http://eida.ipgp.fr'
+    niep = 'http://eida-sc3.infp.ro'
+    koeri = 'http://eida.koeri.boun.edu.tr'
+
+    # Try to identify the hosting institution
+    host = route.split(':')[0]
+
+    if host.endswith('gfz-potsdam.de'):
+        return gfz
+    elif host.endswith('knmi.nl'):
+        return odc
+    elif host.endswith('ethz.ch'):
+        return eth
+    elif host.endswith('resif.fr'):
+        return resif
+    elif host.endswith('ingv.it'):
+        return ingv
+    elif host.endswith('bgr.de'):
+        return bgr
+    elif host.startswith('141.84.'):
+        return lmu
+    elif host.endswith('ipgp.fr'):
+        return ipgp
+    elif host.endswith('infp.ro'):
+        return niep
+    elif host.endswith('boun.edu.tr'):
+        return koeri
+    raise Exception('No FDSN-WS equivalent found for %s' % route)
+
 def arc2fdsnws(filein, fileout):
     """Read the routing file in XML format and add the Dataselect and Station
 routes based on the Arclink information. The resulting table is stored in 
@@ -39,6 +86,9 @@ routes based on the Arclink information. The resulting table is stored in
                 Station and Dataselect routes based on the Arclink route.
 :type fileout: str
 """
+
+    # Create a routing table to check for overlaps
+    ptRT = dict()
 
     logs = logging.getLogger('addRoutes')
     logs.debug('Entering addRoutes(%s)\n' % fileName)
@@ -67,7 +117,7 @@ routes based on the Arclink information. The resulting table is stored in
         except IOError:
             msg = 'Error: %s could not be parsed. Skipping it!\n' % filein
             logs.error(msg)
-            return ptRT
+            return
 
         # turn it into an iterator
         context = iter(context)
@@ -83,7 +133,7 @@ routes based on the Arclink information. The resulting table is stored in
             msg = '%s seems not to be a routing file (XML). Skipping it!\n' \
                 % fileName
             logs.error(msg)
-            return ptRT
+            return
 
         # Extract the namespace from the root node
         namesp = root.tag[:-len('routing')]
@@ -248,10 +298,16 @@ routes based on the Arclink information. The resulting table is stored in
                                         addIt = False
                                     break
 
-                            # FIXME I need to add here the code to write the new
-                            # XML file containing the new routes
                             if addIt:
                                 ptRT[st].append(Route(service, address, tw, priority))
+                                if service = 'arclink':
+                                    # FIXME I need to add here the code to write the new
+                                    # XML file containing the new routes
+                                    stAddress = '%s/fdsnws/station/1/query' % mapArcFDSN(address)
+                                    dsAddress = '%s/fdsnws/dataselect/1/query' % mapArcFDSN(address)
+                                    ptRT[st].append(Route('station', stAddress, tw, priority))
+                                    ptRT[st].append(Route('dataselect', dsAddress, tw, priority))
+                                    pass
                             else:
                                 logs.warning('Skip %s - %s\n' %
                                              (st, Route(service, address, tw,
@@ -259,6 +315,14 @@ routes based on the Arclink information. The resulting table is stored in
 
                         except KeyError:
                             ptRT[st] = [Route(service, address, tw, priority)]
+                            if service = 'arclink':
+                                # FIXME I need to add here the code to write the new
+                                # XML file containing the new routes
+                                stAddress = '%s/fdsnws/station/1/query' % mapArcFDSN(address)
+                                dsAddress = '%s/fdsnws/dataselect/1/query' % mapArcFDSN(address)
+                                ptRT[st].append(Route('station', stAddress, tw, priority))
+                                ptRT[st].append(Route('dataselect', dsAddress, tw, priority))
+
                         serv.clear()
 
                     route.clear()
