@@ -49,13 +49,13 @@ except ImportError:
     import urllib2 as ul
 
 # Read verbosity to configure the logging system
-config = configparser.RawConfigParser()
-here = os.path.dirname(__file__)
-config.read(os.path.join(here, 'routing.cfg'))
-verbo = config.get('Service', 'verbosity')
+#config = configparser.RawConfigParser()
+#here = os.path.dirname(__file__)
+#config.read(os.path.join(here, 'routing.cfg'))
+#verbo = config.get('Service', 'verbosity')
 # "WARNING" is the default value
-verboNum = getattr(logging, verbo.upper(), 30)
-logging.basicConfig(level=verboNum)
+#verboNum = getattr(logging, verbo.upper(), 30)
+logging.basicConfig(level=30)
 
 # Maximum size of POST data, in bytes? Or roubles?
 cgi.maxlen = 1000000
@@ -184,22 +184,22 @@ class ResultFile(object):
 
 class DataSelectQuery(object):
     def __init__(self, logName=None, routesFile='./data/routing.xml',
-                 masterFile='./data/masterTable.xml'):
+                 masterFile='./data/masterTable.xml', configFile='routing.cfg'):
         # set up logging
         #self.logs = Logs(verbosity)
         self.logs = logging.getLogger('DataSelectQuery')
 
         # Add routing cache here, to be accessible to all modules
-        #here = os.path.dirname(__file__)
-        #routesFile = os.path.join(here, 'data', 'routing.xml')
-        #masterFile = os.path.join(here, 'data', 'masterTable.xml')
-        self.routes = RoutingCache(routesFile, masterFile)
+        self.logs.error('Reading routes from %s' % routesFile)
+        self.logs.error('Reading masterTable from %s' % masterFile)
+        self.logs.error('Reading configuration from %s' % configFile)
+
+        self.routes = RoutingCache(routesFile, masterFile, configFile)
 
         self.ID = str(datetime.datetime.now())
 
         if logName is not None:
-            here = os.path.dirname(__file__)
-            self.acc = Accounting(os.path.join(here, logName))
+            self.acc = Accounting(logName)
         else:
             self.acc = None
 

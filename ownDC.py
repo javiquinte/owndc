@@ -269,7 +269,7 @@ def main():
     args = parser.parse_args()
 
     # Create the object that will resolve and execute all the queries
-    wi = DataSelectQuery('ownDC.log', './data/ownDC-routes.xml')
+    wi = DataSelectQuery('ownDC.log', './data/ownDC-routes.xml', configFile='ownDC.cfg')
     
     # Check arguments (IP, port)
     host = args.host

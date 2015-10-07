@@ -814,6 +814,9 @@ class RoutingCache(object):
 
         # Dictionary with all the routes
         self.routingTable = dict()
+        self.logs.error('Reading routes from %s' % self.routingFile)
+        self.logs.error('Reading configuration from %s' % self.configFile)
+        self.logs.error('Reading masterTable from %s' % masterFile)
 
         # Dictionary with the seedlink routes
         #self.slTable = dict()
