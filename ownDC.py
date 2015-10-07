@@ -76,6 +76,9 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
 :platform: Linux    
     """
 
+    # Create the object that will resolve and execute all the queries
+    wi = DataSelectQuery('ownDC.log', './data/ownDC-routes.xml', configFile='ownDC.cfg')
+    
     #def finish(self):
     #    try:
     #        logging.debug('Enter try')
@@ -209,7 +212,7 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
         logging.info('GET request for %s' % dictPar)
 
         try:
-            iterObj = wi.makeQueryGET(dictPar)
+            iterObj = self.wi.makeQueryGET(dictPar)
             self.__send_dynamicfile(200, 'OK', iterObj)
             return
 
@@ -244,7 +247,7 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
         logging.info('POST request with %s lines' % len(lines.split('\n')))
 
         try:
-            iterObj = wi.makeQueryPOST(lines)
+            iterObj = self.wi.makeQueryPOST(lines)
             self.__send_dynamicfile(200, 'OK', iterObj)
             return
 
@@ -269,7 +272,7 @@ def main():
     args = parser.parse_args()
 
     # Create the object that will resolve and execute all the queries
-    wi = DataSelectQuery('ownDC.log', './data/ownDC-routes.xml', configFile='ownDC.cfg')
+    #wi = DataSelectQuery('ownDC.log', './data/ownDC-routes.xml', configFile='ownDC.cfg')
     
     # Check arguments (IP, port)
     host = args.host
