@@ -64,7 +64,7 @@ def checkOverlap(str1, routeList, str2, route):
     return False
 
 
-def addRoutes(fileName, ptRT=dict(), configF='routing.cfg'):
+def addRoutes(fileName, ptRT=dict(), config='routing.cfg'):
     """Read the routing file in XML format and store it in memory.
 
 All the routing information is read into a dictionary. Only the
@@ -87,13 +87,12 @@ a regular period of time.
 
     # Read the configuration file and checks when do we need to update
     # the routes
-    config = configparser.RawConfigParser()
+    configP = configparser.RawConfigParser()
 
-    here = os.path.dirname(__file__)
-    config.read(os.path.join(here, configF))
+    configP.read(config)
 
-    if 'allowoverlap' in config.options('Service'):
-        allowOverlap = config.getboolean('Service', 'allowoverlap')
+    if 'allowoverlap' in configP.options('Service'):
+        allowOverlap = configP.getboolean('Service', 'allowoverlap')
     else:
         allowOverlap = False
 
@@ -718,7 +717,6 @@ class Route(namedtuple('Route', ['service', 'address', 'tw', 'priority'])):
     __slots__ = ()
 
     def toXML(self, nameSpace='ns0', level=2):
-        #print type(self.tw), self.tw
         return '%s<%s:%s address="%s" priority="%d" start="%s" end="%s" />\n' %\
             (' ' * level, nameSpace, self.service, self.address, self.priority,
              self.tw.start.isoformat() if self.tw.start is not None else '',
@@ -842,8 +840,9 @@ class RoutingCache(object):
         # the routes
         configP = configparser.RawConfigParser()
 
-        here = os.path.dirname(__file__)
-        configP.read(os.path.join(here, self.configFile))
+        #here = os.path.dirname(__file__)
+        #configP.read(os.path.join(here, self.configFile))
+        configP.read(self.configFile)
         updTime = configP.get('Service', 'updateTime')
 
         auxL = list()
@@ -1737,8 +1736,7 @@ The following table lookup is implemented for the Arclink service::
             with open(binFile) as rMerged:
                 self.routingTable = pickle.load(rMerged)
         except:
-            #ptRT = addRoutes(os.path.join(here, self.routingFile))
-            ptRT = addRoutes(self.routingFile)
+            ptRT = addRoutes(self.routingFile, config=self.configFile)
             #for routeFile in glob.glob(
             #        os.path.join(here, 'data/routing-*.xml')):
             for routeFile in glob.glob('data/routing-*.xml'):

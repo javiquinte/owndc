@@ -80,7 +80,7 @@ def mapArcFDSN(route):
         return koeri
     raise Exception('No FDSN-WS equivalent found for %s' % route)
 
-def arc2fdsnws(filein, fileout):
+def arc2fdsnws(filein, fileout, config='../ownDC.cfg'):
     """Read the routing file in XML format and add the Dataselect and Station
 routes based on the Arclink information. The resulting table is stored in 
 
@@ -90,7 +90,7 @@ routes based on the Arclink information. The resulting table is stored in
                 Station and Dataselect routes based on the Arclink route.
 :type fileout: str
 """
-    rc = RoutingCache(filein)
+    rc = RoutingCache(filein, config=config)
     for st, lr in rc.routingTable.iteritems():
         toAdd = list()
         for r in lr:
@@ -339,7 +339,7 @@ def main():
             help='Arclink server address (address.domain:18001).')
     parser.add_argument('-c', '--config',
                         help='Config file to use.',
-                        default='.../ownDC.cfg')
+                        default='../ownDC.cfg')
     args = parser.parse_args()
 
     config = configparser.RawConfigParser()
@@ -377,7 +377,7 @@ def main():
 
     getArcRoutes(arcServ, arcPort, 'ownDC-routes-tmp.xml')
     #getArcInv(arcServ, arcPort)
-    arc2fdsnws('ownDC-routes-tmp.xml', 'ownDC-routes.xml')
+    arc2fdsnws('ownDC-routes-tmp.xml', 'ownDC-routes.xml', config=args.config)
     try:
         os.remove('ownDC-routes-tmp.xml')
     except:

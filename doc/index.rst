@@ -50,19 +50,47 @@ next section to properly configure it. ::
 Configuration
 -------------
 
+Configuration options
+^^^^^^^^^^^^^^^^^^^^^
+
+The first step before starting to use OwnDC is to configure a the `verbosity`
+option for this service. The configuration file must be located in the root
+directory of your installation (f.i. ``./ownDC.cfg``). A sample version is
+provided under ``./ownDC.cfg.sample``. You can copy it and edit it to fit your
+needs. ::
+
+  $ cp ownDC.cfg.sample ownDC.cfg
+  $ vi ownDC.cfg
+
+`verbosity` controls the amount of output send to the logging system depending
+of the importance of the messages. The levels are: CRITICAL, ERROR, WARNING,
+INFO and DEBUG.
+
+.. _service_configuration:
+
+.. code-block:: ini
+
+    [Service]
+    verbosity = INFO
+
 Routes
 ^^^^^^
 
 To start using OwnDC you need to declare which networks (streams) you want to
 use and the locations of the services. We provide a script to get an
 automatic configuration specifying an updated state of the EIDA routing
-table. If you would like to take this automatic configuration, just call the
-script in the following way: ::
+table. To see all the available options you can call the script with the ``-h``
+parameter. ::
 
   $ cd data
+  $ python getEIDAconfig.py -h
+
+If you would like to use this automatic configuration, just call the script in
+the following way: ::
+
   $ python getEIDAconfig.py
 
-When the script finishes you should find a file called ``routing.xml``
+When the script finishes you should find a file called ``ownDC-routes.xml``
 containing all the routes to get data from any EIDA node.
 
 If you would like to route some other streams not included in EIDA,
@@ -103,26 +131,6 @@ the ``II`` network is requested.
 .. warning:: The `priority` attribute will be valid only in the context of the
              `masterTable`. There is no relation with the priority for a
              similar route that could be in the normal routing table.
-
-
-Configuration options
-^^^^^^^^^^^^^^^^^^^^^
-
-The last step before starting to use OwnDC is to configure a the `verbosity`
-from the Routing Service. The configuration file must be located in the root
-directory of your installation (``./routing.cfg``) and a sample version can be
-copied from the Routing Service code and later edited to fit your needs.
-
-`verbosity` controls the amount of output send to the logging system depending
-of the importance of the messages. The levels are: CRITICAL, ERROR, WARNING,
-INFO and DEBUG.
-
-.. _service_configuration:
-
-.. code-block:: ini
-
-    [Service]
-    verbosity = INFO
 
 Documentation for developers
 ============================
