@@ -497,6 +497,13 @@ class Stream(namedtuple('Stream', ['n', 's', 'l', 'c'])):
 
     __slots__ = ()
 
+    def toXMLopen(self, nameSpace='ns0', level=1):
+        return '%s<%s:route networkCode="%s" stationCode="%s" locationCode="%s" streamCode="%s">\n' \
+            % (' ' * level, nameSpace, self.n, self.s, self.l, self.c)
+
+    def toXMLclose(self, nameSpace='ns0', level=1):
+        return '%s</%s:route>\n' % (' ' * level, nameSpace)
+
     def __contains__(self, st):
         """Check if one :class:`~Stream` is contained in this :class:`~Stream`.
 
@@ -710,6 +717,13 @@ class Route(namedtuple('Route', ['service', 'address', 'tw', 'priority'])):
 
     __slots__ = ()
 
+    def toXML(self, nameSpace='ns0', level=2):
+        print type(self.tw.end), self.tw.end
+        return '%s<%s:%s address="%s" priority="%d" start="%s" end="%s" />\n' \
+            (' ' * level, nameSpace, self.service, self.address, self.priority,
+             self.tw.start.isoformat() if self.tw.start is not None else '',
+             self.tw.end.isoformat() if self.tw.end is not None else '')
+
     def overlap(self, otherRoute):
         if ((self.priority == otherRoute.priority) and
                 (self.service == otherRoute.service)):
@@ -859,6 +873,18 @@ class RoutingCache(object):
         self.masterTable = dict()
 
         self.updateMT()
+
+    def toXML(self, foutput, nameSpace='ns0'):
+        with open(foutput, 'w') as fo:
+            fo.write('<?xml version="1.0" encoding="utf-8"?>\n')
+            fo.write('<ns0:routing xmlns:ns0="http://geofon.gfz-potsdam.de/ns/Routing/1.0/">\n')
+            for st, lr in self.routingTable.iteritems():
+                fo.write(st.toXMLopen())
+                for r in lr:
+                    fo.write(r.toXML())
+                fo.write(st.toXMLclose())
+            fo.write('</ns0:routing>')
+
 
     def localConfig(self):
         """Returns the local routing configuration
@@ -1704,18 +1730,25 @@ The following table lookup is implemented for the Arclink service::
         # Clear all previous information
         ptRT.clear()
 
-        here = os.path.dirname(__file__)
+        #here = os.path.dirname(__file__)
+        binFile = self.routingFile + '.bin'
         try:
-            with open(os.path.join(here, 'data/routing.bin')) as rMerged:
+            #with open(os.path.join(here, binFile)) as rMerged:
+            with open(binFile) as rMerged:
                 self.routingTable = pickle.load(rMerged)
         except:
-            ptRT = addRoutes(os.path.join(here, 'data/routing.xml'))
-            for routeFile in glob.glob(
-                    os.path.join(here, 'data/routing-*.xml')):
+            #print __file__, here, self.routingFile
+
+            #ptRT = addRoutes(os.path.join(here, self.routingFile))
+            ptRT = addRoutes(self.routingFile)
+            #for routeFile in glob.glob(
+            #        os.path.join(here, 'data/routing-*.xml')):
+            for routeFile in glob.glob('data/routing-*.xml'):
                 ptRT = addRoutes(routeFile, ptRT, self.logs)
 
-            with open(os.path.join(here, 'data/routing.bin'), 'wb') \
+            #with open(os.path.join(here, binFile), 'wb') \
+            with open(binFile, 'wb') \
                     as finalRoutes:
-                self.logs.debug('Writing routing.bin\n')
+                self.logs.debug('Writing %s\n' % binFile)
                 pickle.dump(ptRT, finalRoutes)
                 self.routingTable = ptRT
