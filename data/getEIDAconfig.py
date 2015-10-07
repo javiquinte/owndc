@@ -4,6 +4,7 @@ import os
 import sys
 import telnetlib
 from time import sleep
+import xml.etree.cElementTree as ET
 
 try:
     import cPickle as pickle
@@ -19,6 +20,11 @@ sys.path.append('..')
 
 from utils import addRemote
 from utils import addRoutes
+from utils import Stream
+from utils import TW
+from utils import Route
+from utils import RoutingCache
+from utils import checkOverlap
 import logging
 
 """
@@ -49,7 +55,7 @@ def mapArcFDSN(route):
     lmu = 'http://erde.geophysik.uni-muenchen.de'
     ipgp = 'http://eida.ipgp.fr'
     niep = 'http://eida-sc3.infp.ro'
-    koeri = 'http://eida.koeri.boun.edu.tr'
+    koeri = 'http://eida-service.koeri.boun.edu.tr'
 
     # Try to identify the hosting institution
     host = route.split(':')[0]
@@ -72,9 +78,37 @@ def mapArcFDSN(route):
         return ipgp
     elif host.endswith('infp.ro'):
         return niep
-    elif host.endswith('boun.edu.tr'):
+    elif host.endswith('boun.edu.tr') or host.startswith('193.140.203'):
         return koeri
     raise Exception('No FDSN-WS equivalent found for %s' % route)
+
+def arc2fdsnwsv2(filein, fileout):
+    """Read the routing file in XML format and add the Dataselect and Station
+routes based on the Arclink information. The resulting table is stored in 
+
+:param filein: Input file with routes (usually from an Arclink server).
+:type filein: str
+:param fileout: Output file with all routes from the input file plus new
+                Station and Dataselect routes based on the Arclink route.
+:type fileout: str
+"""
+    rc = RoutingCache(filein)
+    for st, lr in rc.routingTable.iteritems():
+        toAdd = list()
+        for r in lr:
+            if r.service == 'arclink':
+                stat = Route('station', '%s/fdsnws/station/1/query' %
+                             mapArcFDSN(r.address), r.tw, r.priority)
+                toAdd.append(stat)
+
+                data = Route('dataselect', '%s/fdsnws/dataselect/1/query' %
+                             mapArcFDSN(r.address), r.tw, r.priority)
+                toAdd.append(data)
+
+        lr.extend(toAdd)
+
+    rc.toXML(fileout)
+
 
 def arc2fdsnws(filein, fileout):
     """Read the routing file in XML format and add the Dataselect and Station
@@ -90,15 +124,16 @@ routes based on the Arclink information. The resulting table is stored in
     # Create a routing table to check for overlaps
     ptRT = dict()
 
-    logs = logging.getLogger('addRoutes')
-    logs.debug('Entering addRoutes(%s)\n' % fileName)
+    logs = logging.getLogger('arc2fdsnws')
+    logs.debug('Entering addRoutes(%s)\n' % filein)
 
     # Read the configuration file and checks when do we need to update
     # the routes
     config = configparser.RawConfigParser()
 
     here = os.path.dirname(__file__)
-    config.read(os.path.join(here, configF))
+    # FIXME The configuration file should be probably passed as a parameter
+    config.read(os.path.join(here, '..', 'ownDC.cfg'))
 
     if 'allowoverlap' in config.options('Service'):
         allowOverlap = config.getboolean('Service', 'allowoverlap')
@@ -291,7 +326,7 @@ routes based on the Arclink information. The resulting table is stored in
                                 if checkOverlap(testStr, ptRT[testStr], st,
                                                 Route(service, address, tw, priority)):
                                     msg = '%s: Overlap between %s and %s!\n'\
-                                        % (fileName, st, testStr)
+                                        % (filein, st, testStr)
                                     logs.error(msg)
                                     if not allowOverlap:
                                         logs.error('Skipping %s\n' % str(st))
@@ -300,7 +335,7 @@ routes based on the Arclink information. The resulting table is stored in
 
                             if addIt:
                                 ptRT[st].append(Route(service, address, tw, priority))
-                                if service = 'arclink':
+                                if service == 'arclink':
                                     # FIXME I need to add here the code to write the new
                                     # XML file containing the new routes
                                     stAddress = '%s/fdsnws/station/1/query' % mapArcFDSN(address)
@@ -315,7 +350,7 @@ routes based on the Arclink information. The resulting table is stored in
 
                         except KeyError:
                             ptRT[st] = [Route(service, address, tw, priority)]
-                            if service = 'arclink':
+                            if service == 'arclink':
                                 # FIXME I need to add here the code to write the new
                                 # XML file containing the new routes
                                 stAddress = '%s/fdsnws/station/1/query' % mapArcFDSN(address)
@@ -333,7 +368,8 @@ routes based on the Arclink information. The resulting table is stored in
     for keyDict in ptRT:
         ptRT[keyDict] = sorted(ptRT[keyDict])
 
-    return ptRT
+    ptRT.toXML(fileout)
+    return
 
 
 def getArcRoutes(arcServ='eida.gfz-potsdam.de', arcPort=18001, foutput='routing.xml'):
@@ -619,7 +655,7 @@ def main(logLevel=2):
 
     getArcRoutes(arcServ, arcPort, 'ownDC-routes.xml')
     #getArcInv(arcServ, arcPort)
-    arc2fdsnws('ownDC-routes.xml', 'ownDC-routes2.xml')
+    arc2fdsnwsv2('ownDC-routes.xml', 'ownDC-routes2.xml')
 
 
 if __name__ == '__main__':
