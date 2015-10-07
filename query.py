@@ -183,15 +183,16 @@ class ResultFile(object):
 
 
 class DataSelectQuery(object):
-    def __init__(self, appName, logName=None):
+    def __init__(self, logName=None, routesFile='./data/routing.xml',
+                 masterFile='./data/masterTable.xml'):
         # set up logging
         #self.logs = Logs(verbosity)
         self.logs = logging.getLogger('DataSelectQuery')
 
         # Add routing cache here, to be accessible to all modules
-        here = os.path.dirname(__file__)
-        routesFile = os.path.join(here, 'data', 'routing.xml')
-        masterFile = os.path.join(here, 'data', 'masterTable.xml')
+        #here = os.path.dirname(__file__)
+        #routesFile = os.path.join(here, 'data', 'routing.xml')
+        #masterFile = os.path.join(here, 'data', 'masterTable.xml')
         self.routes = RoutingCache(routesFile, masterFile)
 
         self.ID = str(datetime.datetime.now())

@@ -718,8 +718,8 @@ class Route(namedtuple('Route', ['service', 'address', 'tw', 'priority'])):
     __slots__ = ()
 
     def toXML(self, nameSpace='ns0', level=2):
-        print type(self.tw.end), self.tw.end
-        return '%s<%s:%s address="%s" priority="%d" start="%s" end="%s" />\n' \
+        #print type(self.tw), self.tw
+        return '%s<%s:%s address="%s" priority="%d" start="%s" end="%s" />\n' %\
             (' ' * level, nameSpace, self.service, self.address, self.priority,
              self.tw.start.isoformat() if self.tw.start is not None else '',
              self.tw.end.isoformat() if self.tw.end is not None else '')
@@ -1737,8 +1737,6 @@ The following table lookup is implemented for the Arclink service::
             with open(binFile) as rMerged:
                 self.routingTable = pickle.load(rMerged)
         except:
-            #print __file__, here, self.routingFile
-
             #ptRT = addRoutes(os.path.join(here, self.routingFile))
             ptRT = addRoutes(self.routingFile)
             #for routeFile in glob.glob(
