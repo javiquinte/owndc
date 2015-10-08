@@ -188,7 +188,7 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
                 return
 
         elif fname == 'version':
-            self.__send_plain(200, 'OK', version)
+            self.__send_plain(200, 'OK', self.wi.version)
             return
 
         elif fname != 'query':

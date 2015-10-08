@@ -185,6 +185,9 @@ class ResultFile(object):
 class DataSelectQuery(object):
     def __init__(self, logName=None, routesFile='./data/routing.xml',
                  masterFile='./data/masterTable.xml', configFile='routing.cfg'):
+        # Dataselect version
+        self.version = '1.1.0'
+
         # set up logging
         #self.logs = Logs(verbosity)
         self.logs = logging.getLogger('DataSelectQuery')
