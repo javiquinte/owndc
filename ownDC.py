@@ -41,6 +41,8 @@ try:
 except ImportError:
     import SocketServer as socsrv
 
+# Define version number
+version = '0.9a1'
 
 # Wrap parsed values in the GET method with this class to mimic FieldStorage
 # syntax and be compatible with underlying classes, which use ".value"
@@ -100,6 +102,7 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
 
         """
         self.send_response(code, error)
+        self.send_header('Server', 'OwnDC/%s' % version)
         self.send_header('Content-Type', 'text/plain')
         self.end_headers()
         self.wfile.write(msg)
@@ -112,6 +115,7 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
 
         """
         self.send_response(code, error)
+        self.send_header('Server', 'OwnDC/%s' % version)
         self.send_header('Content-Type', 'text/xml')
         self.end_headers()
         self.wfile.write(msg)
@@ -134,22 +138,29 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
     
                 self.send_response(code, msg)
                 # Content-length cannot be set because the file size is unknown
+                self.send_header('Server', 'OwnDC/%s' % version)
                 self.send_header('Content-Type', iterFile.content_type)
                 self.send_header('Content-Disposition',
                                  'attachment; filename=%s' % (iterFile.filename))
+                self.send_header('Transfer-Encoding', 'chunked')
                 self.end_headers()
     
             # Increment the loop count
             loop += 1
             # and send data
             try:
+                self.wfile.write('%x\r\n' % len(data))
                 self.wfile.write(data)
+                self.wfile.write('\r\n')
             except:
                 logging.error('wfile.closed: %s' % self.wfile.closed)
     
         if loop == 0:
             self.send_response(204, 'No Content')
             self.end_headers()
+        else:
+            # Finish transmission
+            self.wfile.write('0\r\n\r\n')
         return
 
     def do_GET(self):
