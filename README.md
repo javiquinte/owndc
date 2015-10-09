@@ -16,11 +16,16 @@ It provides an automatic way to configure it to access all data stored at EIDA n
 Very, very quick installation instructions
 ------------------------------------------
 
+The execution of the following commands will deploy and setup a ready-to-run
+OwnDC instance with access to all the data within
+[EIDA](http://www.orfeus-eu.org/eida/).
+
 ```
 $ git clone https://github.com/javiquinte/owndc
 $ cd owndc
 $ cp ownDC.cfg.sample ownDC.cfg
 $ cd data
 $ python getEIDAconfig.py
+$ cd ..
 $ ./ownDC.py
 ```
