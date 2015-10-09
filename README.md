@@ -29,3 +29,17 @@ $ python getEIDAconfig.py
 $ cd ..
 $ ./ownDC.py
 ```
+
+Create OwnDC documentation
+--------------------------
+
+Very detailed instructions regarding installation as well as different aspects
+of the software can be found in the official documentation provided in this
+repository. In order to generate it you should execute these commands:
+
+```
+$ cd doc
+$ make latexpdf
+$ evince _build_/latex/OwnDC.pdf
+```
+
