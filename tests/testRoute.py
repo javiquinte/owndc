@@ -23,9 +23,8 @@ class RouteCacheTests(unittest.TestCase):
         "Setting up test"
         if hasattr(cls, 'rc'):
             return
-        cls.rc = RoutingCache('../data/routing.xml',
-                              '../data/Arclink-inventory.xml',
-                              '../data/masterTable.xml', Logs(1))
+        cls.rc = RoutingCache('../data/ownDC-routes.xml',
+                              '../data/masterTable.xml', '../ownDC.cfg')
 
     def testDS_GE(self):
         "Dataselect GE.*.*.*"
