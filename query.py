@@ -48,11 +48,6 @@ try:
 except ImportError:
     import urllib2 as ul
 
-# Read verbosity to configure the logging system
-#config = configparser.RawConfigParser()
-#here = os.path.dirname(__file__)
-#config.read(os.path.join(here, 'routing.cfg'))
-#verbo = config.get('Service', 'verbosity')
 # "WARNING" is the default value
 #verboNum = getattr(logging, verbo.upper(), 30)
 logging.basicConfig(level=30)
@@ -77,16 +72,18 @@ class Accounting(object):
         self.lFD.flush()
         fcntl.flock(self.lFD, fcntl.LOCK_UN)
 
+        # FIXME The username as well as the mail settings should be configured
+        # in the general configuration file
         if user is not None:
             msg = MIMEText(data)
-            msg['Subject'] = 'Feedback from the Dataselect web service'
-            msg['From'] = 'javier@gfz-potsdam.de'
+            msg['Subject'] = 'Feedback from OwnDC'
+            msg['From'] = 'noreply@localhost'
             msg['To'] = user
 
             # Send the message via our own SMTP server, but don't include the
             # envelope header.
-            s = smtplib.SMTP('smtp.gfz-potsdam.de')
-            s.sendmail('javier@gfz-potsdam.de', [user],
+            s = smtplib.SMTP('localhost')
+            s.sendmail('noreply@localhost', [user],
                        msg.as_string())
             s.quit()
 
@@ -189,7 +186,6 @@ class DataSelectQuery(object):
         self.version = '1.1.0'
 
         # set up logging
-        #self.logs = Logs(verbosity)
         self.logs = logging.getLogger('DataSelectQuery')
 
         # Add routing cache here, to be accessible to all modules
@@ -230,7 +226,8 @@ class DataSelectQuery(object):
                 startParts = startParts.replace('Z', '').split()
                 start = datetime.datetime(*map(int, startParts))
             except:
-                logging.error('Cannot convert "starttime" parameter.')
+                logging.error('Cannot convert "starttime" parameter (%s).'
+                              % start)
                 continue
 
             try:
@@ -239,7 +236,8 @@ class DataSelectQuery(object):
                 endParts = endParts.replace('Z', '').split()
                 endt = datetime.datetime(*map(int, endParts))
             except:
-                logging.error('Cannot convert "endtime" parameter.')
+                logging.error('Cannot convert "endtime" parameter (%s).'
+                              % endt)
                 continue
 
             try:
@@ -250,7 +248,6 @@ class DataSelectQuery(object):
             except RoutingException:
                 logging.warning('No route could be found for %s' % line)
                 continue
-                #pass
 
         if not len(urlList):
             raise WIContentError('No routes have been found!')
@@ -330,7 +327,6 @@ class DataSelectQuery(object):
             else:
                 raise Exception
         except:
-            #return 'Error while converting starttime parameter.'
             raise WIClientError('Error while converting starttime parameter.')
 
         try:
@@ -345,7 +341,6 @@ class DataSelectQuery(object):
             else:
                 raise Exception
         except:
-            #return 'Error while converting endtime parameter.'
             raise WIClientError('Error while converting endtime parameter.')
 
         try:
@@ -354,7 +349,7 @@ class DataSelectQuery(object):
             else:
                 user = None
         except:
-            return 'Error while checking the user parameter'
+            raise Exception('Error while checking the user parameter')
 
         urlList = []
 
