@@ -20,16 +20,26 @@ class OwnDCTests(unittest.TestCase):
 
     """
 
+    numTestsRun = 0
+
     @classmethod
     def setUp(cls):
         "Setting up test"
         cls.host = host
+        cls.numTestsRun += 1
         if hasattr(cls, 'ds'):
             return
         globConfig = './ownDC.cfg'
         cls.ds = DataSelectQuery('ownDC.log', './ownDC-routes.xml',
                                  './masterTable.xml',
                                  configFile='./ownDC.cfg')
+
+    @classmethod
+    def tearDown(cls):
+        "Removing cache and log files"
+        if cls.numTestsRun == 4:
+            os.remove('./ownDC.log')
+            os.remove('./ownDC-routes.xml.bin')
 
     def testDS_GE(self):
         "Dataselect GE.APE.*.*"
