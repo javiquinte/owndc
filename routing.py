@@ -36,7 +36,6 @@ from wsgicomm import WIClientError
 from wsgicomm import WIError
 from wsgicomm import send_plain_response
 from wsgicomm import send_xml_response
-#from wsgicomm import Logs
 import logging
 from utils import RequestMerge
 from utils import RoutingCache
@@ -82,6 +81,7 @@ def ConvertDictToXml(listdict):
     return r
 
 
+# Important to support the comma-syntax from FDSN (f.i. GE,RO,XX)
 def lsNSLC(net, sta, loc, cha):
     for n in net:
         for s in sta:
@@ -223,7 +223,7 @@ def makeQueryPOST(postText):
     # This are the parameters accepted appart from N.S.L.C
     extraParams = ['format', 'service', 'alternative']
 
-    # Defualt values
+    # Default values
     ser = 'dataselect'
     alt = False
 
@@ -279,7 +279,7 @@ def makeQueryPOST(postText):
                                            '%Y-%m-%dT%H:%M:%S')
         except:
             msg = 'Error while converting %s to datetime' % endt
-            raise WIError(msg)
+            raise WIClientError(msg)
 
         try:
             result.extend(routes.getRoute(net, sta, loc, cha,
