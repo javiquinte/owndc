@@ -10,7 +10,6 @@ import unittest
 from unittestTools import WITestRunner
 from routing import RoutingCache
 from routing import RequestMerge
-from wsgicomm import Logs
 
 
 class RouteCacheTests(unittest.TestCase):
@@ -23,11 +22,11 @@ class RouteCacheTests(unittest.TestCase):
         "Setting up test"
         if hasattr(cls, 'rc'):
             return
-        cls.rc = RoutingCache('../data/ownDC-routes.xml',
-                              '../data/masterTable.xml', '../ownDC.cfg')
+        cls.rc = RoutingCache('./ownDC-routes.xml',
+                              './masterTable.xml', './ownDC.cfg')
 
     def testDS_GE(self):
-        "Dataselect GE.*.*.*"
+        "route for GE.*.*.*"
 
         expURL = 'http://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query'
         result = self.rc.getRoute('GE')
@@ -41,7 +40,7 @@ class RouteCacheTests(unittest.TestCase):
                          'Wrong service name!')
 
     def testDS_GE_RO(self):
-        "Dataselect GE,RO.*.*.*"
+        "route for GE,RO.*.*.*"
 
         expURL_GE = 'http://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query'
         expURL_RO = 'http://eida-sc3.infp.ro/fdsnws/dataselect/1/query'
@@ -62,7 +61,7 @@ class RouteCacheTests(unittest.TestCase):
                          'Wrong service name!')
 
     def testDS_GE_APE(self):
-        "Dataselect GE.APE.*.*"
+        "route for GE.APE.*.*"
 
         expURL = 'http://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query'
         result = self.rc.getRoute('GE', 'APE')
@@ -76,7 +75,7 @@ class RouteCacheTests(unittest.TestCase):
                          'Wrong service name!')
 
     def testDS_CH_LIENZ_HHZ(self):
-        "Dataselect CH.LIENZ.*.HHZ"
+        "route for CH.LIENZ.*.HHZ"
 
         expURL = 'http://eida.ethz.ch/fdsnws/dataselect/1/query'
         result = self.rc.getRoute('CH', 'LIENZ', '*', 'HHZ')
@@ -90,7 +89,7 @@ class RouteCacheTests(unittest.TestCase):
                          'Wrong service name!')
 
     def testDS_CH_LIENZ_BHZ(self):
-        "Dataselect CH.LIENZ.*.BHZ"
+        "route for CH.LIENZ.*.BHZ"
 
         expURL = 'http://www.orfeus-eu.org/fdsnws/dataselect/1/query'
         result = self.rc.getRoute('CH', 'LIENZ', '*', 'BHZ')
@@ -104,7 +103,7 @@ class RouteCacheTests(unittest.TestCase):
                          'Wrong service name!')
 
     def testDS_CH_LIENZ_qHZ(self):
-        "Dataselect CH.LIENZ.*.?HZ"
+        "route for CH.LIENZ.*.?HZ"
 
         odcURL = 'http://www.orfeus-eu.org/fdsnws/dataselect/1/query'
         ethURL = 'http://eida.ethz.ch/fdsnws/dataselect/1/query'
@@ -145,7 +144,7 @@ class RouteCacheTests(unittest.TestCase):
                                  'None of the URLs belong to Orfeus or ETH!')
 
     def testDS_RO_BZS_BHZ(self):
-        "Dataselect RO.BZS.*.BHZ"
+        "route for RO.BZS.*.BHZ"
 
         expURL = 'http://eida-sc3.infp.ro/fdsnws/dataselect/1/query'
         result = self.rc.getRoute('RO', 'BZS', '*', 'BHZ')

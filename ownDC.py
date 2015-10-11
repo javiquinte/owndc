@@ -43,6 +43,7 @@ except ImportError:
 
 # Define version number
 version = '0.9a1'
+globConfig = 'ownDC.cfg'
 
 # Wrap parsed values in the GET method with this class to mimic FieldStorage
 # syntax and be compatible with underlying classes, which use ".value"
@@ -77,23 +78,6 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
            GET and POST.
 :platform: Linux    
     """
-
-    # Create the object that will resolve and execute all the queries
-    wi = DataSelectQuery('ownDC.log', './data/ownDC-routes.xml', configFile='ownDC.cfg')
-    
-    #def finish(self):
-    #    try:
-    #        logging.debug('Enter try')
-    #        if not self.wfile.closed:
-    #            logging.debug('Want to flush')
-    #            self.wfile.flush()
-    #            logging.debug('Want to close')
-    #            self.wfile.close()
-    #    except socket.error:
-    #        # An final socket error may have occurred here, such as
-    #        # the local error ECONNABORTED.
-    #        pass
-    #    self.rfile.close()
 
     def __send_plain(self, code, error, msg):
         """
@@ -130,6 +114,7 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
     
         # Cycle through the iterator in order to retrieve one chunck at a time
         loop = 0
+
         for data in iterFile:
             if loop == 0:
                 # The first thing to do is to send the headers.
@@ -149,13 +134,17 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
             loop += 1
             # and send data
             try:
+                # This is sent in CHUNKED mode, so first the length is sent
                 self.wfile.write('%x\r\n' % len(data))
+                # then the data
                 self.wfile.write(data)
+                # and then an empty line
                 self.wfile.write('\r\n')
             except:
                 logging.error('wfile.closed: %s' % self.wfile.closed)
     
         if loop == 0:
+            # If there was no data available sent the 204 error code
             self.send_response(204, 'No Content')
             self.end_headers()
         else:
@@ -169,6 +158,7 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
         :platform: Linux
 
         """
+        #logging.warning(self.testVar)
         logging.debug("======= GET STARTED =======")
         logging.debug(self.headers)
 
@@ -228,7 +218,8 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
             return
 
         except WIError as w:
-            return self.__send_plain(w.status, '', w.body)
+            # FIXME all WIError parameters must be reviewed again
+            return self.__send_plain(400, 'Bad Request', w.body)
 
         self.__send_plain(400, 'Bad Request', str(dictPar))
         return
@@ -280,6 +271,9 @@ def main():
     parser.add_argument('-P', '--port',
                         help='Port where this server listens.',
                         default='7000')
+    parser.add_argument('-C', '--config',
+                        help='Config file.',
+                        default='ownDC.cfg')
     args = parser.parse_args()
 
     # Create the object that will resolve and execute all the queries
@@ -294,6 +288,16 @@ def main():
         logging.error('Error while interpreting port %s' % args.port)
         sys.exit(-1)
 
+    # FIXME Think of a better way to pass the config file to the Handler
+    globConfig = args.config
+
+    # Create the object that will resolve and execute all the queries
+    logging.info('Creating a DataSelectQuery object. Wait...')
+    ServerHandler.wi = DataSelectQuery('ownDC.log', './data/ownDC-routes.xml',
+                                       configFile='ownDC.cfg')
+    logging.info('Ready to answer queries!')
+    
+    #ServerHandler.testVar = 5
     Handler = ServerHandler
     #httpd = socsrv.TCPServer(("", PORT), Handler)
     httpd = MyTCPServer((host, port), Handler)

@@ -814,9 +814,9 @@ class RoutingCache(object):
 
         # Dictionary with all the routes
         self.routingTable = dict()
-        self.logs.error('Reading routes from %s' % self.routingFile)
-        self.logs.error('Reading configuration from %s' % self.configFile)
-        self.logs.error('Reading masterTable from %s' % masterFile)
+        self.logs.info('Reading routes from %s' % self.routingFile)
+        self.logs.info('Reading configuration from %s' % self.configFile)
+        self.logs.info('Reading masterTable from %s' % masterFile)
 
         # Dictionary with the seedlink routes
         #self.slTable = dict()
@@ -830,7 +830,9 @@ class RoutingCache(object):
         #    self.routingFile = './routing.xml'
 
         #try:
+        self.logs.info('Wait until the RoutingCache is updated...')
         self.update()
+        self.logs.info('RoutingCache finished!')
         #except:
         #    self.configArclink()
         #    self.update()
@@ -866,6 +868,7 @@ class RoutingCache(object):
                                key=itemgetter(1))[0]
 
         if masterFile is None:
+            self.logs.warning('No masterTable selected')
             return
 
         # Master routing file in XML format
@@ -1558,8 +1561,8 @@ The following table lookup is implemented for the Arclink service::
         try:
             mtHandle = open(self.masterFile, 'r')
         except:
-            msg = 'Error: masterTable.xml could not be opened.\n'
-            self.logs.error(msg)
+            msg = 'Error: %s could not be opened.\n'
+            self.logs.error(msg % self.masterFile)
             return
 
         # Parse the routing file

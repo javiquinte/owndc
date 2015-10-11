@@ -28,7 +28,7 @@ import smtplib
 from email.mime.text import MIMEText
 
 import logging
-from wsgicomm import WIError
+from wsgicomm import WIClientError
 from wsgicomm import WIContentError
 from utils import RoutingCache
 from utils import RoutingException
@@ -193,9 +193,9 @@ class DataSelectQuery(object):
         self.logs = logging.getLogger('DataSelectQuery')
 
         # Add routing cache here, to be accessible to all modules
-        self.logs.error('Reading routes from %s' % routesFile)
-        self.logs.error('Reading masterTable from %s' % masterFile)
-        self.logs.error('Reading configuration from %s' % configFile)
+        self.logs.info('Reading routes from %s' % routesFile)
+        self.logs.info('Reading masterTable from %s' % masterFile)
+        self.logs.info('Reading configuration from %s' % configFile)
 
         self.routes = RoutingCache(routesFile, masterFile, configFile)
 
@@ -271,7 +271,8 @@ class DataSelectQuery(object):
 
         for param in parameters:
             if param not in allowedParams:
-                return 'Unknown parameter: %s' % param
+                #return 'Unknown parameter: %s' % param
+                raise WIClientError('Unknown parameter: %s' % param)
 
         try:
             if 'network' in parameters:
@@ -329,7 +330,8 @@ class DataSelectQuery(object):
             else:
                 raise Exception
         except:
-            return 'Error while converting starttime parameter.'
+            #return 'Error while converting starttime parameter.'
+            raise WIClientError('Error while converting starttime parameter.')
 
         try:
             if 'endtime' in parameters:
@@ -343,7 +345,8 @@ class DataSelectQuery(object):
             else:
                 raise Exception
         except:
-            return 'Error while converting endtime parameter.'
+            #return 'Error while converting endtime parameter.'
+            raise WIClientError('Error while converting endtime parameter.')
 
         try:
             if 'user' in parameters:

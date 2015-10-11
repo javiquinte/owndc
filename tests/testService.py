@@ -18,7 +18,7 @@ class OwnDCTests(unittest.TestCase):
         cls.host = host
 
     def testDS_GE(self):
-        "Dataselect GE.APE.*.*"
+        "Dataselect for GE.APE.*.*"
 
         qry = 'net=GE&sta=APE&starttime=2008-01-01T00:01:00&end=2008-01-01T00:01:15'
         req = urllib2.Request('%s?%s' % (self.host, qry))
@@ -29,22 +29,6 @@ class OwnDCTests(unittest.TestCase):
             raise Exception('Error retrieving data for GE.APE.*.*')
 
         expLen = 11776
-
-        msg = 'Error in size of response! Expected: %d ; Obtained: %d'
-        self.assertEqual(len(buffer), expLen, msg % (expLen, len(buffer)))
-
-    def testDS_II_AAK(self):
-        "Dataselect II.AAK.*.*"
-
-        qry = 'net=II&sta=AAK&starttime=2008-01-01T00:01:00&end=2008-01-01T00:01:15'
-        req = urllib2.Request('%s?%s' % (self.host, qry))
-        try:
-            u = urllib2.urlopen(req)
-            buffer = u.read()
-        except:
-            raise Exception('Error retrieving data for II.AAK.*.*')
-
-        expLen = 61440
 
         msg = 'Error in size of response! Expected: %d ; Obtained: %d'
         self.assertEqual(len(buffer), expLen, msg % (expLen, len(buffer)))
