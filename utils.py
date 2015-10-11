@@ -36,20 +36,21 @@ from time import sleep
 from collections import namedtuple
 from operator import add
 from operator import itemgetter
-#from inventorycache import InventoryCache
-#from wsgicomm import Logs
 import logging
 
+# Try to be Python 3 compliant as much as we can
 try:
     import cPickle as pickle
 except ImportError:
     import pickle
 
+# More Python 3 compatibility
 try:
     import configparser
 except ImportError:
     import ConfigParser as configparser
 
+# More Python 3 compatibility
 try:
     import urllib.request as ul
 except ImportError:
@@ -114,6 +115,7 @@ a regular period of time.
         context = iter(context)
 
         # get the root element
+        # More Python 3 compatibility
         if hasattr(context, 'next'):
             event, root = context.next()
         else:
@@ -234,8 +236,6 @@ a regular period of time.
                                 startD = None
                         except:
                             startD = None
-                            #msg = 'Error while converting START attribute\n'
-                            #logs.error(msg)
 
                         # Extract the end datetime
                         try:
@@ -252,8 +252,6 @@ a regular period of time.
                                 endD = None
                         except:
                             endD = None
-                            #msg = 'Error while converting END attribute.\n'
-                            #logs.error(msg)
 
                         # Extract the priority
                         try:
@@ -334,9 +332,6 @@ def addRemote(fileName, url):
     req = ul.Request(url + '/localconfig')
 
     blockSize = 4096
-
-    #here = os.path.dirname(__file__)
-    #fileName = os.path.join(here, 'data', dcid + '.xml.download')
 
     fileName = fileName + '.download'
 
@@ -818,35 +813,15 @@ class RoutingCache(object):
         self.logs.info('Reading configuration from %s' % self.configFile)
         self.logs.info('Reading masterTable from %s' % masterFile)
 
-        # Dictionary with the seedlink routes
-        #self.slTable = dict()
-
-        # Dictionary with the FDSN-WS station routes
-        #self.stTable = dict()
-
-        # Create/load the cache the first time that we start
-        #if routingFile == 'auto':
-        #    self.configArclink()
-        #    self.routingFile = './routing.xml'
-
-        #try:
         self.logs.info('Wait until the RoutingCache is updated...')
         self.update()
         self.logs.info('RoutingCache finished!')
-        #except:
-        #    self.configArclink()
-        #    self.update()
-
-        # Add inventory cache here, to be able to expand request if necessary
-        #self.invFile = invFile
-        #self.ic = InventoryCache(invFile)
 
         # Read the configuration file and checks when do we need to update
         # the routes
         configP = configparser.RawConfigParser()
 
-        #here = os.path.dirname(__file__)
-        #configP.read(os.path.join(here, self.configFile))
+        # Read configuration file
         configP.read(self.configFile)
         updTime = configP.get('Service', 'updateTime')
 
@@ -867,6 +842,7 @@ class RoutingCache(object):
                                           secsDay for x in self.updTimes]),
                                key=itemgetter(1))[0]
 
+        # Check for masterTable
         if masterFile is None:
             self.logs.warning('No masterTable selected')
             return
@@ -916,9 +892,11 @@ operating with an EIDA default configuration.
         """
 
         # Functionality moved away from this module. Check updateAll.py.
+        
         return
         # Check Arclink server that must be contacted to get a routing table
         config = configparser.RawConfigParser()
+        self.logs.warning('Method configArclink is deprecated and should NOT be used!')
 
         here = os.path.dirname(__file__)
         config.read(os.path.join(here, self.config))
@@ -1178,42 +1156,6 @@ used to translate the Arclink address to Dataselect address
             if ((stRT in stream) or (stream in stRT)):
                 subs.append(stRT)
 
-        # Filter first by the attributes without wildcards
-        #subs = self.routingTable.keys()
-
-        #if (('*' not in stream.s) and ('?' not in stream.s)):
-        #    subs = [k for k in subs if (k.s is None or k.s == '*' or
-        #                                k.s == stream.s)]
-
-        #if (('*' not in stream.n) and ('?' not in stream.n)):
-        #    subs = [k for k in subs if (k.n is None or k.n == '*' or
-        #                                k.n == stream.n)]
-
-        #if (('*' not in stream.c) and ('?' not in stream.c)):
-        #    subs = [k for k in subs if (k.c is None or k.c == '*' or
-        #                                k.c == stream.c)]
-
-        #if (('*' not in stream.l) and ('?' not in stream.l)):
-        #    subs = [k for k in subs if (k.l is None or k.l == '*' or
-        #                                k.l == stream.l)]
-
-        ## Filter then by the attributes WITH wildcards
-        #if (('*' in stream.s) or ('?' in stream.s)):
-        #    subs = [k for k in subs if (k.s is None or k.s == '*' or
-        #                                fnmatch.fnmatch(k.s, stream.s))]
-
-        #if (('*' in stream.n) or ('?' in stream.n)):
-        #    subs = [k for k in subs if (k.n is None or k.n == '*' or
-        #                                fnmatch.fnmatch(k.n, stream.n))]
-
-        #if (('*' in stream.c) or ('?' in stream.c)):
-        #    subs = [k for k in subs if (k.c is None or k.c == '*' or
-        #                                fnmatch.fnmatch(k.c, stream.c))]
-
-        #if (('*' in stream.l) or ('?' in stream.l)):
-        #    subs = [k for k in subs if (k.l is None or k.l == '*' or
-        #                                fnmatch.fnmatch(k.l, stream.l))]
-
         # Alternative NEW approach based on number of wildcards
         orderS = [sum([3 for t in r if '*' in t]) for r in subs]
         orderQ = [sum([1 for t in r if '?' in t]) for r in subs]
@@ -1263,14 +1205,6 @@ used to translate the Arclink address to Dataselect address
 
         while finalset:
             st = finalset.pop()
-            # FIXME For sure this call to getRouteArc needs to be replaced
-            # For instance, I must include the service in the search
-            #resArc = self.getRouteArc(st, tw, alternative)
-
-            #result.extend(resArc)
-
-
-
 
             # Requested timewindow
             setTW = set()
@@ -1317,10 +1251,6 @@ used to translate the Arclink address to Dataselect address
                     else:
                         toProc = TW(auxSt, auxEn)
 
-
-
-
-
         # Check the coherency of the routes to set the return code
         if len(result) == 0:
             raise RoutingException('No routes have been found!')
@@ -1336,6 +1266,8 @@ the normal configuration.
 :type n: str
 :param tw: Timewindow
 :type tw: :class:`~TW`
+:param service: Service (e.g. dataselect)
+:type service: str
 :param alternative: Specifies whether alternative routes should be included
 :type alternative: Bool
 :returns: URLs and parameters to request the data
@@ -1540,8 +1472,6 @@ The following table lookup is implemented for the Arclink service::
         
         if self.masterFile is not None:
             self.updateMT()
-        # Add inventory cache here, to be able to expand request if necessary
-        #self.ic = InventoryCache(self.invFile)
 
     def updateMT(self):
         """Read the routes with highest priority and store them in memory.
