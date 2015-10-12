@@ -21,7 +21,6 @@
 """
 
 import os
-import cgi
 import datetime
 import fcntl
 import smtplib
@@ -51,9 +50,6 @@ except ImportError:
 # "WARNING" is the default value
 #verboNum = getattr(logging, verbo.upper(), 30)
 logging.basicConfig(level=30)
-
-# Maximum size of POST data, in bytes? Or roubles?
-cgi.maxlen = 1000000
 
 ##################################################################
 
