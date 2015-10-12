@@ -16,7 +16,6 @@ Roadmap and things to do
 ========================
 
  #. Transfer repository to GEOFON Organization
- #. Fix the incompatibility with scolv
  #. Add to the SeisComP3 Github repository
  #. Add the Station WS also
 
@@ -38,7 +37,7 @@ Download
 OwnDC can be downloaded from its Github repository at https://github.com/javiquinte/owndc.
 [Eventually it may be also included in the SeisComP3 distribution.] 
 
-To clone the repository, you only need to use the *git* utility. ::
+To clone the repository, you only need to use a *git* client. ::
 
   $ git clone https://github.com/javiquinte/owndc
 
@@ -99,7 +98,9 @@ checks if a file called ``masterTable.xml`` in the ``data`` folder exists. If
 this is the case, the file is read, the routes inside are loaded in a separate
 table and are given the **maximum priority**.
 This fits quite well with requests to other datacenters, whose internal
-structure is not well known.
+structure is not well known. Also, when you import the routes from a datacentre
+and you need to overwrite some of them, without the need to modify the imported
+file.
 
 If you would like to configure extra routes, you need to create the
 ``masterTable.xml`` file. A sample version of the file can be copied from the
@@ -131,6 +132,64 @@ the ``II`` network is requested.
 .. warning:: The `priority` attribute will be valid only in the context of the
              `masterTable`. There is no relation with the priority for a
              similar route that could be in the normal routing table.
+
+Testing the installation
+------------------------
+
+Some tests are provided to check that the different parts of the system have
+been properly deployed. It is a good practice to run these tests every time
+you update OwnDC.
+
+.. warning:: It should be noted that a configuration file and a set of routes
+             are provided to run these test. To load these routes at the moment
+             of running the first test could take up to 30 seconds, because all
+             optimizations are avoid to check that the parsing of routes is
+             done properly. So, please be patient, as this is done on purpose
+             to check that no previous cache could create a conflict with the
+             results of the tests.
+
+Test the Routing Service interface
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The first test you should run is the one testing the **Routing Service**
+interface. Its main purpose is to create an instance of the `RoutingCache`
+class, load the configuration provided with this set of tests and check that
+the proper routes are returned. A typical output of the test looks like the
+following: ::
+
+  $ cd tests
+  $ ./testRoute.py
+  $ Running test...
+  $ Checking route for CH.LIENZ.*.BHZ... [OK]
+  $ Checking route for CH.LIENZ.*.HHZ... [OK]
+  $ Checking route for CH.LIENZ.*.?HZ... [OK]
+  $ Checking route for GE.*.*.*... [OK]
+  $ Checking route for GE.APE.*.*... [OK]
+  $ Checking route for GE,RO.*.*.*... [OK]
+  $ Checking route for RO.BZS.*.BHZ... [OK]
+
+Test the DataSelectQuery interface
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The next test is the one testing the **DataSelectQuery** functionality. The
+main purpose is to create an instance of the `DataSelectQuery` class, load the
+configuration provided and check that the data returned is exactly the size it
+should be. A typical output of the test ilooks like the following: ::
+
+  $ ./testDataselect.py
+
+.. todo:: Include here the POST test!
+
+Test the Service
+^^^^^^^^^^^^^^^^
+
+The final test is the one testing the complete functionality of OwnDC, from the
+request to the returned data. To run this test, you must run OwnDC in a
+separate console. Once the service is waiting for requests, you can run this
+last test in a console ::
+
+  $ ./testService.py
+  $ Output!
 
 Documentation for developers
 ============================
@@ -184,13 +243,6 @@ TW (timewindow)  class
 ^^^^^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: utils.TW
-   :members:
-   :undoc-members:
-
-RouteMT class
-^^^^^^^^^^^^^
-
-.. autoclass:: utils.RouteMT
    :members:
    :undoc-members:
 
