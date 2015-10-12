@@ -19,8 +19,6 @@ Roadmap and things to do
  #. Add to the SeisComP3 Github repository
  #. Add the Station WS also
 
-.. todo:: blah, blah
-
 Installation
 ============
 
@@ -259,4 +257,9 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+
+ToDo List
+=========
+
+.. todolist::
 
