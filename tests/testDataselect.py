@@ -60,6 +60,22 @@ class OwnDCTests(unittest.TestCase):
         msg = 'Error in size of response! Expected: %d ; Obtained: %d'
         self.assertEqual(lenData, expLen, msg % (expLen, lenData))
 
+    def testDS_RO_POST(self):
+        "Dataselect RO.ARR,VOIR.--.BHZ"
+
+        postReq = """RO ARR -- BHZ 2015-03-07T14:39:36.0000 2015-03-07T15:09:36.0000
+RO VOIR -- BHZ 2015-07-07T14:48:47.0000 2015-07-07T15:18:47.0000"""
+
+        iterObj = self.ds.makeQueryPOST(postReq)
+        lenData = 0
+        for chunk in iterObj:
+            lenData += len(chunk)
+
+        expLen = 75264
+
+        msg = 'Error in size of response! Expected: %d ; Obtained: %d'
+        self.assertEqual(lenData, expLen, msg % (expLen, lenData))
+
     def testDS_XX(self):
         "Unknown network XX"
 
