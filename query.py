@@ -27,6 +27,7 @@ import smtplib
 from email.mime.text import MIMEText
 
 import logging
+from collections import namedtuple
 from wsgicomm import WIClientError
 from wsgicomm import WIContentError
 from utils import RoutingCache
@@ -54,6 +55,13 @@ logging.basicConfig(level=30)
 ##################################################################
 
 
+class LogEntry(namedtuple('LogEntry', ['dt', 'code', 'line', 'bytes'])):
+
+    __slots__ = ()
+
+    def __str__(self):
+        return '%s %s %s %s' % self
+
 class Accounting(object):
     """Receive information about all the requests and log it in a file disk
     or send it per Mail. This class is still being tested and debugged."""
@@ -62,9 +70,9 @@ class Accounting(object):
         self.logName = logName
         self.lFD = open(logName, 'a')
 
-    def log(self, data, user=None):
+    def log(self, le, user=None):
         fcntl.flock(self.lFD, fcntl.LOCK_EX)
-        self.lFD.write(data)
+        self.lFD.write(str(le))
         self.lFD.flush()
         fcntl.flock(self.lFD, fcntl.LOCK_UN)
 
@@ -133,8 +141,9 @@ class ResultFile(object):
                     self.logs.error('Oops!')
 
                 if not len(buffer):
-                    self.logs.error('Error code: %s' % u.getcode())
-                    self.logs.error('Info: %s' % u.info())
+                    httpErr = u.getcode()
+                    #self.logs.error('Error code: %s' % u.getcode())
+                    #self.logs.error('Info: %s' % u.info())
 
                 while len(buffer):
                     totalBytes += len(buffer)
@@ -165,12 +174,12 @@ class ResultFile(object):
                 self.logs.error('%s' % e)
 
             if self.callback is not None:
-                status += '%s %s %s %s\n' % \
-                    (datetime.datetime.now().isoformat(), httpErr, url,
-                     totalBytes)
+                le = LogEntry(datetime.datetime.now(), httpErr, url,
+                              totalBytes)
+                self.callback(le, self.user)
 
-        if self.callback is not None:
-            self.callback(status, self.user)
+        #if self.callback is not None:
+        #    self.callback(status, self.user)
 
         raise StopIteration
 
@@ -193,8 +202,10 @@ class DataSelectQuery(object):
 
         self.ID = str(datetime.datetime.now())
 
-        if logName is not None:
+        if isinstance(logName, basestring):
             self.acc = Accounting(logName)
+        elif logName is not None:
+            self.acc = logName
         else:
             self.acc = None
 
