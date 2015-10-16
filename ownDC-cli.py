@@ -67,7 +67,6 @@ class SummarizedRun(dict):
 
     def log(self, le, *args, **kwargs):
         
-        print self.__url2nslc(le.line)
         try:
             self[self.__url2nslc(le.line)] = self[line].append((le.dt, le.code, le.bytes))
         except:
@@ -100,7 +99,6 @@ def main():
     lines = fh.read()
     summary = SummarizedRun(lines)
 
-    print summary
     ds = DataSelectQuery(summary,
                          routesFile='data/ownDC-routes.xml',
                          configFile='ownDC.cfg')
@@ -112,6 +110,8 @@ def main():
     for chunk in iterObj:
         outwav.write(chunk)
 
+    # FIXME I should decide here a nice format for the output
+    # and also if it should be to stdout, a file or a port
     print summary
 
 if __name__ == '__main__':
