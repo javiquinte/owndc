@@ -27,6 +27,11 @@ import os
 import sys
 import errno
 import socket
+try:
+    import configparser
+except ImportError:
+    import ConfigParser as configparser
+
 from query import DataSelectQuery
 from wsgicomm import WIError
 
@@ -42,8 +47,7 @@ except ImportError:
     import SocketServer as socsrv
 
 # Define version number
-version = '0.9a1'
-globConfig = 'ownDC.cfg'
+version = '0.9a2'
 
 # Wrap parsed values in the GET method with this class to mimic FieldStorage
 # syntax and be compatible with underlying classes, which use ".value"
@@ -64,6 +68,10 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
            GET and POST.
 :platform: Linux    
     """
+
+    def log_message(self, format, *args):
+        # This is important to "mute" the logging messages alla Apache
+        pass
 
     def __send_plain(self, code, error, msg):
         """
@@ -144,7 +152,6 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
         :platform: Linux
 
         """
-        #logging.warning(self.testVar)
         logging.debug("======= GET STARTED =======")
         logging.debug(self.headers)
 
@@ -258,7 +265,7 @@ def main():
     parser.add_argument('-P', '--port',
                         help='Port where this server listens.',
                         default='7000')
-    parser.add_argument('-C', '--config',
+    parser.add_argument('-c', '--config',
                         help='Config file.',
                         default='ownDC.cfg')
     args = parser.parse_args()
@@ -266,26 +273,33 @@ def main():
     # Check arguments (IP, port)
     host = args.host
     
+    configP = configparser.RawConfigParser()
+    configP.read(args.config)
+
+    verbo = configP.get('Service', 'verbosity')
+    verboNum = getattr(logging, verbo.upper(), 30)
+    
+    logging.basicConfig(logLevel=verboNum)
+    loclog = logging.getLogger('main')
+    loclog.setLevel(verboNum)
+
     try:
         port = int(args.port)
     except:
-        logging.error('Error while interpreting port %s' % args.port)
+        loclog.error('Error while interpreting port %s' % args.port)
         sys.exit(-1)
 
-    # FIXME Think of a better way to pass the config file to the Handler
-    globConfig = args.config
-
     # Create the object that will resolve and execute all the queries
-    logging.info('Creating a DataSelectQuery object. Wait...')
+    loclog.info('Creating a DataSelectQuery object. Wait...')
     ServerHandler.wi = DataSelectQuery('ownDC.log', './data/ownDC-routes.xml',
-                                       configFile='ownDC.cfg')
-    logging.info('Ready to answer queries!')
+                                       configFile=args.config)
+    loclog.info('Ready to answer queries!')
     
     Handler = ServerHandler
     httpd = socsrv.TCPServer((host, port), Handler)
     
-    logging.info("Virtual Datacentre at: http://%s:%s/fdsnws/dataselect/1/" %
-                 (host, port))
+    loclog.info("Virtual Datacentre at: http://%s:%s/fdsnws/dataselect/1/" %
+                (host, port))
     httpd.serve_forever()
 
 if __name__ == '__main__':
