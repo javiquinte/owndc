@@ -35,14 +35,7 @@ from utils import RoutingException
 from routing import applyFormat
 from routing import lsNSLC
 
-# These tries arre needed to be Python3 compliant
-try:
-    # 3.x name
-    import configparser
-except ImportError:
-    # 2.x name
-    import ConfigParser as configparser
-
+# This try is needed to be Python3 compliant
 try:
     import urllib.request as ul
 except ImportError:
@@ -72,7 +65,7 @@ class Accounting(object):
 
     def log(self, le, user=None):
         fcntl.flock(self.lFD, fcntl.LOCK_EX)
-        self.lFD.write(str(le))
+        self.lFD.write('%s\n' % str(le))
         self.lFD.flush()
         fcntl.flock(self.lFD, fcntl.LOCK_UN)
 
