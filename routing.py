@@ -36,15 +36,9 @@ from wsgicomm import WIClientError
 from wsgicomm import WIError
 from wsgicomm import send_plain_response
 from wsgicomm import send_xml_response
-import logging
 from utils import RequestMerge
 from utils import RoutingCache
 from utils import RoutingException
-
-try:
-    import configparser
-except ImportError:
-    import ConfigParser as configparser
 
 def _ConvertDictToXmlRecurse(parent, dictitem):
     assert not isinstance(dictitem, list)
@@ -138,7 +132,6 @@ routes = None
 
 def main():
     routes = RoutingCache("./routing.xml", "./masterTable.xml")
-    #print len(routes.routingTable)
 
 
 if __name__ == "__main__":
