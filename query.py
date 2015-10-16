@@ -41,11 +41,10 @@ try:
 except ImportError:
     import urllib2 as ul
 
-# "WARNING" is the default value
-#verboNum = getattr(logging, verbo.upper(), 30)
-logging.basicConfig(level=30)
-
-##################################################################
+try:
+    import configparser
+except ImportError:
+    import ConfigParser as configparser
 
 
 class LogEntry(namedtuple('LogEntry', ['dt', 'code', 'line', 'bytes'])):
@@ -185,6 +184,14 @@ class DataSelectQuery(object):
 
         # set up logging
         self.logs = logging.getLogger('DataSelectQuery')
+
+        # Read the verbosity setting
+        configP = configparser.RawConfigParser()
+        configP.read(configFile)
+
+        verbo = configP.get('Service', 'verbosity')
+        verboNum = getattr(logging, verbo.upper(), 30)
+        self.logs.setLevel(verboNum)
 
         # Add routing cache here, to be accessible to all modules
         self.logs.info('Reading routes from %s' % routesFile)

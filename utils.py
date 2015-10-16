@@ -150,7 +150,7 @@ a regular period of time.
                         # will be impossible to match with the user input if
                         # this also has a mixture of "*" and "?"
                         if '?' in locationCode:
-                            logging.error('Wildcard "?" is not allowed!')
+                            logs.error('Wildcard "?" is not allowed!')
                             continue
 
                     except:
@@ -166,7 +166,7 @@ a regular period of time.
                         # will be impossible to match with the user input if
                         # this also has a mixture of "*" and "?"
                         if '?' in networkCode:
-                            logging.error('Wildcard "?" is not allowed!')
+                            logs.error('Wildcard "?" is not allowed!')
                             continue
 
                     except:
@@ -182,7 +182,7 @@ a regular period of time.
                         # will be impossible to match with the user input if
                         # this also has a mixture of "*" and "?"
                         if '?' in stationCode:
-                            logging.error('Wildcard "?" is not allowed!')
+                            logs.error('Wildcard "?" is not allowed!')
                             continue
 
                     except:
@@ -198,7 +198,7 @@ a regular period of time.
                         # will be impossible to match with the user input if
                         # this also has a mixture of "*" and "?"
                         if '?' in streamCode:
-                            logging.error('Wildcard "?" is not allowed!')
+                            logs.error('Wildcard "?" is not allowed!')
                             continue
 
                     except:
@@ -698,6 +698,15 @@ class RoutingCache(object):
 
         # Arclink routing file in XML format
         self.configFile = config
+
+        # Read the verbosity setting
+        configP = configparser.RawConfigParser()
+        configP.read(config)
+
+        verbo = configP.get('Service', 'verbosity')
+        verboNum = getattr(logging, verbo.upper(), 30)
+        self.logs.setLevel(verboNum)
+
 
         # Dictionary with all the routes
         self.routingTable = dict()
