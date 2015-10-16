@@ -57,20 +57,6 @@ class FakeStorage(dict):
     def __repr__(self):
         return str(self.value)
 
-# Patch a bug in the SocketServer affecting the TCPServer
-class MyTCPServer(socsrv.TCPServer):
-    acceptable_errors = (errno.EPIPE, errno.ECONNABORTED)
-
-    #def handle_error(self, request, client_address):
-    #    error = sys.exc_value
-
-    #    if isinstance(error, socket.error) and isinstance(error.args, tuple) \
-    #            and error.args[0] in self.acceptable_errors:
-    #        logging.warning('%s detected and skipped' % error)
-    #        pass
-    #    else:
-    #        logging.error(error)
-
 # Implement the web server
 class ServerHandler(htserv.SimpleHTTPRequestHandler):
     """
@@ -219,7 +205,8 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
 
         except WIError as w:
             # FIXME all WIError parameters must be reviewed again
-            return self.__send_plain(400, 'Bad Request', w.body)
+            self.__send_plain(400, 'Bad Request', w.body)
+            return
 
         self.__send_plain(400, 'Bad Request', str(dictPar))
         return
@@ -276,9 +263,6 @@ def main():
                         default='ownDC.cfg')
     args = parser.parse_args()
 
-    # Create the object that will resolve and execute all the queries
-    #wi = DataSelectQuery('ownDC.log', './data/ownDC-routes.xml', configFile='ownDC.cfg')
-    
     # Check arguments (IP, port)
     host = args.host
     
@@ -297,10 +281,8 @@ def main():
                                        configFile='ownDC.cfg')
     logging.info('Ready to answer queries!')
     
-    #ServerHandler.testVar = 5
     Handler = ServerHandler
-    #httpd = socsrv.TCPServer(("", PORT), Handler)
-    httpd = MyTCPServer((host, port), Handler)
+    httpd = socsrv.TCPServer((host, port), Handler)
     
     logging.info("Virtual Datacentre at: http://%s:%s/fdsnws/dataselect/1/" %
                  (host, port))
