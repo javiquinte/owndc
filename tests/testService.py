@@ -33,6 +33,24 @@ class OwnDCTests(unittest.TestCase):
         msg = 'Error in size of response! Expected: %d ; Obtained: %d'
         self.assertEqual(len(buffer), expLen, msg % (expLen, len(buffer)))
 
+    def testDS_RO_POST(self):
+        "Dataselect for RO.ARR,VOIR.--.BHZ"
+
+        postReq = """RO ARR -- BHZ 2015-03-07T14:39:36.0000 2015-03-07T15:09:36.0000
+RO VOIR -- BHZ 2015-07-07T14:48:47.0000 2015-07-07T15:18:47.0000"""
+
+        req = urllib2.Request(self.host, postReq)
+        try:
+            u = urllib2.urlopen(req)
+            buffer = u.read()
+        except:
+            raise Exception('Error retrieving data for RO.ARR,VOIR.--.BHZ')
+
+        expLen = 75264
+
+        msg = 'Error in size of response! Expected: %d ; Obtained: %d'
+        self.assertEqual(len(buffer), expLen, msg % (expLen, len(buffer)))
+
 # ----------------------------------------------------------------------
 def usage():
     print 'testService [-h] [-p]\ntestService [-u http://server/path]'
