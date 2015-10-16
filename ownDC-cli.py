@@ -10,7 +10,8 @@ from query import DataSelectQuery
 
 class SummarizedRun(dict):
     def __init__(self, tws):
-        pass
+        for line in tws.splitlines():
+            self[line] = list()
 
     def __url2nslc(self, url):
         params = parse_qs(urlparse(url).query)
@@ -99,6 +100,7 @@ def main():
     lines = fh.read()
     summary = SummarizedRun(lines)
 
+    print summary
     ds = DataSelectQuery(summary,
                          routesFile='data/ownDC-routes.xml',
                          configFile='ownDC.cfg')
