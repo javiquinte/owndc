@@ -8,7 +8,7 @@ OwnDC was originally designed to give a SeisComP3 user access to waveforms in an
 It provides a fully complaint FDSN-WS Dataselect interface, which is compatible with any standard client
 using this type of service.
 
-In SeisComP3, the results from the FDSN-WS Station is not needed. Mainly because the metadata must be already
+In SeisComP3, the results from the FDSN-WS Station are not needed. Mainly because the metadata must be already
 loaded in the SC3 database. This is the main reason why we do not provide also support for the Station service.
 
 It provides an automatic way to configure it to access all data stored at EIDA nodes.
