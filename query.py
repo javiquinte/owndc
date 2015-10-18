@@ -184,6 +184,7 @@ class DataSelectQuery(object):
 
         # set up logging
         self.logs = logging.getLogger('DataSelectQuery')
+        logging.basicConfig()
 
         # Read the verbosity setting
         configP = configparser.RawConfigParser()

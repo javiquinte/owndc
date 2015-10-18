@@ -692,6 +692,7 @@ class RoutingCache(object):
         # Save the logging object
         #self.logs = logs
         self.logs = logging.getLogger('RoutingCache')
+        logging.basicConfig()
 
         # Arclink routing file in XML format
         self.routingFile = routingFile
