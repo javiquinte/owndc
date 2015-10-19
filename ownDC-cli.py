@@ -69,7 +69,8 @@ class SummarizedRun(dict):
     def log(self, le, *args, **kwargs):
         
         try:
-            self[self.__url2nslc(le.line)] = self[line].append((le.dt, le.code, le.bytes))
+            # Append another log item to the proper request line
+            self[self.__url2nslc(le.line)].append((le.dt, le.code, le.bytes))
         except:
             self[self.__url2nslc(le.line)] = [(le.dt, le.code, le.bytes)]
         pass
@@ -123,12 +124,12 @@ def main():
 
         lines = ''
         for k, v in summary.iteritems():
+
+            # Check the total amount of bytes received
             if sum([l[2] for l in v]) <= 0:
                 lines = '%s%s\n' % (lines, k)
 
         attempt += 1
-        print 'Summary', summary
-        print 'Lines\n', lines
 
     
     # FIXME I should decide here a nice format for the output
