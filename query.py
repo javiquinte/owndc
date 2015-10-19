@@ -120,7 +120,7 @@ class ResultFile(object):
             req = ul.Request(url)
 
             totalBytes = 0
-            httpErr = 200
+            httpErr = 0
             # Connect to the proper FDSN-WS
             try:
                 u = ul.urlopen(req)
@@ -132,11 +132,6 @@ class ResultFile(object):
                 except:
                     self.logs.error('Oops!')
 
-                if not len(buffer):
-                    httpErr = u.getcode()
-                    #self.logs.error('Error code: %s' % u.getcode())
-                    #self.logs.error('Info: %s' % u.info())
-
                 while len(buffer):
                     totalBytes += len(buffer)
                     # Return one block of data
@@ -147,6 +142,8 @@ class ResultFile(object):
                         self.logs.error('Oops!')
                     self.logs.debug('%s/%s - %s bytes from %s' % 
                                     (pos, len(self.urlList), totalBytes, url))
+
+                httpErr = u.getcode()
 
                 # Close the connection to avoid overloading the server
                 self.logs.info('%s/%s - %s bytes from %s' % 
