@@ -4,6 +4,7 @@ import sys
 import argparse
 from urlparse import urlparse
 from urlparse import parse_qs
+from time import sleep
 import logging
 from query import DataSelectQuery
 
@@ -101,9 +102,11 @@ def main():
     parser.add_argument('-r', '--retries', type=int,
                         help='Number of times that data should be requested if there is no answer or if there is an error',
                         default=0)
-    parser.add_argument('-m', '--minutes',
-                        help='Number of minutes between retries for the lines without data',
-                        default=3)
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("-s", "--seconds", type=int,
+                        help='Number of seconds between retries for the lines without data')
+    group.add_argument("-m", "--minutes", type=int,
+                        help='Number of minutes between retries for the lines without data')
     parser.add_argument('-v', '--verbosity', action="count", default=0,
                         help='Increase the verbosity level')
     args = parser.parse_args()
@@ -151,6 +154,15 @@ def main():
                 lines = '%s%s\n' % (lines, k)
 
         attempt += 1
+
+        if args.minutes:
+            print 'Waiting %d minutes to retry again...' % args.minutes
+            sleep(args.minutes * 60)
+        else:
+            seconds = 2 if args.seconds is None else args.seconds
+            
+            print 'Waiting %d seconds to retry again...' % seconds
+            sleep(seconds)
 
     outwav.close()
     
