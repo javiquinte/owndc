@@ -10,9 +10,22 @@ from query import DataSelectQuery
 
 class SummarizedRun(dict):
     def __init__(self, tws=None):
+        self.mapCode = dict()
+        self.mapCode[0] = 'ERROR'
+        self.mapCode[200] = 'OK'
+        self.mapCode[400] = 'BAD REQUEST'
+        self.mapCode[500] = 'SERVER ERROR'
+        self.mapCode[204] = 'NODATA'
+
         if tws is not None:
             for line in tws.splitlines():
                 self[line] = list()
+
+    def __code2desc(self, httpCode):
+        try:
+            return self.mapCode[httpCode]
+        except:
+            return str(httpCode)
 
     def __url2nslc(self, url):
         params = parse_qs(urlparse(url).query)
@@ -70,9 +83,9 @@ class SummarizedRun(dict):
         
         try:
             # Append another log item to the proper request line
-            self[self.__url2nslc(le.line)].append((le.dt, le.code, le.bytes))
+            self[self.__url2nslc(le.line)].append((le.dt, self.__code2desc(le.code), le.bytes))
         except:
-            self[self.__url2nslc(le.line)] = [(le.dt, le.code, le.bytes)]
+            self[self.__url2nslc(le.line)] = [(le.dt, self.__code2desc(le.code), le.bytes)]
         pass
 
 
@@ -102,7 +115,6 @@ def main():
         fh = sys.stdin
 
     lines = fh.read()
-    #summary = SummarizedRun(lines)
     summary = SummarizedRun()
 
     ds = DataSelectQuery(summary,
@@ -115,30 +127,38 @@ def main():
     attempt = 0
 
     while ((attempt <= args.retries) and (len(lines.splitlines()) > 0)):
-        print 'Attempt Nr. %d of %d' % (attempt+1, args.retries+1)
+        print '\n\nAttempt Nr. %d of %d' % (attempt+1, args.retries+1)
 
         iterObj = ds.makeQueryPOST(lines)
         
         for chunk in iterObj:
             outwav.write(chunk)
+            print '.',
+
+        print
 
         lines = ''
         for k, v in summary.iteritems():
 
+            # Print summary
+            totBytes = sum([l[2] for l in v])
+            status = ','.join([l[1] for l in v])
+
+            print '[%s] %s %d bytes' % ('\033[92mOK\033[0m' if totBytes else \
+                                        '\033[91m' + status + '\033[0m', k, totBytes)
             # Check the total amount of bytes received
-            if sum([l[2] for l in v]) <= 0:
+            if totBytes <= 0:
                 lines = '%s%s\n' % (lines, k)
 
         attempt += 1
 
+    outwav.close()
     
     # FIXME I should decide here a nice format for the output
     # and also if it should be to stdout, a file or a port
     with open('%s.log' % args.output, 'w') as outlog:
         for k, v in summary.iteritems():
             outlog.write('%s %s %d bytes\n' % (k, [le[1] for le in v], sum([le[2] for le in v])))
-
-    outwav.close()
 
 if __name__ == '__main__':
     main()
