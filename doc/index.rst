@@ -176,7 +176,13 @@ should be. A typical output of the test ilooks like the following: ::
 
   $ ./testDataselect.py
 
-.. todo:: Include here the POST test!
+  Running test...
+  Checking Dataselect GE.APE.*.*... [OK]
+  Checking Dataselect via POST method with RO.ARR,VOIR.--.BHZ... [OK]
+  Checking Unknown network XX... [OK]
+  Checking Unknown parameter... [OK]
+  Checking wrong endtime... [OK]
+  Checking wrong starttime... [OK]
 
 Test the Service
 ^^^^^^^^^^^^^^^^
@@ -187,7 +193,69 @@ separate console. Once the service is waiting for requests, you can run this
 last test in a console ::
 
   $ ./testService.py
-  $ Output!
+
+  Running test...
+  Checking Dataselect for GE.APE.*.*... [OK]
+  Checking Dataselect for RO.ARR,VOIR.--.BHZ... [OK]
+
+OwnDC client
+============
+
+We provide a command line client which downloads data using exactly the same
+code that the web service. If the web service implementation is more suitable
+to be used with client tools which expect an FDSN compliant interface, our
+command line client is perfect for scripting or interactive use.
+
+Here, we provide a summary of the accepted parameters and their
+functionality. ::
+
+  $ ./ownDC-cli.py -h
+  usage: ownDC-cli.py [-h] [-c CONFIG] [-p POST_FILE] [-o OUTPUT] [-r RETRIES]
+                      [-s SECONDS | -m MINUTES] [-v]
+  
+  Client to download waveforms from different datacentres via FDSN-WS
+  
+  optional arguments:
+    -h, --help            show this help message and exit
+    -c CONFIG, --config CONFIG
+                          Config file.
+    -p POST_FILE, --post-file POST_FILE
+                          File with the streams and timewindows requested.
+    -o OUTPUT, --output OUTPUT
+                          Filename (without extension) used to save the data and
+                          the logs.
+    -r RETRIES, --retries RETRIES
+                          Number of times that data should be requested if there
+                          is no answer or if there is an error
+    -s SECONDS, --seconds SECONDS
+                          Number of seconds between retries for the lines
+                          without data
+    -m MINUTES, --minutes MINUTES
+                          Number of minutes between retries for the lines
+                          without data
+    -v, --verbosity       Increase the verbosity level
+
+Description of the available options
+------------------------------------
+
+**-c, --config**: Location of the config file for OwnDC. This must be used to
+configure the `DataSelectQuery` and `RoutingCache` objects.
+
+**-p, --post-file**: File containing the timewindows of the request. The file
+must have the same format of the ones used with POST in the FDSN-Dataselect WS.
+
+**-o, --output**: Filename *without extension* in which the result and log must
+be saved. A file with extension `mseed` will be created to store the waveforms.
+Another file with extension `log` will contain a detail of the streams and the
+available data size.
+
+**-r, --retries**: Number of times that the timewindows with errors must be
+repeated.
+
+**-s, --seconds, -m, --minutes**: Amount of time that the programm should wait
+until the next loop starts.
+
+**-v, --verbosity**: Increase the verbosity level.
 
 Documentation for developers
 ============================
