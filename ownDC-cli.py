@@ -91,6 +91,8 @@ class SummarizedRun(dict):
 
 
 def main():
+    ownDCver = '0.9a2'
+
     parser = argparse.ArgumentParser(description=\
         'Client to download waveforms from different datacentres via FDSN-WS')
     parser.add_argument('-c', '--config', help='Config file.',
@@ -109,6 +111,7 @@ def main():
                         help='Number of minutes between retries for the lines without data')
     parser.add_argument('-v', '--verbosity', action="count", default=0,
                         help='Increase the verbosity level')
+    parser.add_argument('--version', action='version', version='ownDC-cli %s ' % ownDCver)
     args = parser.parse_args()
     
     # Read the streams and timewindows to download

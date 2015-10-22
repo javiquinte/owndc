@@ -47,7 +47,7 @@ except ImportError:
     import SocketServer as socsrv
 
 # Define version number
-version = '0.9a2'
+ownDCver = '0.9a2'
 
 # Wrap parsed values in the GET method with this class to mimic FieldStorage
 # syntax and be compatible with underlying classes, which use ".value"
@@ -256,7 +256,7 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
 
 def main():
     # Version of this software
-    version = '0.9a1'
+    version = '0.9a2'
     
     parser = argparse.ArgumentParser()
     parser.add_argument('-H', '--host',
@@ -268,6 +268,8 @@ def main():
     parser.add_argument('-c', '--config',
                         help='Config file.',
                         default='ownDC.cfg')
+    parser.add_argument('--version', action='version',
+                        version='ownDC %s' % ownDCver)
     args = parser.parse_args()
 
     # Check arguments (IP, port)
