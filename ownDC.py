@@ -34,6 +34,7 @@ except ImportError:
 
 from query import DataSelectQuery
 from wsgicomm import WIError
+from version import get_git_version
 
 # These "tries" are needed to support also Python3
 try:
@@ -269,7 +270,7 @@ def main():
                         help='Config file.',
                         default='ownDC.cfg')
     parser.add_argument('--version', action='version',
-                        version='ownDC %s' % ownDCver)
+                        version='ownDC %s' % get_git_version())
     args = parser.parse_args()
 
     # Check arguments (IP, port)

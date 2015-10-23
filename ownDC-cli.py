@@ -7,6 +7,7 @@ from urlparse import parse_qs
 from time import sleep
 import logging
 from query import DataSelectQuery
+from version import get_git_version
 
 
 class SummarizedRun(dict):
@@ -111,7 +112,7 @@ def main():
                         help='Number of minutes between retries for the lines without data')
     parser.add_argument('-v', '--verbosity', action="count", default=0,
                         help='Increase the verbosity level')
-    parser.add_argument('--version', action='version', version='ownDC-cli %s ' % ownDCver)
+    parser.add_argument('--version', action='version', version='ownDC-cli %s ' % get_git_version())
     args = parser.parse_args()
     
     # Read the streams and timewindows to download
