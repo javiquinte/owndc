@@ -22,11 +22,8 @@
 import argparse
 import logging
 import datetime
-import cgi
 import os
 import sys
-import errno
-import socket
 try:
     import configparser
 except ImportError:
@@ -47,27 +44,32 @@ try:
 except ImportError:
     import SocketServer as socsrv
 
-# Define version number
-ownDCver = '0.9a2'
+# Version of this software
+version = '0.9a2'
+
 
 # Wrap parsed values in the GET method with this class to mimic FieldStorage
 # syntax and be compatible with underlying classes, which use ".value"
 class FakeStorage(dict):
     def __init__(self, s=None):
         self.value = s
+
     def getvalue(self, k):
         return self[k]
+
     def __str__(self):
         return str(self.value)
+
     def __repr__(self):
         return str(self.value)
+
 
 # Implement the web server
 class ServerHandler(htserv.SimpleHTTPRequestHandler):
     """
 :synopsis: Implements the methods to handle the Dataselect requests via
            GET and POST.
-:platform: Linux    
+:platform: Linux
     """
 
     def log_message(self, format, *args):
@@ -83,6 +85,7 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
         self.send_response(code, error)
         self.send_header('Server', 'OwnDC/%s' % version)
         self.send_header('Content-Type', 'text/plain')
+        self.send_header('Content-Length', str(len(msg)))
         self.end_headers()
         self.wfile.write(msg)
         return
@@ -96,6 +99,7 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
         self.send_response(code, error)
         self.send_header('Server', 'OwnDC/%s' % version)
         self.send_header('Content-Type', 'text/xml')
+        self.send_header('Content-Length', str(len(msg)))
         self.end_headers()
         self.wfile.write(msg)
         return
@@ -104,9 +108,9 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
         """
 :synopsis: Sends a file or similar object. iterFile is expected to have the
            following attributes: filename and content_type.
-    
+
         """
-    
+
         # Cycle through the iterator in order to retrieve one chunck at a time
         loop = 0
 
@@ -115,16 +119,17 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
                 # The first thing to do is to send the headers.
                 # This needs to be done here so that we are sure that there is
                 # ACTUALLY data to send
-    
+
                 self.send_response(code, msg)
                 # Content-length cannot be set because the file size is unknown
                 self.send_header('Server', 'OwnDC/%s' % version)
                 self.send_header('Content-Type', iterFile.content_type)
                 self.send_header('Content-Disposition',
-                                 'attachment; filename=%s' % (iterFile.filename))
+                                 'attachment; filename=%s' %
+                                 (iterFile.filename))
                 self.send_header('Transfer-Encoding', 'chunked')
                 self.end_headers()
-    
+
             # Increment the loop count
             loop += 1
             # and send data
@@ -137,9 +142,9 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
                 self.wfile.write('\r\n')
             except:
                 logging.error('wfile.closed: %s' % self.wfile.closed)
-    
+
         if loop == 0:
-            # If there was no data available sent the 204 error code
+            # If there was no data available send the 204 error code
             self.send_response(204, 'No Content')
             self.end_headers()
         else:
@@ -162,16 +167,16 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
             return
 
         reqStr = self.path[len('/fdsnws/dataselect/1/'):]
-        
+
         # Check whether the function called is implemented
         implementedFunctions = ['query', 'application.wadl', 'version']
 
         fname = reqStr[:reqStr.find('?')] if '?' in reqStr else reqStr
         if fname not in implementedFunctions:
             logging.error('Function %s not implemented' % fname)
-            #return send_plain_response("400 Bad Request",
-            #                           'Function "%s" not implemented.' % fname,
-            #                           start_response)
+            # return send_plain_response("400 Bad Request",
+            #                            'Function "%s" not implemented.' %
+            #                            fname, start_response)
 
         if fname == 'application.wadl':
             iterObj = ''
@@ -218,7 +223,6 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
 
         self.__send_plain(400, 'Bad Request', str(dictPar))
         return
-        #SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self)
 
     def do_POST(self):
         """
@@ -256,9 +260,6 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
 
 
 def main():
-    # Version of this software
-    version = '0.9a2'
-    
     parser = argparse.ArgumentParser()
     parser.add_argument('-H', '--host',
                         help='Address where this server listens.',
@@ -275,13 +276,13 @@ def main():
 
     # Check arguments (IP, port)
     host = args.host
-    
+
     configP = configparser.RawConfigParser()
     configP.read(args.config)
 
     verbo = configP.get('Service', 'verbosity')
     verboNum = getattr(logging, verbo.upper(), 30)
-    
+
     logging.basicConfig(logLevel=verboNum)
     loclog = logging.getLogger('main')
     loclog.setLevel(verboNum)
@@ -297,10 +298,10 @@ def main():
     ServerHandler.wi = DataSelectQuery('ownDC.log', './data/ownDC-routes.xml',
                                        configFile=args.config)
     loclog.info('Ready to answer queries!')
-    
+
     Handler = ServerHandler
     httpd = socsrv.TCPServer((host, port), Handler)
-    
+
     loclog.info("Virtual Datacentre at: http://%s:%s/fdsnws/dataselect/1/" %
                 (host, port))
     httpd.serve_forever()
