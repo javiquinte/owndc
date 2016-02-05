@@ -161,17 +161,24 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
         logging.debug("======= GET STARTED =======")
         logging.debug(self.headers)
 
-        if not self.path.startswith('/fdsnws/dataselect/1/'):
+        if ((not self.path.startswith('/fdsnws/dataselect/1/')) and
+                (not self.path.startswith('/fdsnws/station/1/'))):
             self.__send_plain(400, 'Bad Request',
                               'Wrong path. Not FDSN compliant')
             return
 
-        reqStr = self.path[len('/fdsnws/dataselect/1/'):]
+        reqStr = self.path[self.path.find('/1/') + 3:]
+        fname = reqStr[:reqStr.find('?')] if '?' in reqStr else reqStr
+        service = self.path[len('/fdsnws/'):self.path.find('/1/')]
+
+        # This block is common to the dataselect and station web services
+        if fname == 'version':
+            self.__send_plain(200, 'OK', self.wi.version)
+            return
 
         # Check whether the function called is implemented
         implementedFunctions = ['query', 'application.wadl', 'version']
 
-        fname = reqStr[:reqStr.find('?')] if '?' in reqStr else reqStr
         if fname not in implementedFunctions:
             logging.error('Function %s not implemented' % fname)
             # return send_plain_response("400 Bad Request",
@@ -181,15 +188,20 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
         if fname == 'application.wadl':
             iterObj = ''
             here = os.path.dirname(__file__)
-            with open(os.path.join(here, 'application.wadl'), 'r') \
-                    as appFile:
+            with open(os.path.join(here, 'application-%s.wadl' % service),
+                      'r') as appFile:
                 iterObj = appFile.read()
                 self.__send_xml(200, 'OK', iterObj)
                 return
 
-        elif fname == 'version':
-            self.__send_plain(200, 'OK', self.wi.version)
+        # FIXME The station web service is still not implemented
+        if self.path.startswith('/fdsnws/station/1/'):
+            self.__send_plain(500, 'OK', 'Station-WS not fully implemented yet')
             return
+
+        # elif fname == 'version':
+        #     self.__send_plain(200, 'OK', self.wi.version)
+        #     return
 
         elif fname != 'query':
             self.__send_plain(400, 'Bad Request',
