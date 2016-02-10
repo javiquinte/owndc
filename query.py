@@ -20,12 +20,12 @@
 .. moduleauthor:: Javier Quinteros <javier@gfz-potsdam.de>, GEOFON, GFZ Potsdam
 """
 
+import glob
 import os
 import datetime
 import fcntl
 import smtplib
 from email.mime.text import MIMEText
-
 import logging
 from collections import namedtuple
 from wsgicomm import WIClientError
@@ -53,6 +53,7 @@ class LogEntry(namedtuple('LogEntry', ['dt', 'code', 'line', 'bytes'])):
 
     def __str__(self):
         return '%s %s %s %s' % self
+
 
 class Accounting(object):
     """Receive information about all the requests and log it in a file disk
@@ -84,6 +85,58 @@ class Accounting(object):
             s.quit()
 
 
+class ResultStation(object):
+    """Define a class that is an iterable. We can start returning data from the
+    station web service ASAP."""
+
+    def __init__(self, fileList):
+        self.fileList = fileList
+        self.content_type = 'text/xml'
+        # now = datetime.datetime.now()
+        # nowStr = '%04d%02d%02d-%02d%02d%02d' % (now.year, now.month, now.day,
+        #                                         now.hour, now.minute,
+        #                                         now.second)
+
+        # I think that the returned XML does not need to be an attachment
+        # self.filename = 'OwnDC-%s.xml' % nowStr
+
+        self.logs = logging.getLogger('ResultStation')
+        self.len = 0
+        for fin in self.fileList:
+            if fin[0] in (' ', '<'):
+                self.len += len(fin)
+            else:
+                self.len += os.stat(fin).st_size
+
+        print 'ResultStation created with length: %d' % self.len
+
+    def __iter__(self):
+        """
+        Reads one file at a time and yield its content.
+        """
+
+        for pos, fin in enumerate(self.fileList):
+            # Prepare Request
+            self.logs.debug('%s/%s - Opening %s' % (pos, len(self.fileList),
+                                                    fin))
+            print '%s/%s - Opening %s' % (pos, len(self.fileList), fin)
+
+            if fin[0] in ('<', ' '):
+                yield fin
+                continue
+
+            with open(fin) as fh:
+
+                # Read the data in blocks of predefined size
+                try:
+                    buffer = fh.read()
+                    yield buffer
+                except:
+                    self.logs.error('Oops!')
+
+        raise StopIteration
+
+
 class ResultFile(object):
     """Define a class that is an iterable. We can start returning the file
     before everything was retrieved from the sources."""
@@ -112,11 +165,12 @@ class ResultFile(object):
 
         blockSize = 25 * 4096
 
-        status = ''
+        # status = ''
 
         for pos, url in enumerate(self.urlList):
             # Prepare Request
-            self.logs.debug('%s/%s - Connecting %s' % (pos, len(self.urlList), url))
+            self.logs.debug('%s/%s - Connecting %s' % (pos, len(self.urlList),
+                                                       url))
             req = ul.Request(url)
 
             totalBytes = 0
@@ -124,7 +178,9 @@ class ResultFile(object):
             # Connect to the proper FDSN-WS
             try:
                 u = ul.urlopen(req)
-                self.logs.debug('%s/%s - Connected to %s' % (pos, len(self.urlList), url))
+                self.logs.debug('%s/%s - Connected to %s' % (pos,
+                                                             len(self.urlList),
+                                                             url))
 
                 # Read the data in blocks of predefined size
                 try:
@@ -140,13 +196,13 @@ class ResultFile(object):
                         buffer = u.read(blockSize)
                     except:
                         self.logs.error('Oops!')
-                    self.logs.debug('%s/%s - %s bytes from %s' % 
+                    self.logs.debug('%s/%s - %s bytes from %s' %
                                     (pos, len(self.urlList), totalBytes, url))
 
                 httpErr = u.getcode()
 
                 # Close the connection to avoid overloading the server
-                self.logs.info('%s/%s - %s bytes from %s' % 
+                self.logs.info('%s/%s - %s bytes from %s' %
                                (pos, len(self.urlList), totalBytes, url))
                 u.close()
 
@@ -167,8 +223,8 @@ class ResultFile(object):
                               totalBytes)
                 self.callback(le, self.user)
 
-        #if self.callback is not None:
-        #    self.callback(status, self.user)
+        # if self.callback is not None:
+        #     self.callback(status, self.user)
 
         raise StopIteration
 
@@ -273,7 +329,7 @@ class DataSelectQuery(object):
 
         for param in parameters:
             if param not in allowedParams:
-                #return 'Unknown parameter: %s' % param
+                # return 'Unknown parameter: %s' % param
                 raise WIClientError('Unknown parameter: %s' % param)
 
         try:
@@ -372,4 +428,168 @@ class DataSelectQuery(object):
 
         iterObj = ResultFile(urlList, self.acc.log if self.acc is not None
                              else None, user)
+        return iterObj
+
+    def makeQueryStationGET(self, parameters):
+        # List all the accepted parameters
+        allowedParams = ['net', 'network',
+                         'sta', 'station',
+                         'loc', 'location',
+                         'cha', 'channel',
+                         'start', 'starttime',
+                         'end', 'endtime',
+                         'level']
+
+        for param in parameters:
+            if param not in allowedParams:
+                # return 'Unknown parameter: %s' % param
+                raise WIClientError('Unknown parameter: %s' % param)
+
+        try:
+            if 'network' in parameters:
+                net = parameters['network'].value.upper()
+            elif 'net' in parameters:
+                net = parameters['net'].value.upper()
+            else:
+                net = '*'
+            net = net.split(',')
+        except:
+            net = ['*']
+
+        try:
+            if 'station' in parameters:
+                sta = parameters['station'].value.upper()
+            elif 'sta' in parameters:
+                sta = parameters['sta'].value.upper()
+            else:
+                sta = '*'
+            sta = sta.split(',')
+        except:
+            sta = ['*']
+
+        try:
+            if 'location' in parameters:
+                loc = parameters['location'].value.upper()
+            elif 'loc' in parameters:
+                loc = parameters['loc'].value.upper()
+            else:
+                loc = '*'
+            loc = loc.split(',')
+        except:
+            loc = ['*']
+
+        try:
+            if 'channel' in parameters:
+                cha = parameters['channel'].value.upper()
+            elif 'cha' in parameters:
+                cha = parameters['cha'].value.upper()
+            else:
+                cha = '*'
+            cha = cha.split(',')
+        except:
+            cha = ['*']
+
+        # try:
+        #     if 'starttime' in parameters:
+        #         start = datetime.datetime.strptime(
+        #             parameters['starttime'].value.upper(),
+        #             '%Y-%m-%dT%H:%M:%S')
+        #     elif 'start' in parameters:
+        #         start = datetime.datetime.strptime(
+        #             parameters['start'].value.upper(),
+        #             '%Y-%m-%dT%H:%M:%S')
+        #     else:
+        #         start = None
+        # except:
+        #     raise WIClientError('Error while converting starttime parameter.')
+
+        # try:
+        #     if 'endtime' in parameters:
+        #         endt = datetime.datetime.strptime(
+        #             parameters['endtime'].value.upper(),
+        #             '%Y-%m-%dT%H:%M:%S')
+        #     elif 'end' in parameters:
+        #         endt = datetime.datetime.strptime(
+        #             parameters['end'].value.upper(),
+        #             '%Y-%m-%dT%H:%M:%S')
+        #     else:
+        #         endt = None
+        # except:
+        #     raise WIClientError('Error while converting endtime parameter.')
+
+        try:
+            if 'level' in parameters:
+                level = parameters['level'].value.lower()
+            else:
+                level = 'station'
+        except:
+            raise WIClientError('Error while converting the "level" parameter.')
+
+        fileList = []
+
+        for (n, s, l, c) in lsNSLC(net, sta, loc, cha):
+            print n, s, l, c
+            for fXML in glob.glob('data/%s.xml' % n):
+                if fXML.count('.') == 1:
+                    # Process
+                    curNet = fXML[len('data/'):]
+                    curNet = curNet[:curNet.find('.')]
+                    fileList.append(fXML)
+
+                    if level == 'network':
+                        fileList.append('</ns0:Network>')
+                        continue
+
+                    # Searching for stations
+                    for fXML in glob.glob('data/%s.%s.xml' % (curNet, s)):
+                        if fXML.count('.') == 2:
+                            # print 'for station %s' % fXML
+                            curSta = fXML[fXML.find('.') + 1:]
+                            curSta = curSta[:curSta.find('.')]
+                            # Process
+                            fileList.append(fXML)
+
+                            if level == 'station':
+                                fileList.append('</ns0:Station>')
+                                continue
+
+                            # Searching for channels
+                            for fXML in sorted(glob.glob('data/%s.%s.%s.xml' %
+                                                         (curNet, curSta, c))):
+                                if fXML.count('.') == 3:
+                                    # Process
+                                    # print 'for channel %s' % fXML
+                                    # sleep(0.05)
+                                    fileList.append(fXML)
+
+                                if level == 'channel':
+                                    fileList.append('</ns0:Channel>')
+                                    continue
+
+                                elif level == 'response':
+                                    fXMLResp = '%s.resp.xml' % \
+                                        fXML[:fXML.rfind('.')]
+                                    fileList.append(fXMLResp)
+                                    fileList.append('</ns0:Response>')
+                                    fileList.append('</ns0:Channel>')
+                                else:
+                                    raise Exception('Level has an wrong value')
+
+                            fileList.append('</ns0:Station>')
+
+            fileList.append('</ns0:Network>')
+
+        if not len(fileList):
+            raise WIContentError('No data from Station-WS has been found!')
+
+        header = '<?xml version="1.0" encoding="UTF-8"?>' + \
+            '<FDSNStationXML xmlns="http://www.fdsn.org/xml/station/1" ' + \
+            'schemaVersion="1.0"><Source>OwnDC</Source>' + \
+            '<Created>%s</Created>' % datetime.datetime.now().isoformat()
+        fileList.insert(0, header)
+        fileList.append('</FDSNStationXML>')
+
+        # print fileList
+
+        iterObj = ResultStation(fileList)
         return iterObj

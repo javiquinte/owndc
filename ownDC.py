@@ -98,10 +98,26 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
         """
         self.send_response(code, error)
         self.send_header('Server', 'OwnDC/%s' % version)
-        self.send_header('Content-Type', 'text/xml')
-        self.send_header('Content-Length', str(len(msg)))
+
+        # Trivial case. msg contains exactly what it needs to be sent
+        if isinstance(msg, basestring):
+            self.send_header('Content-Type', 'text/xml')
+            self.send_header('Content-Length', str(len(msg)))
+            self.end_headers()
+            self.wfile.write(msg)
+            return
+
+        self.send_header('Content-Type', msg.content_type)
+        self.send_header('Content-Length', msg.len)
         self.end_headers()
-        self.wfile.write(msg)
+
+        for data in msg:
+            try:
+                # Send a chunk of data
+                self.wfile.write(data)
+            except:
+                logging.error('wfile.closed: %s' % self.wfile.closed)
+
         return
 
     def __send_dynamicfile(self, code, msg, iterFile):
@@ -194,16 +210,7 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
                 self.__send_xml(200, 'OK', iterObj)
                 return
 
-        # FIXME The station web service is still not implemented
-        if self.path.startswith('/fdsnws/station/1/'):
-            self.__send_plain(500, 'OK', 'Station-WS not fully implemented yet')
-            return
-
-        # elif fname == 'version':
-        #     self.__send_plain(200, 'OK', self.wi.version)
-        #     return
-
-        elif fname != 'query':
+        if fname != 'query':
             self.__send_plain(400, 'Bad Request',
                               'Unrecognized method %s' % fname)
             return
@@ -223,6 +230,20 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
             dictPar[k] = FakeStorage(v)
         logging.info('GET request for %s' % dictPar)
 
+        # FIXME The station web service is still not implemented
+        if self.path.startswith('/fdsnws/station/1/'):
+            try:
+                iterObj = self.wi.makeQueryStationGET(dictPar)
+                self.__send_xml(200, 'OK', iterObj)
+                return
+
+            except WIError as w:
+                # FIXME all WIError parameters must be reviewed again
+                self.__send_plain(400, 'Bad Request or not implemented '
+                                  'functionality', w.body)
+                return
+
+        # Only the dataselect service reaches this point
         try:
             iterObj = self.wi.makeQueryGET(dictPar)
             self.__send_dynamicfile(200, 'OK', iterObj)

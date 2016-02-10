@@ -3,6 +3,7 @@
 import logging
 import xml.etree.cElementTree as ET
 
+
 def parseStation(fileName, **kwargs):
     """Read the stationXML file and split it into pieces.
 
@@ -101,7 +102,6 @@ per object (e.g. one for network, one for each station and so on).
                                         cf.write(''.join(ET.tostringlist(
                                             c2Save)[:-1]))
                                     cha.clear()
-
 
                             with open('%s.%s.xml' %
                                       (netw.get('code'), stat.get('code')),
