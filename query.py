@@ -522,6 +522,9 @@ class DataSelectQuery(object):
                 level = parameters['level'].value.lower()
             else:
                 level = 'station'
+
+            if level not in ('network', 'station', 'channel', 'response'):
+                raise Exception
         except:
             raise WIClientError('Error while converting the "level" parameter.')
 
@@ -530,54 +533,57 @@ class DataSelectQuery(object):
         for (n, s, l, c) in lsNSLC(net, sta, loc, cha):
             print n, s, l, c
             for fXML in glob.glob('data/%s.xml' % n):
-                if fXML.count('.') == 1:
-                    # Process
-                    curNet = fXML[len('data/'):]
-                    curNet = curNet[:curNet.find('.')]
-                    fileList.append(fXML)
+                # Skip files that don't contain exclusively a network
+                if fXML.count('.') != 1:
+                    continue
 
-                    if level == 'network':
-                        fileList.append('</ns0:Network>')
+                # Process
+                curNet = fXML[len('data/'):]
+                curNet = curNet[:curNet.find('.')]
+                fileList.append(fXML)
+
+                if level == 'network':
+                    fileList.append('</Network>')
+                    continue
+
+                # Searching for stations
+                for fXML2 in glob.glob('data/%s.%s.xml' % (curNet, s)):
+                    if fXML2.count('.') != 2:
                         continue
 
-                    # Searching for stations
-                    for fXML in glob.glob('data/%s.%s.xml' % (curNet, s)):
-                        if fXML.count('.') == 2:
-                            # print 'for station %s' % fXML
-                            curSta = fXML[fXML.find('.') + 1:]
-                            curSta = curSta[:curSta.find('.')]
-                            # Process
-                            fileList.append(fXML)
+                    # print 'for station %s' % fXML
+                    curSta = fXML2[fXML2.find('.') + 1:]
+                    curSta = curSta[:curSta.find('.')]
+                    # Process
+                    fileList.append(fXML2)
 
-                            if level == 'station':
-                                fileList.append('</ns0:Station>')
-                                continue
+                    if level == 'station':
+                        fileList.append('</Station>')
+                        continue
 
-                            # Searching for channels
-                            for fXML in sorted(glob.glob('data/%s.%s.%s.xml' %
-                                                         (curNet, curSta, c))):
-                                if fXML.count('.') == 3:
-                                    # Process
-                                    # print 'for channel %s' % fXML
-                                    # sleep(0.05)
-                                    fileList.append(fXML)
+                    # Searching for channels
+                    for fXML3 in sorted(glob.glob('data/%s.%s.%s.xml' %
+                                                  (curNet, curSta, c))):
+                        # Skip response files
+                        if fXML3.count('.') != 3:
+                            continue
 
-                                if level == 'channel':
-                                    fileList.append('</ns0:Channel>')
-                                    continue
+                        # Include channel file
+                        fileList.append(fXML3)
 
-                                elif level == 'response':
-                                    fXMLResp = '%s.resp.xml' % \
-                                        fXML[:fXML.rfind('.')]
-                                    fileList.append(fXMLResp)
-                                    fileList.append('</ns0:Response>')
-                                    fileList.append('</ns0:Channel>')
-                                else:
-                                    raise Exception('Level has an wrong value')
+                        # If level == response cinlude the response file
+                        # Response is the only one that is already closed
+                        # because is the lowest level
+                        if level == 'response':
+                            fXMLResp = '%s.resp.xml' % \
+                                fXML3[:fXML3.rfind('.')]
+                            fileList.append(fXMLResp)
 
-                            fileList.append('</ns0:Station>')
+                        fileList.append('</Channel>')
 
-            fileList.append('</ns0:Network>')
+                    fileList.append('</Station>')
+
+            fileList.append('</Network>')
 
         if not len(fileList):
             raise WIContentError('No data from Station-WS has been found!')
