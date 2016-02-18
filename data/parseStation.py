@@ -64,7 +64,10 @@ per object (e.g. one for network, one for each station and so on).
                 # print netw.tag, namesp
                 if netw.tag == '%sNetwork' % namesp:
 
-                    n2Save = ET.Element(netw.tag, netw.attrib)
+                    fullXML = ET.ElementTree(ET.Element('FDSNXML'))
+                    auxRoot = fullXML.getroot()
+                    auxRoot.append(ET.Element('Network', netw.attrib))
+                    n2Save = auxRoot.find('Network')
 
                     # Traverse through the sources
                     for stat in netw:
@@ -72,10 +75,11 @@ per object (e.g. one for network, one for each station and so on).
                             subNet = ET.Element(stat.tag[len(namesp):],
                                                 stat.attrib)
                             subNet.text = stat.text
+                            # n2Save.append(subNet)
                             n2Save.append(subNet)
 
                         else:
-                            s2Save = ET.Element(stat.tag, stat.attrib)
+                            s2Save = ET.Element('Station', stat.attrib)
 
                             for cha in stat:
                                 if cha.tag != '%sChannel' % namesp:
@@ -85,7 +89,7 @@ per object (e.g. one for network, one for each station and so on).
                                     subSta.text = cha.text
                                     s2Save.append(subSta)
                                 else:
-                                    c2Save = ET.Element(cha.tag, cha.attrib)
+                                    c2Save = ET.Element('Channel', cha.attrib)
 
                                     for resp in cha:
                                         if resp.tag != '%sResponse' % namesp:
@@ -94,6 +98,25 @@ per object (e.g. one for network, one for each station and so on).
                                                 resp.attrib)
                                             subCha.text = resp.text
                                             c2Save.append(subCha)
+                                        else:
+                                            clearResp = ET.tostringlist(resp)
+                                            for i, ln in enumerate(clearResp[:10]):
+                                                lns = ln.split()
+                                                lns2 = [x for x in lns if not x.startswith('xmlns:ns0=')]
+                                                clearResp[i] = ''.join(lns2)
+
+                                            for i, ln in enumerate(clearResp):
+                                                clearResp[i] = ln.replace('ns0:', '')
+
+                                            with open('%s.%s.%s.resp.xml' %
+                                                      (netw.get('code'),
+                                                       stat.get('code'),
+                                                       cha.get('code')),
+                                                      'w') as rf:
+                                                rf.write(
+                                                    ''.join(clearResp))
+                                            resp.clear()
+
                                     with open('%s.%s.%s.xml' %
                                               (netw.get('code'),
                                                stat.get('code'),
