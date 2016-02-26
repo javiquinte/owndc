@@ -49,7 +49,7 @@ per object (e.g. one for network, one for each station and so on).
 """
 
     logs = logging.getLogger('parseStation')
-    logs.debug('Entering parseStation(%s)\n' % fileName)
+    logs.debug('Parsing %s' % fileName)
 
     with open(fileName, 'r') as testFile:
         # Parse the station file
@@ -133,14 +133,18 @@ per object (e.g. one for network, one for each station and so on).
                                             clearResp = ET.tostringlist(resp)
                                             # Check in the first 10 lines if
                                             # there is a NS and delete it
-                                            for i, ln in enumerate(clearResp[:10]):
+                                            for i, ln in enumerate(
+                                                    clearResp[:10]):
                                                 lns = ln.split()
-                                                lns2 = [x for x in lns if not x.startswith('xmlns:ns0=')]
+                                                lns2 = [x for x in lns if not
+                                                        x.startswith(
+                                                            'xmlns:ns0=')]
                                                 clearResp[i] = ''.join(lns2)
 
                                             # Remove all traces from a NS
                                             for i, ln in enumerate(clearResp):
-                                                clearResp[i] = ln.replace('ns0:', '')
+                                                clearResp[i] = ln.replace(
+                                                    'ns0:', '')
 
                                             # Save the Response file (includes
                                             # closing element
@@ -328,16 +332,20 @@ def cacheStationWS(routes):
                 aux += '&end=%s' % endt.isoformat()
 
             # FIXME This function should be seriously tested!
-            dcBytes = readFromURL(aux, '%s-%s-resp.xml' % (st.n, sta))
+            net = 'star' if st.n == '*' else st.n
+            dcBytes = readFromURL(aux, '%s-%s-resp.xml' % (net, sta))
             logging.info('%d Bytes received for station %s.%s' %
-                         (dcBytes, st.n, sta))
+                         (dcBytes, net, sta))
             if dcBytes:
                 try:
                     parseStation('%s-%s-resp.xml' % (st.n, sta))
-                    os.remove('%s-%s-resp.xml' % (st.n, sta))
                 except Exception as e:
                     raise e
 
+            try:
+                os.remove('%s-%s-resp.xml' % (st.n, sta))
+            except:
+                pass
 
 
 def main():
