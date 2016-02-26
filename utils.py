@@ -57,6 +57,18 @@ except ImportError:
     import urllib2 as ul
 
 
+def text2Datetime(isoDate):
+    try:
+        isoDate = isoDate.replace('-', ' ').replace('T', ' ')
+        isoDate = isoDate.replace(':', ' ').replace('.', ' ')
+        isoDate = isoDate.replace('Z', '').split()
+        isoDate = datetime.datetime(*map(int, isoDate))
+    except:
+        raise ValueError
+
+    return isoDate
+
+
 def checkOverlap(str1, routeList, str2, route):
     if str1.overlap(str2):
         for auxRoute in routeList:
@@ -171,7 +183,7 @@ a regular period of time.
                         stationCode = route.get('stationCode')
                         if len(stationCode) == 0:
                             stationCode = '*'
-                    
+
                         # Do not allow "?" wildcard in the input, because it
                         # will be impossible to match with the user input if
                         # this also has a mixture of "*" and "?"
@@ -870,7 +882,7 @@ operating with an EIDA default configuration.
         """
 
         # Functionality moved away from this module. Check updateAll.py.
-        
+
         return
         # Check Arclink server that must be contacted to get a routing table
         config = configparser.RawConfigParser()
@@ -1326,7 +1338,7 @@ the normal configuration.
 
         self.logs.debug('Entering updateAll()\n')
         self.update()
-        
+
         if self.masterFile is not None:
             self.updateMT()
 
