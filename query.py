@@ -532,13 +532,13 @@ class DataSelectQuery(object):
 
         for (n, s, l, c) in lsNSLC(net, sta, loc, cha):
             print n, s, l, c
-            for fXML in glob.glob('data/%s.xml' % n):
+            for fXML in glob.glob('cache/%s.xml' % n):
                 # Skip files that don't contain exclusively a network
                 if fXML.count('.') != 1:
                     continue
 
                 # Process
-                curNet = fXML[len('data/'):]
+                curNet = fXML[len('cache/'):]
                 curNet = curNet[:curNet.find('.')]
                 fileList.append(fXML)
 
@@ -547,7 +547,7 @@ class DataSelectQuery(object):
                     continue
 
                 # Searching for stations
-                for fXML2 in glob.glob('data/%s.%s.xml' % (curNet, s)):
+                for fXML2 in glob.glob('cache/%s.%s.xml' % (curNet, s)):
                     if fXML2.count('.') != 2:
                         continue
 
@@ -562,7 +562,7 @@ class DataSelectQuery(object):
                         continue
 
                     # Searching for channels
-                    for fXML3 in sorted(glob.glob('data/%s.%s.%s.xml' %
+                    for fXML3 in sorted(glob.glob('cache/%s.%s.%s.xml' %
                                                   (curNet, curSta, c))):
                         # Skip response files
                         if fXML3.count('.') != 3:
@@ -583,9 +583,11 @@ class DataSelectQuery(object):
 
                     fileList.append('</Station>')
 
-            fileList.append('</Network>')
+            if len(fileList):
+                fileList.append('</Network>')
 
         if not len(fileList):
+            logging.debug('No data from Station-WS has been found!')
             raise WIContentError('No data from Station-WS has been found!')
 
         header = '<?xml version="1.0" encoding="UTF-8"?>' + \

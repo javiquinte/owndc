@@ -2,6 +2,7 @@
 
 import sys
 import os
+import time
 import argparse
 import logging
 from collections import namedtuple
@@ -285,7 +286,7 @@ def expandStation(dcURL, net='*', sta='*', loc='*', cha='*', start=None,
         staTup = Station(*splSt)
         listResult.append(staTup)
 
-    logging.info('%s stations found' % len(listResult))
+    logging.info('%d stations found' % len(listResult))
 
     return listResult
 
@@ -296,6 +297,12 @@ def cacheStationWS(routes):
     # Station-WS
     # The values are lists of Routes
     rt = rc.routingTable
+
+    # Measure the performance of every DC
+    perform = dict()
+
+    rtEntry = 0
+    beginLoop = time.time()
     for st, lR in rt.iteritems():
         dcURL = None
         for r in lR:
@@ -305,9 +312,11 @@ def cacheStationWS(routes):
             dcURL = r.address
             start = r.tw.start
             endt = r.tw.end
+            perform[dcURL] = (0, 0)
             break
 
         logging.debug('%s %s' % (st, dcURL))
+
         # Loop for all stations and do a query for every station. Mainly to
         # avoid problems with the limits on the size of the query or the results
         if st.s == '*':
@@ -333,19 +342,37 @@ def cacheStationWS(routes):
 
             # FIXME This function should be seriously tested!
             net = 'star' if st.n == '*' else st.n
+
+            # Time when starting the request
+            begin = time.time()
             dcBytes = readFromURL(aux, '%s-%s-resp.xml' % (net, sta))
-            logging.info('%d Bytes received for station %s.%s' %
-                         (dcBytes, net, sta))
+            perform[dcURL] = (perform[dcURL][0] + (time.time() - begin),
+                              perform[dcURL][1] + 1)
+
             if dcBytes:
+                logging.info('%d Bytes received for station %s.%s' %
+                             (dcBytes, st.n, sta))
                 try:
-                    parseStation('%s-%s-resp.xml' % (st.n, sta))
+                    parseStation('%s-%s-resp.xml' % (net, sta))
                 except Exception as e:
                     raise e
+            else:
+                logging.warning('%d Bytes received for station %s.%s' %
+                                (dcBytes, st.n, sta))
 
             try:
-                os.remove('%s-%s-resp.xml' % (st.n, sta))
+                os.remove('%s-%s-resp.xml' % (net, sta))
             except:
                 pass
+
+        rtEntry += 1
+        logging.info('Entry %d / %d in the Routing Table. ETA: %4.1f min left'
+                     % (rtEntry, len(rt),
+                        (time.time() - beginLoop) * len(rt) / (60 * rtEntry)))
+
+    for k in perform.iterkeys():
+        logging.info('%s: %5.1f secs/station - %6.1f total secs' %
+                     (k, perform[k][0] / perform[k][1], perform[k][0]))
 
 
 def main():
@@ -382,7 +409,7 @@ def main():
     logs = logging.getLogger('cachestationWS')
 
     logs.debug('Reading routes and starting caching procedure')
-    cacheStationWS('ownDC-routes.xml')
+    cacheStationWS('../data/ownDC-routes.xml')
 
 if __name__ == '__main__':
     main()
