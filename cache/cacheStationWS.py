@@ -299,7 +299,8 @@ def cacheStationWS(routes):
     rt = rc.routingTable
 
     # Measure the performance of every DC
-    perform = dict()
+    sumPerf = dict()
+    countPerf = dict()
 
     rtEntry = 0
     beginLoop = time.time()
@@ -312,67 +313,64 @@ def cacheStationWS(routes):
             dcURL = r.address
             start = r.tw.start
             endt = r.tw.end
-            perform[dcURL] = (0, 0)
+            if dcURL not in sumPerf:
+                sumPerf[dcURL] = 0
+                countPerf[dcURL] = 0
             break
 
         logging.debug('%s %s' % (st, dcURL))
 
-        # Loop for all stations and do a query for every station. Mainly to
-        # avoid problems with the limits on the size of the query or the results
-        if st.s == '*':
-            # Expand the station list
-            listSta = [x.station for x in expandStation(dcURL, st.n, '*',
-                                                        st.l,
-                                                        st.c)]
-        else:
-            listSta = [st.s]
-
-        logging.debug('%s' % listSta)
+        # Loop for all routes and do a query for each of them.
         stationQuery = '%s?net=%s&sta=%s&loc=%s&cha=%s&format=%s&level=%s'
 
-        for sta in listSta:
-            aux = stationQuery % (dcURL, st.n, sta, st.l, st.c,
-                                  'xml', 'response')
+        aux = stationQuery % (dcURL, st.n, st.s, st.l, st.c,
+                              'xml', 'response')
 
-            if start is not None:
-                aux += '&start=%s' % start.isoformat()
+        if start is not None:
+            aux += '&start=%s' % start.isoformat()
 
-            if endt is not None:
-                aux += '&end=%s' % endt.isoformat()
+        if endt is not None:
+            aux += '&end=%s' % endt.isoformat()
 
-            # FIXME This function should be seriously tested!
-            net = 'star' if st.n == '*' else st.n
+        # FIXME This function should be seriously tested!
+        net = 'star' if st.n == '*' else st.n
+        sta = 'star' if st.s == '*' else st.s
 
-            # Time when starting the request
-            begin = time.time()
-            dcBytes = readFromURL(aux, '%s-%s-resp.xml' % (net, sta))
-            perform[dcURL] = (perform[dcURL][0] + (time.time() - begin),
-                              perform[dcURL][1] + 1)
+        # Time when starting the request
+        begin = time.time()
+        dcBytes = readFromURL(aux, '%s-%s-resp.xml' % (net, sta))
+        sumPerf[dcURL] += time.time() - begin
+        print countPerf[dcURL]
+        countPerf[dcURL] = countPerf[dcURL] + 1
+        print countPerf[dcURL]
+        logging.info('%s: %s %s' % (dcURL, sumPerf[dcURL], countPerf[dcURL]))
 
-            if dcBytes:
-                logging.info('%d Bytes received for station %s.%s' %
-                             (dcBytes, st.n, sta))
-                try:
-                    parseStation('%s-%s-resp.xml' % (net, sta))
-                except Exception as e:
-                    raise e
-            else:
-                logging.warning('%d Bytes received for station %s.%s' %
-                                (dcBytes, st.n, sta))
-
+        if dcBytes:
+            logging.info('%d Bytes received for station %s.%s' %
+                         (dcBytes, st.n, st.s))
             try:
-                os.remove('%s-%s-resp.xml' % (net, sta))
-            except:
-                pass
+                parseStation('%s-%s-resp.xml' % (net, sta))
+            except Exception as e:
+                raise e
+        else:
+            logging.warning('%d Bytes received for station %s.%s' %
+                            (dcBytes, st.n, st.s))
+
+        try:
+            os.remove('%s-%s-resp.xml' % (net, sta))
+        except:
+            pass
 
         rtEntry += 1
         logging.info('Entry %d / %d in the Routing Table. ETA: %4.1f min left'
                      % (rtEntry, len(rt),
-                        (time.time() - beginLoop) * len(rt) / (60 * rtEntry)))
+                        (time.time() - beginLoop) * (len(rt) - rtEntry) /
+                        (60 * rtEntry)))
 
     for k in perform.iterkeys():
-        logging.info('%s: %5.1f secs/station - %6.1f total secs' %
-                     (k, perform[k][0] / perform[k][1], perform[k][0]))
+        # logging.info('%s: %5.1f secs/station - %6.1f total secs' %
+        #              (k, perform[k][0] / perform[k][1], perform[k][0]))
+        logging.info('%s: %s' % (k, perform[k]))
 
 
 def main():
