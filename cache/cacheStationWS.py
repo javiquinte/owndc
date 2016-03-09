@@ -92,6 +92,13 @@ per object (e.g. one for network, one for each station and so on).
                     auxRoot.append(ET.Element('Network', netw.attrib))
                     n2Save = auxRoot.find('Network')
 
+                    logging.debug(netw.get('startDate'))
+                    netwStart = text2Datetime(netw.get('startDate')).year
+                    try:
+                        netwEnd = text2Datetime(netw.get('endDate')).year
+                    except:
+                        netwEnd = None
+
                     # Iterate through the stations
                     for stat in netw:
                         # Everything at this level that is NOT a Station should
@@ -106,6 +113,14 @@ per object (e.g. one for network, one for each station and so on).
                             # Create the Station without NS
                             s2Save = ET.Element('Station', stat.attrib)
 
+                            statStart = text2Datetime(
+                                stat.get('startDate')).year
+                            try:
+                                statEnd = text2Datetime(
+                                    stat.get('endDate')).year
+                            except:
+                                statEnd = None
+
                             for cha in stat:
                                 # Add everything that is not a Channel
                                 if cha.tag != '%sChannel' % namesp:
@@ -117,6 +132,14 @@ per object (e.g. one for network, one for each station and so on).
                                 else:
                                     # Create the Channel
                                     c2Save = ET.Element('Channel', cha.attrib)
+
+                                    chaStart = text2Datetime(
+                                        cha.get('startDate')).year
+                                    try:
+                                        chaEnd = text2Datetime(
+                                            cha.get('endDate')).year
+                                    except:
+                                        chaEnd = None
 
                                     for resp in cha:
                                         # Add everything that is not a Response
@@ -147,37 +170,49 @@ per object (e.g. one for network, one for each station and so on).
                                                 clearResp[i] = ln.replace(
                                                     'ns0:', '')
 
+                                            # respStart = text2Datetime(
+                                            #     resp.get('start')).year
+                                            # try:
+                                            #     respEnd = text2Datetime(
+                                            #         resp.get('end')).year
+                                            # except:
+                                            #     respEnd = None
+
                                             # Save the Response file (includes
                                             # closing element
-                                            with open('%s.%s.%s.resp.xml' %
-                                                      (netw.get('code'),
-                                                       stat.get('code'),
-                                                       cha.get('code')),
-                                                      'w') as rf:
+                                            with open('%s.%s.%s.resp.%d.%s.xml'
+                                                      % (netw.get('code'),
+                                                         stat.get('code'),
+                                                         cha.get('code'),
+                                                         chaStart, chaEnd),
+                                                        'w') as rf:
                                                 rf.write(
                                                     ''.join(clearResp))
                                             resp.clear()
 
                                     # Save the Channel file without the closing
                                     # element!
-                                    with open('%s.%s.%s.xml' %
+                                    with open('%s.%s.%s.%d.%s.xml' %
                                               (netw.get('code'),
                                                stat.get('code'),
-                                               cha.get('code')),
+                                               cha.get('code'), chaStart,
+                                               chaEnd),
                                               'w') as cf:
                                         cf.write(''.join(ET.tostringlist(
                                             c2Save)[:-1]))
                                     cha.clear()
 
                             # Save the Station file without the closing element!
-                            with open('%s.%s.xml' %
-                                      (netw.get('code'), stat.get('code')),
+                            with open('%s.%s.%d.%s.xml' %
+                                      (netw.get('code'), stat.get('code'),
+                                       statStart, statEnd),
                                       'w') as sf:
                                 sf.write(''.join(ET.tostringlist(s2Save)[:-1]))
                             stat.clear()
 
                     # Save the Network file without the closing element!
-                    with open('%s.xml' % netw.get('code'), 'w') as nf:
+                    with open('%s.%d.%s.xml' % (netw.get('code'),
+                                                netwStart, netwEnd), 'w') as nf:
                         nf.write(''.join(ET.tostringlist(n2Save)[:-1]))
                     netw.clear()
 
@@ -316,6 +351,8 @@ def cacheStationWS(routes):
             if dcURL not in sumPerf:
                 sumPerf[dcURL] = 0
                 countPerf[dcURL] = 0
+            # FIXME I'm considering only the first route, what is actually wrong
+            # I should process the otther routes also
             break
 
         logging.debug('%s %s' % (st, dcURL))
@@ -350,8 +387,8 @@ def cacheStationWS(routes):
                          (dcBytes, st.n, st.s))
             try:
                 parseStation('%s-%s-resp.xml' % (net, sta))
-            except Exception as e:
-                raise e
+            except Exception:
+                raise
         else:
             logging.warning('%d Bytes received for station %s.%s' %
                             (dcBytes, st.n, st.s))
@@ -367,10 +404,10 @@ def cacheStationWS(routes):
                         (time.time() - beginLoop) * (len(rt) - rtEntry) /
                         (60 * rtEntry)))
 
-    for k in perform.iterkeys():
+    for k in sumPerf.iterkeys():
         # logging.info('%s: %5.1f secs/station - %6.1f total secs' %
         #              (k, perform[k][0] / perform[k][1], perform[k][0]))
-        logging.info('%s: %s' % (k, perform[k]))
+        logging.info('%s: %s %s' % (k, sumPerf[k], countPerf[k]))
 
 
 def main():
