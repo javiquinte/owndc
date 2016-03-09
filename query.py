@@ -32,6 +32,7 @@ from wsgicomm import WIClientError
 from wsgicomm import WIContentError
 from utils import RoutingCache
 from utils import RoutingException
+from utils import text2Datetime
 from routing import applyFormat
 from routing import lsNSLC
 
@@ -489,33 +490,25 @@ class DataSelectQuery(object):
         except:
             cha = ['*']
 
-        # try:
-        #     if 'starttime' in parameters:
-        #         start = datetime.datetime.strptime(
-        #             parameters['starttime'].value.upper(),
-        #             '%Y-%m-%dT%H:%M:%S')
-        #     elif 'start' in parameters:
-        #         start = datetime.datetime.strptime(
-        #             parameters['start'].value.upper(),
-        #             '%Y-%m-%dT%H:%M:%S')
-        #     else:
-        #         start = None
-        # except:
-        #     raise WIClientError('Error while converting starttime parameter.')
+        try:
+            if 'starttime' in parameters:
+                start = text2Datetime(parameters['starttime'].value.upper())
+            elif 'start' in parameters:
+                start = text2Datetime(parameters['start'].value.upper())
+            else:
+                start = None
+        except:
+            raise WIClientError('Error while converting starttime parameter.')
 
-        # try:
-        #     if 'endtime' in parameters:
-        #         endt = datetime.datetime.strptime(
-        #             parameters['endtime'].value.upper(),
-        #             '%Y-%m-%dT%H:%M:%S')
-        #     elif 'end' in parameters:
-        #         endt = datetime.datetime.strptime(
-        #             parameters['end'].value.upper(),
-        #             '%Y-%m-%dT%H:%M:%S')
-        #     else:
-        #         endt = None
-        # except:
-        #     raise WIClientError('Error while converting endtime parameter.')
+        try:
+            if 'endtime' in parameters:
+                endt = text2Datetime(parameters['endtime'].value.upper())
+            elif 'end' in parameters:
+                endt = text2Datetime(parameters['end'].value.upper())
+            else:
+                endt = None
+        except:
+            raise WIClientError('Error while converting endtime parameter.')
 
         try:
             if 'level' in parameters:
@@ -532,14 +525,22 @@ class DataSelectQuery(object):
 
         for (n, s, l, c) in lsNSLC(net, sta, loc, cha):
             print n, s, l, c
-            for fXML in glob.glob('cache/%s.xml' % n):
+            for fXML in glob.glob('cache/%s.*.*.xml' % n):
                 # Skip files that don't contain exclusively a network
-                if fXML.count('.') != 1:
+                if fXML.count('.') != 3:
+                    continue
+
+                # First time filter based on the filename
+                netStart = int(fXML.split('.')[1])
+                netEnd = int(fXML.split('.')[2]) if fXML.split('.')[2] != \
+                    'None' else datetime.datetime.now().year + 1
+                if set(range(start.year, endt.year)).isdisjoint(
+                        set(range(netStart, netEnd))):
                     continue
 
                 # Process
-                curNet = fXML[len('cache/'):]
-                curNet = curNet[:curNet.find('.')]
+                curNet = fXML[len('cache/'):fXML.find('.')]
+                # curNet = curNet[:curNet.find('.')]
                 fileList.append(fXML)
 
                 if level == 'network':
@@ -547,13 +548,21 @@ class DataSelectQuery(object):
                     continue
 
                 # Searching for stations
-                for fXML2 in glob.glob('cache/%s.%s.xml' % (curNet, s)):
-                    if fXML2.count('.') != 2:
+                for fXML2 in glob.glob('cache/%s.%s.*.*.xml' % (curNet, s)):
+                    if fXML2.count('.') != 4:
+                        continue
+
+                    staStart = int(fXML.split('.')[2])
+                    staEnd = int(fXML.split('.')[3]) if fXML.split('.')[3] != \
+                        'None' else datetime.datetime.now().year + 1
+                    if set(range(start.year, endt.year)).isdisjoint(
+                            set(range(staStart, staEnd))):
                         continue
 
                     # print 'for station %s' % fXML
-                    curSta = fXML2[fXML2.find('.') + 1:]
-                    curSta = curSta[:curSta.find('.')]
+                    strStaCode = fXML.find('.') + 1
+                    curSta = fXML2[strStaCode:fXML.find('.', strStaCode + 1)]
+                    # curSta = curSta[:curSta.find('.')]
                     # Process
                     fileList.append(fXML2)
 
@@ -562,16 +571,24 @@ class DataSelectQuery(object):
                         continue
 
                     # Searching for channels
-                    for fXML3 in sorted(glob.glob('cache/%s.%s.%s.xml' %
+                    for fXML3 in sorted(glob.glob('cache/%s.%s.%s.*.*.xml' %
                                                   (curNet, curSta, c))):
                         # Skip response files
-                        if fXML3.count('.') != 3:
+                        if fXML3.count('.') != 5:
+                            continue
+
+                        chaStart = int(fXML.split('.')[3])
+                        chaEnd = int(fXML.split('.')[4]) if \
+                            fXML.split('.')[4] != 'None' \
+                            else datetime.datetime.now().year + 1
+                        if set(range(start.year, endt.year)).isdisjoint(
+                                set(range(chaStart, chaEnd))):
                             continue
 
                         # Include channel file
                         fileList.append(fXML3)
 
-                        # If level == response cinlude the response file
+                        # If level == response include the response file
                         # Response is the only one that is already closed
                         # because is the lowest level
                         if level == 'response':
