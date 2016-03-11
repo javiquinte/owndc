@@ -107,6 +107,7 @@ class ResultStation(object):
             if fin[0] in (' ', '<'):
                 self.len += len(fin)
             else:
+                self.logs.debug('Checking size of %s' % fin)
                 self.len += os.stat(fin).st_size
 
         print 'ResultStation created with length: %d' % self.len
@@ -524,7 +525,8 @@ class DataSelectQuery(object):
         fileList = []
 
         for (n, s, l, c) in lsNSLC(net, sta, loc, cha):
-            print n, s, l, c
+            logging.debug('%s.%s.%s.%s' % (n, s, l, c))
+
             for fXML in glob.glob('cache/%s.*.*.xml' % n):
                 # Skip files that don't contain exclusively a network
                 if fXML.count('.') != 3:
@@ -534,8 +536,10 @@ class DataSelectQuery(object):
                 netStart = int(fXML.split('.')[1])
                 netEnd = int(fXML.split('.')[2]) if fXML.split('.')[2] != \
                     'None' else datetime.datetime.now().year + 1
-                if set(range(start.year, endt.year)).isdisjoint(
-                        set(range(netStart, netEnd))):
+                queryStart = getattr(start, "year", 1900)
+                queryEnd = getattr(endt, "year", 2100)
+                if set(range(queryStart, queryEnd + 1)).isdisjoint(
+                        set(range(netStart, getattr(netEnd, "year", 2099) + 1))):
                     continue
 
                 # Process
@@ -552,16 +556,17 @@ class DataSelectQuery(object):
                     if fXML2.count('.') != 4:
                         continue
 
-                    staStart = int(fXML.split('.')[2])
-                    staEnd = int(fXML.split('.')[3]) if fXML.split('.')[3] != \
+                    logging.debug('Parsing station %s' % fXML2.split('.')[-4])
+                    staStart = int(fXML2.split('.')[2])
+                    staEnd = int(fXML2.split('.')[3]) if fXML2.split('.')[3] != \
                         'None' else datetime.datetime.now().year + 1
-                    if set(range(start.year, endt.year)).isdisjoint(
+                    if set(range(queryStart, queryEnd)).isdisjoint(
                             set(range(staStart, staEnd))):
                         continue
 
                     # print 'for station %s' % fXML
-                    strStaCode = fXML.find('.') + 1
-                    curSta = fXML2[strStaCode:fXML.find('.', strStaCode + 1)]
+                    strStaCode = fXML2.find('.') + 1
+                    curSta = fXML2[strStaCode:fXML2.find('.', strStaCode + 1)]
                     # curSta = curSta[:curSta.find('.')]
                     # Process
                     fileList.append(fXML2)
@@ -577,14 +582,15 @@ class DataSelectQuery(object):
                         if fXML3.count('.') != 5:
                             continue
 
-                        chaStart = int(fXML.split('.')[3])
-                        chaEnd = int(fXML.split('.')[4]) if \
-                            fXML.split('.')[4] != 'None' \
+                        chaStart = int(fXML3.split('.')[3])
+                        chaEnd = int(fXML3.split('.')[4]) if \
+                            fXML3.split('.')[4] != 'None' \
                             else datetime.datetime.now().year + 1
-                        if set(range(start.year, endt.year)).isdisjoint(
-                                set(range(chaStart, chaEnd))):
+                        if set(range(queryStart, queryEnd + 1)).isdisjoint(
+                                set(range(chaStart, chaEnd + 1))):
                             continue
 
+                        curCha = fXML3.split('.')[-4]
                         # Include channel file
                         fileList.append(fXML3)
 
@@ -592,15 +598,16 @@ class DataSelectQuery(object):
                         # Response is the only one that is already closed
                         # because is the lowest level
                         if level == 'response':
-                            fXMLResp = '%s.resp.xml' % \
-                                fXML3[:fXML3.rfind('.')]
+                            fXMLResp = 'cache/%s.%s.%s.resp.%s.%s.xml' % \
+                                (curNet, curSta, curCha, chaStart,
+                                 fXML3.split('.')[4])
                             fileList.append(fXMLResp)
 
                         fileList.append('</Channel>')
 
                     fileList.append('</Station>')
 
-            if len(fileList):
+            if (len(fileList) and (level != "network")):
                 fileList.append('</Network>')
 
         if not len(fileList):
