@@ -31,6 +31,7 @@ except ImportError:
 
 from query import DataSelectQuery
 from wsgicomm import WIError
+from wsgicomm import WIContentError
 from version import get_git_version
 
 # These "tries" are needed to support also Python3
@@ -238,6 +239,11 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
                 return
 
             except WIError as w:
+                if isinstance(w, WIContentError):
+                    # 204 No data should be sent
+                    self.__send_plain(204, 'No content', w.body)
+                    return
+
                 # FIXME all WIError parameters must be reviewed again
                 self.__send_plain(400, 'Bad Request or not implemented '
                                   'functionality', w.body)
@@ -303,6 +309,10 @@ def main():
     parser.add_argument('-c', '--config',
                         help='Config file.',
                         default='ownDC.cfg')
+    parser.add_argument('-l', '--loglevel',
+                        help='Verbosity in the output.',
+                        choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO',
+                                 'DEBUG'])
     parser.add_argument('--version', action='version',
                         version='ownDC %s' % get_git_version())
     args = parser.parse_args()
@@ -313,12 +323,19 @@ def main():
     configP = configparser.RawConfigParser()
     configP.read(args.config)
 
-    verbo = configP.get('Service', 'verbosity')
-    verboNum = getattr(logging, verbo.upper(), 30)
+    try:
+        verbo = getattr(logging, args.loglevel)
+    except:
+        # If no command-line parameter then read from config file
+        try:
+            verbo = configP.get('Service', 'verbosity')
+            verbo = getattr(logging, verbo)
+        except:
+            # Otherwise default value
+            verbo = logging.INFO
 
-    logging.basicConfig(logLevel=verboNum)
+    logging.basicConfig(level=verbo)
     loclog = logging.getLogger('main')
-    loclog.setLevel(verboNum)
 
     try:
         port = int(args.port)
