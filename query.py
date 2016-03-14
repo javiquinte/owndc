@@ -522,6 +522,9 @@ class DataSelectQuery(object):
         except:
             raise WIClientError('Error while converting the "level" parameter.')
 
+        if ((start is not None) and (endt is not None) and (start > endt)):
+                raise WIClientError('Error! Start time greater than end time')
+
         fileList = []
 
         for (n, s, l, c) in lsNSLC(net, sta, loc, cha):
@@ -539,7 +542,8 @@ class DataSelectQuery(object):
                 queryStart = getattr(start, "year", 1900)
                 queryEnd = getattr(endt, "year", 2100)
                 if set(range(queryStart, queryEnd + 1)).isdisjoint(
-                        set(range(netStart, getattr(netEnd, "year", 2099) + 1))):
+                        set(range(netStart,
+                                  getattr(netEnd, "year", 2099) + 1))):
                     continue
 
                 # Process
@@ -558,8 +562,8 @@ class DataSelectQuery(object):
 
                     logging.debug('Parsing station %s' % fXML2.split('.')[-4])
                     staStart = int(fXML2.split('.')[2])
-                    staEnd = int(fXML2.split('.')[3]) if fXML2.split('.')[3] != \
-                        'None' else datetime.datetime.now().year + 1
+                    staEnd = int(fXML2.split('.')[3]) if fXML2.split('.')[3] \
+                        != 'None' else datetime.datetime.now().year + 1
                     if set(range(queryStart, queryEnd)).isdisjoint(
                             set(range(staStart, staEnd))):
                         continue
