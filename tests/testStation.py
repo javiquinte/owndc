@@ -162,11 +162,11 @@ class OwnDCTests(unittest.TestCase):
         # FIXME How would be the best way to test?
         # Probably parsing
         posNet = buffer.find('<Network')
-        self.assertGreaterEqual(0, posNet)
+        self.assertGreaterEqual(posNet, 0)
         posCode = buffer.find('code="GE"', posNet)
-        self.assertGreaterEqual(0, posCode)
+        self.assertGreaterEqual(posCode, 0)
         posClose = buffer.find('</Network', posCode)
-        self.assertGreaterEqual(0, posClose)
+        self.assertGreaterEqual(posClose, 0)
 
     def testST_GE_APE_sta(self):
         "Station-WS data for GE.APE.*.* at station level"
@@ -182,17 +182,17 @@ class OwnDCTests(unittest.TestCase):
         # FIXME How would be the best way to test?
         # Probably parsing
         posNet = buffer.find('<Network')
-        self.assertGreaterEqual(0, posNet)
+        self.assertGreaterEqual(posNet, 0)
         posCode = buffer.find('code="GE"', posNet)
-        self.assertGreaterEqual(0, posCode)
+        self.assertGreaterEqual(posCode, 0)
         posSta = buffer.find('<Station', posCode)
-        self.assertGreaterEqual(0, posSta)
+        self.assertGreaterEqual(posSta, 0)
         posStaCode = buffer.find('code="APE"', posSta)
-        self.assertGreaterEqual(0, posStaCode)
+        self.assertGreaterEqual(posStaCode, 0)
         posStaClose = buffer.find('</Station', posStaCode)
-        self.assertGreaterEqual(0, posStaClose)
+        self.assertGreaterEqual(posStaClose, 0)
         posClose = buffer.find('</Network', posStaClose)
-        self.assertGreaterEqual(0, posClose)
+        self.assertGreaterEqual(posClose, 0)
 
     def testST_GE_APE_BHZ_cha(self):
         "Station-WS data for GE.APE.*.BHZ at channel level"
@@ -208,23 +208,23 @@ class OwnDCTests(unittest.TestCase):
         # FIXME How would be the best way to test?
         # Probably parsing
         posNet = buffer.find('<Network')
-        self.assertGreaterEqual(0, posNet)
+        self.assertGreaterEqual(posNet, 0)
         posCode = buffer.find('code="GE"', posNet)
-        self.assertGreaterEqual(0, posCode)
+        self.assertGreaterEqual(posCode, 0)
         posSta = buffer.find('<Station', posCode)
-        self.assertGreaterEqual(0, posSta)
+        self.assertGreaterEqual(posSta, 0)
         posStaCode = buffer.find('code="APE"', posSta)
-        self.assertGreaterEqual(0, posStaCode)
+        self.assertGreaterEqual(posStaCode, 0)
         posCha = buffer.find('<Channel', posStaCode)
-        self.assertGreaterEqual(0, posCha)
+        self.assertGreaterEqual(posCha, 0)
         posChaCode = buffer.find('code="BHZ"', posCha)
-        self.assertGreaterEqual(0, posChaCode)
+        self.assertGreaterEqual(posChaCode, 0)
         posChaClose = buffer.find('</Channel', posChaCode)
-        self.assertGreaterEqual(0, posChaClose)
+        self.assertGreaterEqual(posChaClose, 0)
         posStaClose = buffer.find('</Station', posChaClose)
-        self.assertGreaterEqual(0, posStaClose)
+        self.assertGreaterEqual(posStaClose, 0)
         posClose = buffer.find('</Network', posStaClose)
-        self.assertGreaterEqual(0, posClose)
+        self.assertGreaterEqual(posClose, 0)
 
     def testST_GE_APE_BHZ_resp(self):
         "Station-WS data for GE.APE.*.BHZ at response level"
@@ -240,27 +240,27 @@ class OwnDCTests(unittest.TestCase):
         # FIXME How would be the best way to test?
         # Probably parsing
         posNet = buffer.find('<Network')
-        self.assertGreaterEqual(0, posNet)
+        self.assertGreaterEqual(posNet, 0)
         posCode = buffer.find('code="GE"', posNet)
-        self.assertGreaterEqual(0, posCode)
+        self.assertGreaterEqual(posCode, 0)
         posSta = buffer.find('<Station', posCode)
-        self.assertGreaterEqual(0, posSta)
+        self.assertGreaterEqual(posSta, 0)
         posStaCode = buffer.find('code="APE"', posSta)
-        self.assertGreaterEqual(0, posStaCode)
+        self.assertGreaterEqual(posStaCode, 0)
         posCha = buffer.find('<Channel', posStaCode)
-        self.assertGreaterEqual(0, posCha)
+        self.assertGreaterEqual(posCha, 0)
         posChaCode = buffer.find('code="BHZ"', posCha)
-        self.assertGreaterEqual(0, posChaCode)
+        self.assertGreaterEqual(posChaCode, 0)
         posResp = buffer.find('<Response', posChaCode)
-        self.assertGreaterEqual(0, posResp)
+        self.assertGreaterEqual(posResp, 0)
         posRespClose = buffer.find('</Response', posResp)
-        self.assertGreaterEqual(0, posRespClose)
+        self.assertGreaterEqual(posRespClose, 0)
         posChaClose = buffer.find('</Channel', posRespClose)
-        self.assertGreaterEqual(0, posChaClose)
+        self.assertGreaterEqual(posChaClose, 0)
         posStaClose = buffer.find('</Station', posChaClose)
-        self.assertGreaterEqual(0, posStaClose)
+        self.assertGreaterEqual(posStaClose, 0)
         posClose = buffer.find('</Network', posStaClose)
-        self.assertGreaterEqual(0, posClose)
+        self.assertGreaterEqual(posClose, 0)
 
     def testST_GE_POST(self):
         "Dataselect for GE.APE,APEZ.--.BHZ"
