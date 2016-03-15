@@ -21,7 +21,6 @@
 
 import argparse
 import logging
-import datetime
 import os
 import sys
 try:
@@ -188,6 +187,10 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
         fname = reqStr[:reqStr.find('?')] if '?' in reqStr else reqStr
         service = self.path[len('/fdsnws/'):self.path.find('/1/')]
 
+        if len(reqStr) > 1000:
+            self.__send_plain(414, 'Request URI too large',
+                              'Maximum URI length is 1000 characters')
+
         # This block is common to the dataselect and station web services
         if fname == 'version':
             self.__send_plain(200, 'OK', self.wi.version)
@@ -198,9 +201,8 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
 
         if fname not in implementedFunctions:
             logging.error('Function %s not implemented' % fname)
-            # return send_plain_response("400 Bad Request",
-            #                            'Function "%s" not implemented.' %
-            #                            fname, start_response)
+            return self.__send_plain(400, 'Bad Request',
+                                     'Function "%s" not implemented.' % fname)
 
         if fname == 'application.wadl':
             iterObj = ''
