@@ -35,7 +35,6 @@ from utils import RoutingException
 from utils import text2Datetime
 from routing import applyFormat
 from routing import lsNSLC
-from ownDC import FakeStorage
 
 # This try is needed to be Python3 compliant
 try:
@@ -55,6 +54,22 @@ class LogEntry(namedtuple('LogEntry', ['dt', 'code', 'line', 'bytes'])):
 
     def __str__(self):
         return '%s %s %s %s' % self
+
+
+# Wrap parsed values in the GET method with this class to mimic FieldStorage
+# syntax and be compatible with underlying classes, which use ".value"
+class FakeStorage(dict):
+    def __init__(self, s=None):
+        self.value = s
+
+    def getvalue(self, k):
+        return self[k]
+
+    def __str__(self):
+        return str(self.value)
+
+    def __repr__(self):
+        return str(self.value)
 
 
 class Accounting(object):
@@ -648,10 +663,10 @@ class DataSelectQuery(object):
             except:
                 try:
                     key, value = line.split('=')
-                    if trim(key) != 'level':
+                    if key.trim() != 'level':
                         raise Exception('')
-                    if trim(value) not in ('network', 'station', 'channel',
-                                           'response'):
+                    if value.trim() not in ('network', 'station', 'channel',
+                                            'response'):
                         raise Exception('')
                     level = value
                 except:

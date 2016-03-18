@@ -29,6 +29,7 @@ except ImportError:
     import ConfigParser as configparser
 
 from query import DataSelectQuery
+from query import FakeStorage
 from wsgicomm import WIError
 from wsgicomm import WIContentError
 from version import get_git_version
@@ -46,22 +47,6 @@ except ImportError:
 
 # Version of this software
 version = '0.9a2'
-
-
-# Wrap parsed values in the GET method with this class to mimic FieldStorage
-# syntax and be compatible with underlying classes, which use ".value"
-class FakeStorage(dict):
-    def __init__(self, s=None):
-        self.value = s
-
-    def getvalue(self, k):
-        return self[k]
-
-    def __str__(self):
-        return str(self.value)
-
-    def __repr__(self):
-        return str(self.value)
 
 
 # Implement the web server
