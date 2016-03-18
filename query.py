@@ -35,6 +35,7 @@ from utils import RoutingException
 from utils import text2Datetime
 from routing import applyFormat
 from routing import lsNSLC
+from ownDC import FakeStorage
 
 # This try is needed to be Python3 compliant
 try:
@@ -491,6 +492,8 @@ class DataSelectQuery(object):
         except:
             cha = ['*']
 
+        logging.debug('Parameters %s' % parameters)
+
         try:
             if 'starttime' in parameters:
                 start = text2Datetime(parameters['starttime'].value.upper())
@@ -628,4 +631,52 @@ class DataSelectQuery(object):
         # print fileList
 
         iterObj = ResultStation(fileList)
+        return iterObj
+
+    def makeQueryStationPOST(self, lines):
+
+        # Default value for level
+        level = 'station'
+        urlList = []
+        for line in lines.split('\n'):
+            # Skip empty lines
+            if not len(line):
+                continue
+
+            try:
+                net, sta, loc, cha, start, endt = line.split(' ')
+            except:
+                try:
+                    key, value = line.split('=')
+                    if trim(key) != 'level':
+                        raise Exception('')
+                    if trim(value) not in ('network', 'station', 'channel',
+                                           'response'):
+                        raise Exception('')
+                    level = value
+                except:
+                    logging.error('Cannot parse line: %s' % line)
+                    continue
+
+            # Empty location
+            if loc == '--':
+                loc = ''
+
+            logging.debug('Calling makeQueryStationGET %s %s %s %s %s %s %s' %
+                          (net, sta, loc, cha, start, endt, level))
+            params = dict()
+            params['net'] = FakeStorage(net)
+            params['sta'] = FakeStorage(sta)
+            params['loc'] = FakeStorage(loc)
+            params['cha'] = FakeStorage(cha)
+            params['start'] = FakeStorage(start)
+            params['end'] = FakeStorage(endt)
+            params['level'] = FakeStorage(level)
+            iterObj = self.makeQueryStationGET(params)
+
+        # if not len(urlList):
+        #     raise WIContentError('No routes have been found!')
+
+        # iterObj = ResultFile(urlList, self.acc.log if self.acc is not None
+        #                      else None)
         return iterObj

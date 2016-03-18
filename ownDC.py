@@ -233,7 +233,6 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
             dictPar[k] = FakeStorage(v)
         logging.info('GET request for %s' % dictPar)
 
-        # FIXME The station web service is still not implemented
         if self.path.startswith('/fdsnws/station/1/'):
             try:
                 iterObj = self.wi.makeQueryStationGET(dictPar)
@@ -246,7 +245,6 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
                     self.__send_plain(204, 'No content', w.body)
                     return
 
-                # FIXME all WIError parameters must be reviewed again
                 self.__send_plain(400, 'Bad Request or not implemented '
                                   'functionality', w.body)
                 return
@@ -258,7 +256,6 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
             return
 
         except WIError as w:
-            # FIXME all WIError parameters must be reviewed again
             self.__send_plain(400, 'Bad Request', w.body)
             return
 
@@ -276,7 +273,8 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
         logging.debug(self.headers)
 
         # Check that the user calls "query". It is the only option via POST
-        if not self.path.startswith('/fdsnws/dataselect/1/query'):
+        if ((not self.path.startswith('/fdsnws/dataselect/1/query')) and
+                (not self.path.startswith('/fdsnws/station/1/query'))):
             self.__send_plain(400, 'Bad Request',
                               'Wrong path. Not FDSN compliant')
             return
@@ -284,6 +282,22 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
         length = int(self.headers['content-length'])
         logging.debug('Length: %s' % length)
         lines = self.rfile.read(length)
+
+        if self.path.startswith('/fdsnws/station/1/'):
+            try:
+                iterObj = self.wi.makeQueryStationPOST(lines)
+                self.__send_xml(200, 'OK', iterObj)
+                return
+
+            except WIError as w:
+                if isinstance(w, WIContentError):
+                    # 204 No data should be sent
+                    self.__send_plain(204, 'No content', w.body)
+                    return
+
+                self.__send_plain(400, 'Bad Request or not implemented '
+                                  'functionality', w.body)
+                return
 
         # Show request
         logging.info('POST request with %s lines' % len(lines.split('\n')))
