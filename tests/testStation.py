@@ -263,9 +263,10 @@ class OwnDCTests(unittest.TestCase):
         self.assertGreaterEqual(posClose, 0)
 
     def testST_GE_POST(self):
-        "Dataselect for GE.APE,APEZ.--.BHZ"
+        "Dataselect for GE.APE,APEZ.--.BHZ via the POST method"
 
-        postReq = """GE APE -- BHZ 2015-01-01T00:00:00.0000 2015-02-01T00:00:00.0000
+        postReq = """level = channel
+GE APE -- BHZ 2015-01-01T00:00:00.0000 2015-02-01T00:00:00.0000
 GE APEZ -- BHZ 2015-01-01T00:00:00.0000 2015-02-01T00:00:00.0000"""
 
         req = urllib2.Request(self.host, postReq)
@@ -275,14 +276,44 @@ GE APEZ -- BHZ 2015-01-01T00:00:00.0000 2015-02-01T00:00:00.0000"""
         except:
             raise Exception('Error retrieving data for GE.APE,APEZ.--.BHZ')
 
-        expLen = 75264
+        # FIXME How would be the best way to test?
+        # Probably parsing
+        posNet = buffer.find('<Network')
+        self.assertGreaterEqual(posNet, 0, buffer)
+        posCode = buffer.find('code="GE"', posNet)
+        self.assertGreaterEqual(posCode, 0, '2')
+        posSta = buffer.find('<Station', posCode)
+        self.assertGreaterEqual(posSta, 0, '3')
+        posStaCode = buffer.find('code="APE"', posSta)
+        self.assertGreaterEqual(posStaCode, 0, '4')
+        posCha = buffer.find('<Channel', posStaCode)
+        self.assertGreaterEqual(posCha, 0, '5')
+        posChaCode = buffer.find('code="BHZ"', posCha)
+        self.assertGreaterEqual(posChaCode, 0, '6')
+        posChaClose = buffer.find('</Channel', posChaCode)
+        self.assertGreaterEqual(posChaClose, 0, '7')
+        posStaClose = buffer.find('</Station', posChaClose)
+        self.assertGreaterEqual(posStaClose, 0, '8')
 
-        msg = 'Error in size of response! Expected: %d ; Obtained: %d'
-        self.assertEqual(len(buffer), expLen, msg % (expLen, len(buffer)))
+        posSta = buffer.find('<Station', posCode)
+        self.assertGreaterEqual(posSta, 0, '9')
+        posStaCode = buffer.find('code="APEZ"', posSta)
+        self.assertGreaterEqual(posStaCode, 0, '10')
+        posCha = buffer.find('<Channel', posStaCode)
+        self.assertGreaterEqual(posCha, 0, '11')
+        posChaCode = buffer.find('code="BHZ"', posCha)
+        self.assertGreaterEqual(posChaCode, 0, '12')
+        posChaClose = buffer.find('</Channel', posChaCode)
+        self.assertGreaterEqual(posChaClose, 0, '13')
+        posStaClose = buffer.find('</Station', posChaClose)
+        self.assertGreaterEqual(posStaClose, 0, '14')
+
+        posClose = buffer.find('</Network', posStaClose)
+        self.assertGreaterEqual(posClose, 0, '15')
 
 
 def usage():
-    print 'testService [-h] [-p]\ntestService [-u http://server/path]'
+    print 'testStation [-h] [-p]\ntestStation [-u http://server/path]'
 
 global host
 
