@@ -89,7 +89,7 @@ class Accounting(object):
         # FIXME The username as well as the mail settings should be configured
         # in the general configuration file
         if user is not None:
-            msg = MIMEText(data)
+            msg = MIMEText("data")
             msg['Subject'] = 'Feedback from OwnDC'
             msg['From'] = 'noreply@localhost'
             msg['To'] = user
@@ -109,13 +109,13 @@ class ResultStation(object):
     def __init__(self, fileList):
         self.fileList = fileList
         self.content_type = 'text/xml'
-        # now = datetime.datetime.now()
-        # nowStr = '%04d%02d%02d-%02d%02d%02d' % (now.year, now.month, now.day,
-        #                                         now.hour, now.minute,
-        #                                         now.second)
+        now = datetime.datetime.now()
+        nowStr = '%04d%02d%02d-%02d%02d%02d' % (now.year, now.month, now.day,
+                                                now.hour, now.minute,
+                                                now.second)
 
         # I think that the returned XML does not need to be an attachment
-        # self.filename = 'OwnDC-%s.xml' % nowStr
+        self.filename = 'OwnDC-%s.xml' % nowStr
 
         self.logs = logging.getLogger('ResultStation')
         self.len = 0
@@ -133,11 +133,22 @@ class ResultStation(object):
         Reads one file at a time and yield its content.
         """
 
+        lClose = ['</Network>', '</Station>', '</Channel>', '</Response>']
+        header = '<?xml version="1.0" encoding="UTF-8"?>' + \
+            '<FDSNStationXML xmlns="http://www.fdsn.org/xml/station/1" ' + \
+            'schemaVersion="1.0"><Source>OwnDC</Source>'
+        header = header + '<Created>%s</Created>' % \
+            datetime.datetime.now().isoformat()
+        yield header
+
+        # In which levelof the XMLfile are we (0=network, 1=station, etc)
+        level = -1
+
         for pos, fin in enumerate(self.fileList):
             # Prepare Request
             self.logs.debug('%s/%s - Opening %s' % (pos, len(self.fileList),
                                                     fin))
-            print '%s/%s - Opening %s' % (pos, len(self.fileList), fin)
+            # print '%s/%s - Opening %s' % (pos, len(self.fileList), fin)
 
             if fin[0] in ('<', ' '):
                 yield fin
@@ -145,13 +156,28 @@ class ResultStation(object):
 
             with open(fin) as fh:
 
+                self.logs.debug('%d %d', len(fin.split('/')[-1].split('.')) - 4,
+                                level)
+                if len(fin.split('/')[-1].split('.')) - 4 <= level:
+                    # print 'Close %d' % level
+                    yield lClose[level]
+                level = len(fin.split('/')[-1].split('.')) - 4
+
                 # Read the data in blocks of predefined size
                 try:
                     buffer = fh.read()
+                    self.logs.debug('Sending %d bytes', len(buffer))
                     yield buffer
                 except:
                     self.logs.error('Oops!')
 
+            self.logs.debug('Finished with %s', fin)
+
+        for cl in range(level, -1, -1):
+            # print 'Close %d' % cl
+            yield lClose[cl]
+
+        yield '</FDSNStationXML>'
         raise StopIteration
 
 
@@ -567,10 +593,10 @@ class DataSelectQuery(object):
                 # Process
                 curNet = fXML[len('cache/'):fXML.find('.')]
                 # curNet = curNet[:curNet.find('.')]
-                fileList.append(fXML)
+                if fXML not in fileList:
+                    fileList.append(fXML)
 
                 if level == 'network':
-                    fileList.append('</Network>')
                     continue
 
                 # Searching for stations
@@ -594,7 +620,6 @@ class DataSelectQuery(object):
                     fileList.append(fXML2)
 
                     if level == 'station':
-                        fileList.append('</Station>')
                         continue
 
                     # Searching for channels
@@ -625,25 +650,9 @@ class DataSelectQuery(object):
                                  fXML3.split('.')[4])
                             fileList.append(fXMLResp)
 
-                        fileList.append('</Channel>')
-
-                    fileList.append('</Station>')
-
-            if (len(fileList) and (level != "network")):
-                fileList.append('</Network>')
-
         if not len(fileList):
             logging.debug('No data from Station-WS has been found!')
             raise WIContentError('No data from Station-WS has been found!')
-
-        header = '<?xml version="1.0" encoding="UTF-8"?>' + \
-            '<FDSNStationXML xmlns="http://www.fdsn.org/xml/station/1" ' + \
-            'schemaVersion="1.0"><Source>OwnDC</Source>' + \
-            '<Created>%s</Created>' % datetime.datetime.now().isoformat()
-        fileList.insert(0, header)
-        fileList.append('</FDSNStationXML>')
-
-        # print fileList
 
         iterObj = ResultStation(fileList)
         return iterObj
@@ -652,7 +661,7 @@ class DataSelectQuery(object):
 
         # Default value for level
         level = 'station'
-        urlList = []
+        # urlList = []
         for line in lines.split('\n'):
             # Skip empty lines
             if not len(line):

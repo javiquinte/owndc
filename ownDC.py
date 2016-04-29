@@ -221,7 +221,7 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
         if self.path.startswith('/fdsnws/station/1/'):
             try:
                 iterObj = self.wi.makeQueryStationGET(dictPar)
-                self.__send_xml(200, 'OK', iterObj)
+                self.__send_dynamicfile(200, 'OK', iterObj)
                 return
 
             except WIError as w:
