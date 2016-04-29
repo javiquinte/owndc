@@ -7,3 +7,4 @@ doc/_build/
 *.cfg
 *.bck
 *.log
+*ropeproject*
