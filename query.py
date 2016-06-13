@@ -569,6 +569,16 @@ class DataSelectQuery(object):
         if ((start is not None) and (endt is not None) and (start > endt)):
                 raise WIClientError('Error! Start time greater than end time')
 
+        fileList = self._buildFileList(net, sta, loc, cha, start, endt)
+
+        if not len(fileList):
+            logging.debug('No data from Station-WS has been found!')
+            raise WIContentError('No data from Station-WS has been found!')
+
+        iterObj = ResultStation(fileList)
+        return iterObj
+
+    def _buildFileList(self, net, sta, loc, cha, start, endt, level='station'):
         fileList = []
 
         for (n, s, l, c) in lsNSLC(net, sta, loc, cha):
@@ -649,19 +659,15 @@ class DataSelectQuery(object):
                                 (curNet, curSta, curCha, chaStart,
                                  fXML3.split('.')[4])
                             fileList.append(fXMLResp)
-
-        if not len(fileList):
-            logging.debug('No data from Station-WS has been found!')
-            raise WIContentError('No data from Station-WS has been found!')
-
-        iterObj = ResultStation(fileList)
-        return iterObj
+        return fileList
 
     def makeQueryStationPOST(self, lines):
 
         # Default value for level
         level = 'station'
-        # urlList = []
+
+        fileList = []
+
         for line in lines.split('\n'):
             # Skip empty lines
             if not len(line):
@@ -688,19 +694,15 @@ class DataSelectQuery(object):
 
             logging.debug('Calling makeQueryStationGET %s %s %s %s %s %s %s' %
                           (net, sta, loc, cha, start, endt, level))
-            params = dict()
-            params['net'] = FakeStorage(net)
-            params['sta'] = FakeStorage(sta)
-            params['loc'] = FakeStorage(loc)
-            params['cha'] = FakeStorage(cha)
-            params['start'] = FakeStorage(start)
-            params['end'] = FakeStorage(endt)
-            params['level'] = FakeStorage(level)
-            iterObj = self.makeQueryStationGET(params)
+            fileList.extend(self._buildFileList(net, sta, loc, cha, start, endt,
+                                                level))
 
         # if not len(urlList):
         #     raise WIContentError('No routes have been found!')
 
         # iterObj = ResultFile(urlList, self.acc.log if self.acc is not None
         #                      else None)
+
+        iterObj = ResultStation(fileList)
+
         return iterObj
