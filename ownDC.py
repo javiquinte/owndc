@@ -166,6 +166,10 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
                               'Wrong path. Not FDSN compliant')
             return
 
+        if len(self.path) > 1000:
+            self.__send_plain(414, "Request URI too large",
+                              "maximum URI length is 1000 characters")
+
         reqStr = self.path[len('/fdsnws/dataselect/1/'):]
 
         # Check whether the function called is implemented
