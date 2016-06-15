@@ -34,7 +34,7 @@ import xml.etree.cElementTree as ET
 import glob
 from time import sleep
 from collections import namedtuple
-from operator import add
+# from operator import add
 from operator import itemgetter
 import logging
 
@@ -171,7 +171,7 @@ a regular period of time.
                         stationCode = route.get('stationCode')
                         if len(stationCode) == 0:
                             stationCode = '*'
-                    
+
                         # Do not allow "?" wildcard in the input, because it
                         # will be impossible to match with the user input if
                         # this also has a mixture of "*" and "?"
@@ -267,7 +267,7 @@ a regular period of time.
                             # and the ones already present in the main Routing
                             # table
                             addIt = True
-                            logs.debug('[RT] Checking %s\n' % str(st))
+                            logs.debug('[RT] Checking %s' % str(st))
                             for testStr in ptRT.keys():
                                 # This checks the overlap of Streams and also
                                 # of timewindows and priority
@@ -355,11 +355,37 @@ def addRemote(fileName, url):
             u.close()
 
     except ul.URLError as e:
+        logs.error('The URL does not seem to be a valid Routing Service')
         if hasattr(e, 'reason'):
-            logs.error('%s - Reason: %s\n' % (url, e.reason))
+            logs.error('%s/localconfig - Reason: %s\n' % (url, e.reason))
         elif hasattr(e, 'code'):
-            logs.error('The server couldn\'t fulfill the')
-            logs.error(' request.\nError code: %s\n', e.code)
+            logs.error('The server couldn\'t fulfill the request.')
+            logs.error('Error code: %s\n', e.code)
+        logs.warning('Retrying with a static configuration file')
+
+        # Prepare Request without the "localconfig" method
+        req = ul.Request(url)
+        try:
+            u = ul.urlopen(req)
+
+            with open(fileName, 'w') as routeExt:
+                logs.debug('%s opened\n%s:' % (fileName, url))
+                # Read the data in blocks of predefined size
+                buf = u.read(blockSize)
+                while len(buf):
+                    logs.debug('.')
+                    # Return one block of data
+                    routeExt.write(buf)
+                    buf = u.read(blockSize)
+
+                # Close the connection to avoid overloading the server
+                u.close()
+        except ul.URLError as e:
+            if hasattr(e, 'reason'):
+                logs.error('%s - Reason: %s\n' % (url, e.reason))
+            elif hasattr(e, 'code'):
+                logs.error('The server couldn\'t fulfill the request.')
+                logs.error('Error code: %s\n', e.code)
 
     name = fileName[:- len('.download')]
     try:
@@ -488,9 +514,9 @@ class Stream(namedtuple('Stream', ['n', 's', 'l', 'c'])):
     __slots__ = ()
 
     def toXMLopen(self, nameSpace='ns0', level=1):
-        return '%s<%s:route networkCode="%s" stationCode="%s" ' + \
-            'locationCode="%s" streamCode="%s">\n' \
-            % (' ' * level, nameSpace, self.n, self.s, self.l, self.c)
+        conv = '%s<%s:route networkCode="%s" stationCode="%s" ' + \
+            'locationCode="%s" streamCode="%s">\n'
+        return conv % (' ' * level, nameSpace, self.n, self.s, self.l, self.c)
 
     def toXMLclose(self, nameSpace='ns0', level=1):
         return '%s</%s:route>\n' % (' ' * level, nameSpace)
@@ -600,11 +626,15 @@ False
 """
 
         def inOrder(a, b, c):
-            if b is None:
+            if ((b is None) and (a is not None) and (c is not None)):
                 return False
 
             # Here I'm sure that b is not None
             if (a is None and c is None):
+                return True
+
+            # Here I'm sure that b is not None
+            if (b is None and c is None):
                 return True
 
             # I also know that a or c are not None
@@ -618,6 +648,11 @@ False
             # print a, b, c, a < b, b < c, a < b < c
             return a < b < c
 
+        def inOrder2(a, b, c):
+            # The three are not None
+            # print a, b, c, a < b, b < c, a < b < c
+            return a <= b <= c
+
         # First of all check that the TWs are correctly created
         if ((self.start is not None) and (self.end is not None) and
                 (self.start > self.end)):
@@ -630,17 +665,39 @@ False
                                                                  otherTW.end))
 
         # Check if self.start or self.end in otherTW
-        if inOrder(otherTW.start, self.start, otherTW.end) or \
-                inOrder(otherTW.start, self.end, otherTW.end):
+        # print 'Check if %s overlaps %s' % (self, otherTW)
+        # print otherTW.start, self.start, otherTW.end, \
+        #     inOrder(otherTW.start, self.start, otherTW.end)
+        # print otherTW.start, self.end, otherTW.end,   \
+        #     inOrder(otherTW.start, self.end, otherTW.end)
+        # print otherTW.start, self.start, self.end,    \
+        #     inOrder(otherTW.start, self.start, self.end)
+        # print self.start, self.end, otherTW.end,      \
+        #     inOrder(self.start, self.end, otherTW.end)
+        # print self.start, otherTW.start, otherTW.end, \
+        #     inOrder(self.start, otherTW.start, otherTW.end)
+        # print otherTW.start, otherTW.end, self.end,   \
+        #     inOrder(otherTW.start, otherTW.end, self.end)
+
+        minDT = datetime.datetime(1900, 1, 1)
+        maxDT = datetime.datetime(3000, 1, 1)
+
+        sStart = self.start if self.start is not None else minDT
+        oStart = otherTW.start if otherTW.start is not None else minDT
+        sEnd = self.end if self.end is not None else maxDT
+        oEnd = otherTW.end if otherTW.end is not None else maxDT
+        
+        if inOrder2(oStart, sStart, oEnd) or \
+                inOrder2(oStart, sEnd, oEnd):
             return True
 
         # Check if this is included in otherTW
-        if inOrder(otherTW.start, self.start, self.end):
-                return inOrder(self.start, self.end, otherTW.end)
+        if inOrder2(oStart, sStart, sEnd):
+                return inOrder2(sStart, sEnd, oEnd)
 
         # Check if otherTW is included in this one
-        if inOrder(self.start, otherTW.start, otherTW.end):
-                return inOrder(otherTW.start, otherTW.end, self.end)
+        if inOrder2(sStart, oStart, oEnd):
+                return inOrder2(oStart, oEnd, sEnd)
 
         if self == otherTW:
             return True
@@ -705,6 +762,9 @@ False
         else:
             resEn = self.end
 
+        if ((resSt is not None) and (resEn is not None) and (resSt >= resEn)):
+            raise ValueError('Intersection is empty')
+
         return TW(resSt, resEn)
 
 
@@ -763,7 +823,7 @@ class RoutingCache(object):
 :platform: Linux (maybe also Windows)
     """
 
-    def __init__(self, routingFile, masterFile=None, config='routing.cfg'):
+    def __init__(self, routingFile=None, masterFile=None, config='routing.cfg'):
         """RoutingCache constructor
 
 :param routingFile: XML file with routing information
@@ -790,9 +850,10 @@ class RoutingCache(object):
         self.logs.info('Reading configuration from %s' % self.configFile)
         self.logs.info('Reading masterTable from %s' % masterFile)
 
-        self.logs.info('Wait until the RoutingCache is updated...')
-        self.update()
-        self.logs.info('RoutingCache finished!')
+        if self.routingFile is not None:
+            self.logs.info('Wait until the RoutingCache is updated...')
+            self.update()
+            self.logs.info('RoutingCache finished!')
 
         # Check update time
         # Configure the expected update moment of the day
@@ -833,9 +894,9 @@ class RoutingCache(object):
         self.updateMT()
 
     def toXML(self, foutput, nameSpace='ns0'):
-        header = """<?xml version="0.0" encoding="utf-8"?>
-        <ns0:routing xmlns:ns0="http://geofon.gfz-potsdam.de/ns/Routing/1.0/">
-        """
+        header = """<?xml version="1.0" encoding="utf-8"?>
+<ns0:routing xmlns:ns0="http://geofon.gfz-potsdam.de/ns/Routing/1.0/">
+"""
         with open(foutput, 'w') as fo:
             fo.write(header)
             for st, lr in self.routingTable.iteritems():
@@ -870,7 +931,7 @@ operating with an EIDA default configuration.
         """
 
         # Functionality moved away from this module. Check updateAll.py.
-        
+
         return
         # Check Arclink server that must be contacted to get a routing table
         config = configparser.RawConfigParser()
@@ -1136,6 +1197,7 @@ different datacenters (if needed) and be able to merge it avoiding duplication.
 
         # Filter by stream
         for stRT in self.routingTable.keys():
+            # print stRT, stream
             if stRT.overlap(stream):
                 subs.append(stRT)
 
@@ -1170,19 +1232,6 @@ different datacenters (if needed) and be able to merge it avoiding duplication.
 
         # print 'subs2', subs2
 
-        # WARNING ! This approach based on wildcards is more Arclink style
-        # From now on we will base the selection on priority
-
-        # Alternative approach based on number of wildcards
-        # orderS = [sum([3 for t in r if '*' in t]) for r in subs]
-        # orderQ = [sum([1 for t in r if '?' in t]) for r in subs]
-
-        # order = map(add, orderS, orderQ)
-
-        # orderedSubs = [x for (y, x) in sorted(zip(order, subs))]
-
-        # self.logs.debug('Preselection: %s\n' % orderedSubs)
-        # finalset = set()
         finalset = list()
 
         # Reorder to have higher priorities first
@@ -1239,15 +1288,21 @@ different datacenters (if needed) and be able to merge it avoiding duplication.
                     # If the timewindow is not complete then add the missing
                     # ranges to the tw set.
                     for auxTW in toProc.difference(ro.tw):
+                        # Skip the case that we fall alwys in the same time span
+                        if auxTW == toProc:
+                            break
                         self.logs.debug('Adding %s\n' % str(auxTW))
                         setTW.add(auxTW)
 
-                    auxSt, auxEn = toProc.intersection(ro.tw)
-                    result.append(service, ro.address,
-                                  ro.priority if ro.priority is not
-                                  None else '', stream.strictMatch(st),
-                                  auxSt if auxSt is not None else '',
-                                  auxEn if auxEn is not None else '')
+                    try:
+                        auxSt, auxEn = toProc.intersection(ro.tw)
+                        result.append(service, ro.address,
+                                      ro.priority if ro.priority is not
+                                      None else '', stream.strictMatch(st),
+                                      auxSt if auxSt is not None else '',
+                                      auxEn if auxEn is not None else '')
+                    except:
+                        pass
 
                     # FIXME This below seems to be wrong!
 
@@ -1326,7 +1381,7 @@ the normal configuration.
 
         self.logs.debug('Entering updateAll()\n')
         self.update()
-        
+
         if self.masterFile is not None:
             self.updateMT()
 
@@ -1516,26 +1571,59 @@ the normal configuration.
 
         self.logs.debug('Entering update()\n')
 
+        here = os.path.dirname(__file__)
+
+        # Otherwise, default value
+        synchroList = ''
+        allowOverlaps = False
+
+        try:
+            config = configparser.RawConfigParser()
+            self.logs.debug(self.configFile)
+            with open(self.configFile) as c:
+                config.readfp(c)
+
+            if 'synchronize' in config.options('Service'):
+                synchroList = config.get('Service', 'synchronize')
+        except:
+            pass
+
+        try:
+            if 'allowOverlaps' in config.options('Service'):
+                allowOverlaps = config.getboolean('Service', 'allowoverlap')
+        except:
+            pass
+
+        self.logs.debug(synchroList)
+        self.logs.debug('allowOverlaps: %s' % allowOverlaps)
+
         # Just to shorten notation
         ptRT = self.routingTable
 
         # Clear all previous information
         ptRT.clear()
+        ptRT = addRoutes(self.routingFile, allowOverlaps=allowOverlaps)
 
-        # here = os.path.dirname(__file__)
         binFile = self.routingFile + '.bin'
         try:
-            # with open(os.path.join(here, binFile)) as rMerged:
             with open(binFile) as rMerged:
                 self.routingTable = pickle.load(rMerged)
         except:
-            ptRT = addRoutes(self.routingFile, config=self.configFile)
-            # for routeFile in glob.glob(
-            #        os.path.join(here, 'data/routing-*.xml')):
-            for routeFile in glob.glob('data/routing-*.xml'):
-                ptRT = addRoutes(routeFile, ptRT, self.logs)
+            # Loop for the datacenters which should be integrated
+            for line in synchroList.splitlines():
+                if not len(line):
+                    break
+                self.logs.debug(str(line.split(',')))
+                dcid, url = line.split(',')
 
-            #  with open(os.path.join(here, binFile), 'wb') \
+                if os.path.exists(os.path.join(here, 'data', 'routing-%s.xml' % dcid.strip())):
+                    # FIXME addRoutes should return no Exception ever and skip a
+                    # problematic file returning a coherent version of the routes
+                    self.logs.debug('Routes in table: %s' % len(ptRT))
+                    self.logs.debug('Adding REMOTE %s' % dcid)
+                    ptRT = addRoutes(os.path.join(here, 'data', 'routing-%s.xml' % dcid.strip()),
+                                     routingTable=ptRT, allowOverlaps=allowOverlaps)
+
             with open(binFile, 'wb') \
                     as finalRoutes:
                 self.logs.debug('Writing %s\n' % binFile)

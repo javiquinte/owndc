@@ -33,12 +33,21 @@ import xml.etree.cElementTree as ET
 import json
 from wsgicomm import WIContentError
 from wsgicomm import WIClientError
+from wsgicomm import WIURIError
 from wsgicomm import WIError
 from wsgicomm import send_plain_response
 from wsgicomm import send_xml_response
+from wsgicomm import send_error_response
+import logging
 from utils import RequestMerge
 from utils import RoutingCache
 from utils import RoutingException
+
+try:
+    import configparser
+except ImportError:
+    import ConfigParser as configparser
+
 
 def _ConvertDictToXmlRecurse(parent, dictitem):
     assert not isinstance(dictitem, list)
@@ -106,25 +115,30 @@ def applyFormat(resultRM, outFormat='xml'):
                                          type(item[k]) is not
                                          type(datetime.datetime.now())
                                          else item[k].isoformat()) for k in item
-                                         if item[k] not in ('', '*')
-                                         and k != 'priority']))
+                                         if item[k] not in ('', '*') and
+                                         k != 'priority']))
         iterObj = '\n'.join(iterObj)
         return iterObj
     elif outFormat == 'post':
+        now = datetime.datetime.utcnow()
         iterObj = []
         for datacenter in resultRM:
             iterObj.append(datacenter['url'])
             for item in datacenter['params']:
                 item['loc'] = item['loc'] if len(item['loc']) else '--'
+                item['end'] = item['end'] if len(item['end']) \
+                    else now.isoformat()
                 iterObj.append(item['net'] + ' ' + item['sta'] + ' ' +
                                item['loc'] + ' ' + item['cha'] + ' ' +
                                item['start'] + ' ' + item['end'])
             iterObj.append('')
         iterObj = '\n'.join(iterObj)
         return iterObj
-    else:
+    elif outFormat == 'xml':
         iterObj2 = ET.tostring(ConvertDictToXml(resultRM))
         return iterObj2
+    else:
+        raise WIClientError('Wrong format requested!')
 
 # This variable will be treated as GLOBAL by all the other functions
 routes = None
