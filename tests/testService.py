@@ -54,7 +54,7 @@ class OwnDCTests(unittest.TestCase):
     def testDS_XX(self):
         "non-existing network XX"
 
-        req = urllib2.Request('%s?net=XX' % self.host)
+        req = urllib2.Request('%s?net=XX&end=2008-01-01T00:01:15&start=2008-01-01T00:01:00' % self.host)
         msg = 'An error code 204 No Content is expected for an unknown network'
         try:
             u = urllib2.urlopen(req)

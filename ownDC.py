@@ -31,6 +31,7 @@ except ImportError:
 
 from query import DataSelectQuery
 from wsgicomm import WIError
+from wsgicomm import WIContentError
 from version import get_git_version
 
 # These "tries" are needed to support also Python3
@@ -169,6 +170,7 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
         if len(self.path) > 1000:
             self.__send_plain(414, "Request URI too large",
                               "maximum URI length is 1000 characters")
+            return
 
         reqStr = self.path[len('/fdsnws/dataselect/1/'):]
 
@@ -213,6 +215,7 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
         for i in listPar:
             k, v = i.split('=')
             dictPar[k] = FakeStorage(v)
+
         logging.info('GET request for %s' % dictPar)
 
         try:
@@ -220,7 +223,13 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
             self.__send_dynamicfile(200, 'OK', iterObj)
             return
 
+        except WIContentError as w:
+            # print 'I caught a WIContentError condition %s' % dictPar
+            self.__send_plain(204, 'No Content', str(dictPar))
+            return
+
         except WIError as w:
+            # print 'I ended up at the except condition %s' % dictPar
             # FIXME all WIError parameters must be reviewed again
             self.__send_plain(400, 'Bad Request', w.body)
             return
