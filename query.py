@@ -20,12 +20,8 @@
 .. moduleauthor:: Javier Quinteros <javier@gfz-potsdam.de>, GEOFON, GFZ Potsdam
 """
 
-import os
 import datetime
 import fcntl
-import smtplib
-from email.mime.text import MIMEText
-
 import logging
 from collections import namedtuple
 from wsgicomm import WIClientError
@@ -54,6 +50,7 @@ class LogEntry(namedtuple('LogEntry', ['dt', 'code', 'line', 'bytes'])):
     def __str__(self):
         return '%s %s %s %s' % self
 
+
 class Accounting(object):
     """Receive information about all the requests and log it in a file disk
     or send it per Mail. This class is still being tested and debugged."""
@@ -70,18 +67,95 @@ class Accounting(object):
 
         # FIXME The username as well as the mail settings should be configured
         # in the general configuration file
-        if user is not None:
-            msg = MIMEText(data)
-            msg['Subject'] = 'Feedback from OwnDC'
-            msg['From'] = 'noreply@localhost'
-            msg['To'] = user
+        # if user is not None:
+        #     msg = MIMEText(data)
+        #     msg['Subject'] = 'Feedback from OwnDC'
+        #     msg['From'] = 'noreply@localhost'
+        #     msg['To'] = user
 
-            # Send the message via our own SMTP server, but don't include the
-            # envelope header.
-            s = smtplib.SMTP('localhost')
-            s.sendmail('noreply@localhost', [user],
-                       msg.as_string())
-            s.quit()
+        #     Send the message via our own SMTP server, but don't include the
+        #     envelope header.
+        #     s = smtplib.SMTP('localhost')
+        #     s.sendmail('noreply@localhost', [user],
+        #                msg.as_string())
+        #     s.quit()
+
+
+class ResultStationFile(object):
+    """Define a class that is an iterable. We can start returning the file
+    before everything was retrieved from the sources."""
+
+    def __init__(self, urlList):
+        self.urlList = urlList
+        self.content_type = 'text/plain'
+        now = datetime.datetime.now()
+        nowStr = '%04d%02d%02d-%02d%02d%02d' % (now.year, now.month, now.day,
+                                                now.hour, now.minute,
+                                                now.second)
+
+        # FIXME The filename prefix should be read from the configuration
+        self.filename = 'OwnDC-%s.txt' % nowStr
+
+        self.logs = logging.getLogger('ResultStationFile')
+
+    def __iter__(self):
+        """
+        Read a maximum of 25 blocks of 4k (or 200 of 512b) each time.
+        """
+
+        blockSize = 25 * 4096
+
+        for pos, url in enumerate(self.urlList):
+            # Prepare Request
+            self.logs.debug('%s/%s - Connecting %s' % (pos, len(self.urlList),
+                                                       url))
+            req = ul.Request(url + '&format=text')
+
+            totalBytes = 0
+            httpErr = 0
+            # Connect to the proper FDSN-WS
+            try:
+                u = ul.urlopen(req)
+                self.logs.debug('%s/%s - Connected to %s' %
+                                (pos, len(self.urlList), url))
+
+                # Read the data in blocks of predefined size
+                try:
+                    buffer = u.read(blockSize)
+                except:
+                    self.logs.error('Oops!')
+
+                while len(buffer):
+                    totalBytes += len(buffer)
+                    # Return one block of data
+                    yield buffer
+                    try:
+                        buffer = u.read(blockSize)
+                    except:
+                        self.logs.error('Oops!')
+                    self.logs.debug('%s/%s - %s bytes from %s' %
+                                    (pos, len(self.urlList), totalBytes, url))
+
+                httpErr = u.getcode()
+
+                # Close the connection to avoid overloading the server
+                self.logs.info('%s/%s - %s bytes from %s' %
+                               (pos, len(self.urlList), totalBytes, url))
+                u.close()
+
+            except ul.URLError as e:
+                if hasattr(e, 'reason'):
+                    self.logs.error('%s - Reason: %s' % (url, e.reason))
+                elif hasattr(e, 'code'):
+                    self.logs.error('The server couldn\'t fulfill the request')
+                    self.logs.error('Error code: %s' % e.code)
+
+                if hasattr(e, 'code'):
+                    httpErr = e.code
+            except Exception as e:
+                self.logs.error('%s' % e)
+
+        raise StopIteration
 
 
 class ResultFile(object):
@@ -116,7 +190,8 @@ class ResultFile(object):
 
         for pos, url in enumerate(self.urlList):
             # Prepare Request
-            self.logs.debug('%s/%s - Connecting %s' % (pos, len(self.urlList), url))
+            self.logs.debug('%s/%s - Connecting %s' % (pos, len(self.urlList),
+                                                       url))
             req = ul.Request(url)
 
             totalBytes = 0
@@ -124,7 +199,8 @@ class ResultFile(object):
             # Connect to the proper FDSN-WS
             try:
                 u = ul.urlopen(req)
-                self.logs.debug('%s/%s - Connected to %s' % (pos, len(self.urlList), url))
+                self.logs.debug('%s/%s - Connected to %s' %
+                                (pos, len(self.urlList), url))
 
                 # Read the data in blocks of predefined size
                 try:
@@ -140,13 +216,13 @@ class ResultFile(object):
                         buffer = u.read(blockSize)
                     except:
                         self.logs.error('Oops!')
-                    self.logs.debug('%s/%s - %s bytes from %s' % 
+                    self.logs.debug('%s/%s - %s bytes from %s' %
                                     (pos, len(self.urlList), totalBytes, url))
 
                 httpErr = u.getcode()
 
                 # Close the connection to avoid overloading the server
-                self.logs.info('%s/%s - %s bytes from %s' % 
+                self.logs.info('%s/%s - %s bytes from %s' %
                                (pos, len(self.urlList), totalBytes, url))
                 u.close()
 
@@ -167,15 +243,16 @@ class ResultFile(object):
                               totalBytes)
                 self.callback(le, self.user)
 
-        #if self.callback is not None:
-        #    self.callback(status, self.user)
+        # if self.callback is not None:
+        #     self.callback(status, self.user)
 
         raise StopIteration
 
 
 class DataSelectQuery(object):
     def __init__(self, logName=None, routesFile='./data/routing.xml',
-                 masterFile='./data/masterTable.xml', configFile='routing.cfg'):
+                 masterFile='./data/masterTable.xml',
+                 configFile='routing.cfg'):
         # Dataselect version
         self.version = '1.1.0'
 
@@ -261,6 +338,110 @@ class DataSelectQuery(object):
                              else None)
         return iterObj
 
+    def makeStationQueryGET(self, parameters):
+        # List all the accepted parameters
+        allowedParams = ['net', 'network',
+                         'sta', 'station',
+                         'loc', 'location',
+                         'cha', 'channel',
+                         'start', 'starttime',
+                         'end', 'endtime',
+                         'format']
+
+        for param in parameters:
+            if param not in allowedParams:
+                # return 'Unknown parameter: %s' % param
+                raise WIClientError('Unknown parameter: %s' % param)
+
+        try:
+            if 'network' in parameters:
+                net = parameters['network'].value.upper()
+            elif 'net' in parameters:
+                net = parameters['net'].value.upper()
+            else:
+                net = '*'
+            net = net.split(',')
+        except:
+            net = ['*']
+
+        try:
+            if 'station' in parameters:
+                sta = parameters['station'].value.upper()
+            elif 'sta' in parameters:
+                sta = parameters['sta'].value.upper()
+            else:
+                sta = '*'
+            sta = sta.split(',')
+        except:
+            sta = ['*']
+
+        try:
+            if 'location' in parameters:
+                loc = parameters['location'].value.upper()
+            elif 'loc' in parameters:
+                loc = parameters['loc'].value.upper()
+            else:
+                loc = '*'
+            loc = loc.split(',')
+        except:
+            loc = ['*']
+
+        try:
+            if 'channel' in parameters:
+                cha = parameters['channel'].value.upper()
+            elif 'cha' in parameters:
+                cha = parameters['cha'].value.upper()
+            else:
+                cha = '*'
+            cha = cha.split(',')
+        except:
+            cha = ['*']
+
+        try:
+            if 'starttime' in parameters:
+                start = datetime.datetime.strptime(
+                    parameters['starttime'].value.upper(),
+                    '%Y-%m-%dT%H:%M:%S')
+            elif 'start' in parameters:
+                start = datetime.datetime.strptime(
+                    parameters['start'].value.upper(),
+                    '%Y-%m-%dT%H:%M:%S')
+            else:
+                start = None
+        except:
+            raise WIClientError('Error while converting starttime parameter.')
+
+        try:
+            if 'endtime' in parameters:
+                endt = datetime.datetime.strptime(
+                    parameters['endtime'].value.upper(),
+                    '%Y-%m-%dT%H:%M:%S')
+            elif 'end' in parameters:
+                endt = datetime.datetime.strptime(
+                    parameters['end'].value.upper(),
+                    '%Y-%m-%dT%H:%M:%S')
+            else:
+                endt = None
+        except:
+            raise WIClientError('Error while converting endtime parameter.')
+
+        urlList = []
+
+        for (n, s, l, c) in lsNSLC(net, sta, loc, cha):
+            try:
+                fdsnws = self.routes.getRoute(n, s, l, c, start, endt,
+                                              'station')
+                urlList.extend(applyFormat(fdsnws, 'get').splitlines())
+
+            except RoutingException:
+                pass
+
+        if not len(urlList):
+            raise WIContentError('No routes have been found!')
+
+        iterObj = ResultStationFile(urlList)
+        return iterObj
+
     def makeQueryGET(self, parameters):
         # List all the accepted parameters
         allowedParams = ['net', 'network',
@@ -273,7 +454,7 @@ class DataSelectQuery(object):
 
         for param in parameters:
             if param not in allowedParams:
-                #return 'Unknown parameter: %s' % param
+                # return 'Unknown parameter: %s' % param
                 raise WIClientError('Unknown parameter: %s' % param)
 
         try:

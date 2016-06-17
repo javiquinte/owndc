@@ -21,7 +21,6 @@
 
 import argparse
 import logging
-import datetime
 import os
 import sys
 try:
@@ -162,17 +161,23 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
         logging.debug("======= GET STARTED =======")
         logging.debug(self.headers)
 
-        if not self.path.startswith('/fdsnws/dataselect/1/'):
-            self.__send_plain(400, 'Bad Request',
-                              'Wrong path. Not FDSN compliant')
-            return
-
         if len(self.path) > 1000:
             self.__send_plain(414, "Request URI too large",
                               "maximum URI length is 1000 characters")
             return
 
-        reqStr = self.path[len('/fdsnws/dataselect/1/'):]
+        preSta = '/fdsnws/station/1/'
+        preDat = '/fdsnws/dataselect/1/'
+
+        service = 'dataselect' if self.path.startswith(preDat) else 'station'
+
+        if (service not in ('dataselect', 'station')):
+            self.__send_plain(400, 'Bad Request',
+                              'Wrong path. Not FDSN compliant')
+            return
+
+        reqStr = self.path[len(preDat):] if service == 'dataselect' \
+            else self.path[len(preSta):]
 
         # Check whether the function called is implemented
         implementedFunctions = ['query', 'application.wadl', 'version']
@@ -180,15 +185,15 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
         fname = reqStr[:reqStr.find('?')] if '?' in reqStr else reqStr
         if fname not in implementedFunctions:
             logging.error('Function %s not implemented' % fname)
-            # return send_plain_response("400 Bad Request",
-            #                            'Function "%s" not implemented.' %
-            #                            fname, start_response)
+            return self.__send_plain_response(400, 'Bad Request',
+                                              'Function "%s" not implemented.'
+                                              % fname)
 
         if fname == 'application.wadl':
             iterObj = ''
             here = os.path.dirname(__file__)
-            with open(os.path.join(here, 'application.wadl'), 'r') \
-                    as appFile:
+            with open(os.path.join(here, 'application-%s.wadl' % service),
+                      'r') as appFile:
                 iterObj = appFile.read()
                 self.__send_xml(200, 'OK', iterObj)
                 return
@@ -217,6 +222,27 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
             dictPar[k] = FakeStorage(v)
 
         logging.info('GET request for %s' % dictPar)
+
+        if service == 'station':
+
+            try:
+                iterObj = self.wi.makeStationQueryGET(dictPar)
+                self.__send_dynamicfile(200, 'OK', iterObj)
+                return
+
+            except WIContentError as w:
+                # print 'I caught a WIContentError condition %s' % dictPar
+                self.__send_plain(204, 'No Content', str(dictPar))
+                return
+
+            except WIError as w:
+                # print 'I ended up at the except condition %s' % dictPar
+                # FIXME all WIError parameters must be reviewed again
+                self.__send_plain(400, 'Bad Request', w.body)
+                return
+
+            self.__send_plain(400, 'Bad Request', str(dictPar))
+            return
 
         try:
             iterObj = self.wi.makeQueryGET(dictPar)
