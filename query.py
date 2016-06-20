@@ -44,22 +44,30 @@ except ImportError:
 
 
 class LogEntry(namedtuple('LogEntry', ['dt', 'code', 'line', 'bytes'])):
+    """Namedtuple representing a particular entry in a log."""
 
     __slots__ = ()
 
     def __str__(self):
+        """String representation of the log entry."""
         return '%s %s %s %s' % self
 
 
 class Accounting(object):
-    """Receive information about all the requests and log it in a file disk
-    or send it per Mail. This class is still being tested and debugged."""
+    """Receive information about requests and log them.
+
+    The output for the log could be a file disk or a mail. This class is still
+    being tested and debugged.
+
+    """
 
     def __init__(self, logName):
+        """Accounting constructor."""
         self.logName = logName
         self.lFD = open(logName, 'a')
 
     def log(self, le, user=None):
+        """Write a LogEntry to ehe specified output."""
         fcntl.flock(self.lFD, fcntl.LOCK_EX)
         self.lFD.write('%s\n' % str(le))
         self.lFD.flush()
@@ -82,10 +90,14 @@ class Accounting(object):
 
 
 class ResultStationFile(object):
-    """Define a class that is an iterable. We can start returning the file
-    before everything was retrieved from the sources."""
+    """Iterator which receives a list of URLs and return the data.
+
+    Define a class that is an iterable. We can start returning the data
+    before everything was retrieved from the sources.
+    """
 
     def __init__(self, urlList):
+        """ResultStationFile constructor."""
         self.urlList = urlList
         self.content_type = 'text/plain'
         now = datetime.datetime.now()
@@ -99,10 +111,7 @@ class ResultStationFile(object):
         self.logs = logging.getLogger('ResultStationFile')
 
     def __iter__(self):
-        """
-        Read a maximum of 25 blocks of 4k (or 200 of 512b) each time.
-        """
-
+        """Return data in chunks."""
         blockSize = 25 * 4096
 
         for pos, url in enumerate(self.urlList):
@@ -112,7 +121,7 @@ class ResultStationFile(object):
             req = ul.Request(url + '&format=text')
 
             totalBytes = 0
-            httpErr = 0
+            # httpErr = 0
             # Connect to the proper FDSN-WS
             try:
                 u = ul.urlopen(req)
@@ -136,7 +145,7 @@ class ResultStationFile(object):
                     self.logs.debug('%s/%s - %s bytes from %s' %
                                     (pos, len(self.urlList), totalBytes, url))
 
-                httpErr = u.getcode()
+                # httpErr = u.getcode()
 
                 # Close the connection to avoid overloading the server
                 self.logs.info('%s/%s - %s bytes from %s' %
@@ -150,8 +159,8 @@ class ResultStationFile(object):
                     self.logs.error('The server couldn\'t fulfill the request')
                     self.logs.error('Error code: %s' % e.code)
 
-                if hasattr(e, 'code'):
-                    httpErr = e.code
+                # if hasattr(e, 'code'):
+                #     httpErr = e.code
             except Exception as e:
                 self.logs.error('%s' % e)
 
@@ -159,10 +168,14 @@ class ResultStationFile(object):
 
 
 class ResultFile(object):
-    """Define a class that is an iterable. We can start returning the file
-    before everything was retrieved from the sources."""
+    """Iterator which receives a list of URLs and return the data.
+
+    Define a class that is an iterable. We can start returning the file
+    before everything was retrieved from the sources.
+    """
 
     def __init__(self, urlList, callback=None, user=None):
+        """ResultFile constructor."""
         self.urlList = urlList
         self.content_type = 'application/vnd.fdsn.mseed'
         now = datetime.datetime.now()
@@ -178,15 +191,16 @@ class ResultFile(object):
         self.user = user
 
     def __iter__(self):
-        """
+        """Return data in chunks.
+
         Read a maximum of 25 blocks of 4k (or 200 of 512b) each time.
         This will allow us to use threads and multiplex records from
         different sources.
-        """
 
+        """
         blockSize = 25 * 4096
 
-        status = ''
+        # status = ''
 
         for pos, url in enumerate(self.urlList):
             # Prepare Request
@@ -250,9 +264,12 @@ class ResultFile(object):
 
 
 class DataSelectQuery(object):
+    """Process the requests received via GET and POST methods."""
+
     def __init__(self, logName=None, routesFile='./data/routing.xml',
                  masterFile='./data/masterTable.xml',
                  configFile='routing.cfg'):
+        """DataSelectQuery constructor."""
         # Dataselect version
         self.version = '1.1.0'
 
@@ -285,7 +302,7 @@ class DataSelectQuery(object):
             self.acc = None
 
     def makeQueryPOST(self, lines):
-
+        """Process the requests for Dataselect received via POST method."""
         urlList = []
         for line in lines.split('\n'):
             # Skip empty lines
@@ -339,6 +356,7 @@ class DataSelectQuery(object):
         return iterObj
 
     def makeStationQueryGET(self, parameters):
+        """Process the requests for the Station-WS received via GET method."""
         # List all the accepted parameters
         allowedParams = ['net', 'network',
                          'sta', 'station',
@@ -443,6 +461,7 @@ class DataSelectQuery(object):
         return iterObj
 
     def makeQueryGET(self, parameters):
+        """Process the requests for Dataselect received via GET method."""
         # List all the accepted parameters
         allowedParams = ['net', 'network',
                          'sta', 'station',
