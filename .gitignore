@@ -7,3 +7,6 @@ doc/_build/
 *.cfg
 *.bck
 *.log
+routing.py
+wsgicomm.py
+utils.py
