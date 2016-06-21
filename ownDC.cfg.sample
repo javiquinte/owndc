@@ -3,13 +3,17 @@
 server = eida.gfz-potsdam.de
 port = 18002
 
+[RoutingService]
+# Routing Service server where the routing information should be downloaded from
+server = http://geofon.gfz-potsdam.de/eidaws/routing/1/
+
 [Service]
 # Time at which the routing and inventory information must be updated
 # updateTime = 01:00 02:00 03:00
 updateTime = 03:00
+ArclinkBased = false
 # Verbosity of the logging system
 # Possible values are:
 # CRITICAL, ERROR, WARNING, INFO, DEBUG
 verbosity = INFO
 allowoverlap = false
-
