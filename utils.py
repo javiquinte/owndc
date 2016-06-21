@@ -29,7 +29,10 @@
 import os
 import datetime
 import fnmatch
+import telnetlib
 import xml.etree.cElementTree as ET
+import glob
+from time import sleep
 from collections import namedtuple
 # from operator import add
 from operator import itemgetter
@@ -402,9 +405,6 @@ def addRemote(fileName, url):
     except:
         raise Exception('Could not create the final version of %s.xml' %
                         os.path.basename(fileName))
-
-# :synopsis: Extend a list to group automatically by datacenter the information
-#        from many requests
 
 
 class RequestMerge(list):
@@ -934,6 +934,96 @@ class RoutingCache(object):
         """
         with open(self.routingFile) as f:
             return f.read()
+
+    def configArclink(self):
+        """Connects via telnet to an Arclink server to get routing information.
+The address and port of the server are read from the configuration file.
+The data is saved in the file ``routing.xml``. Generally used to start
+operating with an EIDA default configuration.
+
+.. deprecated:: 1.1
+
+    This method should not be used and the configuration should be independent
+    from Arclink. Namely, the ``routing.xml`` file must exist in advance.
+
+        """
+
+        # Functionality moved away from this module. Check updateAll.py.
+
+        return
+        # Check Arclink server that must be contacted to get a routing table
+        config = configparser.RawConfigParser()
+        msg = 'Method configArclink is deprecated and should NOT be used!'
+        self.logs.warning(msg)
+
+        here = os.path.dirname(__file__)
+        config.read(os.path.join(here, self.config))
+        arcServ = config.get('Arclink', 'server')
+        arcPort = config.getint('Arclink', 'port')
+
+        tn = telnetlib.Telnet(arcServ, arcPort)
+        tn.write('HELLO\n')
+        # FIXME The institution should be detected here. Shouldn't it?
+        self.logs.info(tn.read_until('GFZ', 5))
+        tn.write('user routing@eida\n')
+        self.logs.debug(tn.read_until('OK', 5))
+        tn.write('request routing\n')
+        self.logs.debug(tn.read_until('OK', 5))
+        tn.write('1920,1,1,0,0,0 2030,1,1,0,0,0 * * * *\nEND\n')
+
+        reqID = 0
+        while not reqID:
+            text = tn.read_until('\n', 5).splitlines()
+            for line in text:
+                try:
+                    testReqID = int(line)
+                except:
+                    continue
+                if testReqID:
+                    reqID = testReqID
+
+        myStatus = 'UNSET'
+        while (myStatus in ('UNSET', 'PROCESSING')):
+            sleep(1)
+            tn.write('status %s\n' % reqID)
+            stText = tn.read_until('END', 5)
+
+            stStr = 'status='
+            myStatus = stText[stText.find(stStr) + len(stStr):].split()[0]
+            myStatus = myStatus.replace('"', '').replace("'", "")
+            self.logs.debug(myStatus + '\n')
+
+        if myStatus != 'OK':
+            self.logs.error('Error! Request status is not OK.\n')
+            return
+
+        tn.write('download %s\n' % reqID)
+        routTable = tn.read_until('END', 5)
+        start = routTable.find('<')
+        self.logs.info('Length: %s\n' % routTable[:start])
+
+        here = os.path.dirname(__file__)
+        try:
+            os.remove(os.path.join(here, 'routing.xml.download'))
+        except:
+            pass
+
+        with open(os.path.join(here, 'routing.xml.download'), 'w') as fout:
+            fout.write(routTable[routTable.find('<'):-3])
+
+        try:
+            os.rename(os.path.join(here, './routing.xml'),
+                      os.path.join(here, './routing.xml.bck'))
+        except:
+            pass
+
+        try:
+            os.rename(os.path.join(here, './routing.xml.download'),
+                      os.path.join(here, './routing.xml'))
+        except:
+            pass
+
+        self.logs.info('Configuration read from Arclink!\n')
 
     def __arc2DS(self, route):
         """Map from an Arclink address to a Dataselect one.

@@ -26,14 +26,14 @@ Requirements
 ------------
 
  * Python 2.7
-   
+
 .. _download:
 
 Download
 --------
 
 OwnDC can be downloaded from its Github repository at https://github.com/javiquinte/owndc.
-[Eventually it may be also included in the SeisComP3 distribution.] 
+[Eventually it may be also included in the SeisComP3 distribution.]
 
 To clone the repository, you only need to use a *git* client. ::
 
@@ -212,9 +212,9 @@ functionality. ::
   $ ./ownDC-cli.py -h
   usage: ownDC-cli.py [-h] [-c CONFIG] [-p POST_FILE] [-o OUTPUT] [-r RETRIES]
                       [-s SECONDS | -m MINUTES] [-v]
-  
+
   Client to download waveforms from different datacentres via FDSN-WS
-  
+
   optional arguments:
     -h, --help            show this help message and exit
     -c CONFIG, --config CONFIG
@@ -330,4 +330,3 @@ ToDo List
 =========
 
 .. todolist::
-

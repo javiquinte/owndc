@@ -24,6 +24,50 @@
 import sys
 
 
+class Logs(object):
+    """
+:synopsis: Given a log level and a stream, it redirects the output to the
+           proper destination
+:platform: Linux
+
+"""
+
+    def __init__(self, level=2, outstr=sys.stdout):
+        self.setLevel(level)
+        self.outstr = outstr
+
+    def setLevel(self, level):
+        """Set the level of the log
+
+:param level: Log level (1: Error, 2: Warning, 3: Info, 4: Debug)
+:type level: int
+
+        """
+
+        # Remap the functions in agreement with the output level
+        # Default values are the following
+        self.error = self.__pass
+        self.warning = self.__pass
+        self.info = self.__pass
+        self.debug = self.__pass
+
+        if level >= 1:
+            self.error = self.__write
+        if level >= 2:
+            self.warning = self.__write
+        if level >= 3:
+            self.info = self.__write
+        if level >= 4:
+            self.debug = self.__write
+
+    def __write(self, msg):
+        self.outstr.write(msg)
+        self.outstr.flush()
+
+    def __pass(self, msg):
+        pass
+
+
 ##################################################################
 #
 # Exceptions to be caught (usually) by the application handler

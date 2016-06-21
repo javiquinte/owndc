@@ -48,37 +48,44 @@ except ImportError:
 version = '0.9a2'
 
 
-# Wrap parsed values in the GET method with this class to mimic FieldStorage
-# syntax and be compatible with underlying classes, which use ".value"
 class FakeStorage(dict):
+    """Mimic FieldStorage syntax to be compatible with other classes.
+
+    Wrap parsed values in the GET method with this class to mimic FieldStorage
+    syntax and be compatible with underlying classes, which use ".value"
+    """
+
     def __init__(self, s=None):
+        """FakeStorage constructor."""
         self.value = s
 
     def getvalue(self, k):
+        """Get value."""
         return self[k]
 
     def __str__(self):
+        """String representation of the value."""
         return str(self.value)
 
     def __repr__(self):
+        """String representation of the value."""
         return str(self.value)
 
 
 # Implement the web server
 class ServerHandler(htserv.SimpleHTTPRequestHandler):
-    """
-:synopsis: Implements the methods to handle the Dataselect requests via
-           GET and POST.
-:platform: Linux
+    """Handle the Dataselect requests via GET and POST.
+
+    :platform: Linux
     """
 
     def log_message(self, format, *args):
-        # This is important to "mute" the logging messages alla Apache
+        """Mute the logging messages alla Apache."""
         pass
 
     def __send_plain(self, code, error, msg):
-        """
-        :synopsis: Sends a plain response in HTTP style
+        """Send a plain response in HTTP style.
+
         :platform: Linux
 
         """
@@ -91,8 +98,8 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
         return
 
     def __send_xml(self, code, error, msg):
-        """
-        :synopsis: Sends an XML response in HTTP style
+        """Send an XML response in HTTP style.
+
         :platform: Linux
 
         """
@@ -105,12 +112,11 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
         return
 
     def __send_dynamicfile(self, code, msg, iterFile):
-        """
-:synopsis: Sends a file or similar object. iterFile is expected to have the
-           following attributes: filename and content_type.
+        """Send a file or similar object.
+
+        iterFile is expected to have the attributes: filename and content_type.
 
         """
-
         # Cycle through the iterator in order to retrieve one chunck at a time
         loop = 0
 
@@ -153,8 +159,8 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
         return
 
     def do_GET(self):
-        """
-        :synopsis: Handle a GET request. Input data is read from self.path.
+        """Handle a GET request. Input data is read from self.path.
+
         :platform: Linux
 
         """
@@ -264,9 +270,10 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
         return
 
     def do_POST(self):
-        """
-        :synopsis: Handle a POST request. Input data is read from self.rfile
-                   and output is written to self.wfile.
+        """Handle a POST request.
+
+        Input data is read from self.rfile and output is written to self.wfile.
+
         :platform: Linux
 
         """
@@ -299,6 +306,7 @@ class ServerHandler(htserv.SimpleHTTPRequestHandler):
 
 
 def main():
+    """Main function defining the parameters and switsches for the programm."""
     parser = argparse.ArgumentParser()
     parser.add_argument('-H', '--host',
                         help='Address where this server listens.',
