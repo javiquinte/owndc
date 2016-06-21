@@ -13,15 +13,13 @@ from routing import RequestMerge
 
 
 class RouteCacheTests(unittest.TestCase):
-    """Test the functionality of routing.py
-
-    """
+    """Test the functionality of routing.py."""
 
     numTestsRun = 0
 
     @classmethod
     def setUp(cls):
-        "Setting up test"
+        """Set up test."""
         cls.numTestsRun += 1
         if hasattr(cls, 'rc'):
             return
@@ -30,14 +28,12 @@ class RouteCacheTests(unittest.TestCase):
 
     @classmethod
     def tearDown(cls):
-        "Removing cache and log files"
+        """Remove cache and log files."""
         if cls.numTestsRun == 7:
             os.remove('./ownDC-test-routes.xml.bin')
 
-
     def testDS_GE(self):
-        "route for GE.*.*.*"
-
+        """route for GE.*.*.*."""
         expURL = 'http://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query'
         result = self.rc.getRoute('GE')
         self.assertIsInstance(result, RequestMerge,
@@ -50,8 +46,7 @@ class RouteCacheTests(unittest.TestCase):
                          'Wrong service name!')
 
     def testDS_GE_RO(self):
-        "route for GE,RO.*.*.*"
-
+        """route for GE,RO.*.*.*."""
         expURL_GE = 'http://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query'
         expURL_RO = 'http://eida-sc3.infp.ro/fdsnws/dataselect/1/query'
 
@@ -71,8 +66,7 @@ class RouteCacheTests(unittest.TestCase):
                          'Wrong service name!')
 
     def testDS_GE_APE(self):
-        "route for GE.APE.*.*"
-
+        """route for GE.APE.*.*."""
         expURL = 'http://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query'
         result = self.rc.getRoute('GE', 'APE')
         self.assertIsInstance(result, RequestMerge,
@@ -85,8 +79,7 @@ class RouteCacheTests(unittest.TestCase):
                          'Wrong service name!')
 
     def testDS_CH_LIENZ_HHZ(self):
-        "route for CH.LIENZ.*.HHZ"
-
+        """route for CH.LIENZ.*.HHZ."""
         expURL = 'http://eida.ethz.ch/fdsnws/dataselect/1/query'
         result = self.rc.getRoute('CH', 'LIENZ', '*', 'HHZ')
         self.assertIsInstance(result, RequestMerge,
@@ -99,8 +92,7 @@ class RouteCacheTests(unittest.TestCase):
                          'Wrong service name!')
 
     def testDS_CH_LIENZ_BHZ(self):
-        "route for CH.LIENZ.*.BHZ"
-
+        """route for CH.LIENZ.*.BHZ."""
         expURL = 'http://www.orfeus-eu.org/fdsnws/dataselect/1/query'
         result = self.rc.getRoute('CH', 'LIENZ', '*', 'BHZ')
         self.assertIsInstance(result, RequestMerge,
@@ -113,8 +105,7 @@ class RouteCacheTests(unittest.TestCase):
                          'Wrong service name!')
 
     def testDS_CH_LIENZ_qHZ(self):
-        "route for CH.LIENZ.*.?HZ"
-
+        """route for CH.LIENZ.*.?HZ."""
         odcURL = 'http://www.orfeus-eu.org/fdsnws/dataselect/1/query'
         ethURL = 'http://eida.ethz.ch/fdsnws/dataselect/1/query'
         result = self.rc.getRoute('CH', 'LIENZ', '*', '?HZ')
@@ -154,8 +145,7 @@ class RouteCacheTests(unittest.TestCase):
                                  'None of the URLs belong to Orfeus or ETH!')
 
     def testDS_RO_BZS_BHZ(self):
-        "route for RO.BZS.*.BHZ"
-
+        """route for RO.BZS.*.BHZ."""
         expURL = 'http://eida-sc3.infp.ro/fdsnws/dataselect/1/query'
         result = self.rc.getRoute('RO', 'BZS', '*', 'BHZ')
         self.assertIsInstance(result, RequestMerge,
@@ -170,6 +160,7 @@ class RouteCacheTests(unittest.TestCase):
 
 # ----------------------------------------------------------------------
 def usage():
+    """Print the usage/help string."""
     print 'testRoute [-h] [-p]'
 
 

@@ -2,29 +2,28 @@
 
 import sys
 import os
+import unittest
+# import urllib2
+# from difflib import Differ
 
 here = os.path.dirname(__file__)
 sys.path.append(os.path.join(here, '..'))
 
-import unittest
-import urllib2
 from unittestTools import WITestRunner
-from difflib import Differ
 from ownDC import FakeStorage
 from query import DataSelectQuery
 from wsgicomm import WIClientError
 from wsgicomm import WIContentError
 
-class OwnDCTests(unittest.TestCase):
-    """Test the functionality of ownDC.py
 
-    """
+class OwnDCTests(unittest.TestCase):
+    """Test the functionality of ownDC.py."""
 
     numTestsRun = 0
 
     @classmethod
     def setUp(cls):
-        "Setting up test"
+        """Setting up test."""
         cls.host = host
         cls.numTestsRun += 1
         if hasattr(cls, 'ds'):
@@ -36,14 +35,13 @@ class OwnDCTests(unittest.TestCase):
 
     @classmethod
     def tearDown(cls):
-        "Removing cache and log files"
+        """Removing cache and log files."""
         if cls.numTestsRun == 4:
             os.remove('./ownDC-test.log')
             os.remove('./ownDC-test-routes.xml.bin')
 
     def testDS_GE(self):
-        "Dataselect GE.APE.*.*"
-
+        """Dataselect GE.APE.*.*."""
         params = dict()
         params['net'] = FakeStorage('GE')
         params['sta'] = FakeStorage('APE')
@@ -61,8 +59,7 @@ class OwnDCTests(unittest.TestCase):
         self.assertEqual(lenData, expLen, msg % (expLen, lenData))
 
     def testDS_RO_POST(self):
-        "Dataselect via POST method with RO.ARR,VOIR.--.BHZ"
-
+        """Dataselect via POST method with RO.ARR,VOIR.--.BHZ."""
         postReq = """RO ARR -- BHZ 2015-03-07T14:39:36.0000 2015-03-07T15:09:36.0000
 RO VOIR -- BHZ 2015-07-07T14:48:47.0000 2015-07-07T15:18:47.0000"""
 
@@ -77,8 +74,7 @@ RO VOIR -- BHZ 2015-07-07T14:48:47.0000 2015-07-07T15:18:47.0000"""
         self.assertEqual(lenData, expLen, msg % (expLen, lenData))
 
     def testDS_XX(self):
-        "Unknown network XX"
-
+        """Unknown network XX."""
         params = dict()
         params['net'] = FakeStorage('XX')
         params['start'] = FakeStorage('2008-01-01T00:01:00')
@@ -87,8 +83,7 @@ RO VOIR -- BHZ 2015-07-07T14:48:47.0000 2015-07-07T15:18:47.0000"""
         self.assertRaises(WIContentError, self.ds.makeQueryGET, params)
 
     def testDS_wrongStart(self):
-        "wrong starttime"
-
+        """wrong starttime."""
         params = dict()
         params['net'] = FakeStorage('XX')
         params['start'] = FakeStorage('9999-99-99T99:99:99')
@@ -97,8 +92,7 @@ RO VOIR -- BHZ 2015-07-07T14:48:47.0000 2015-07-07T15:18:47.0000"""
         self.assertRaises(WIClientError, self.ds.makeQueryGET, params)
 
     def testDS_wrongEnd(self):
-        "wrong endtime"
-
+        """wrong endtime."""
         params = dict()
         params['net'] = FakeStorage('XX')
         params['start'] = FakeStorage('2008-01-01T00:01:15')
@@ -107,8 +101,7 @@ RO VOIR -- BHZ 2015-07-07T14:48:47.0000 2015-07-07T15:18:47.0000"""
         self.assertRaises(WIClientError, self.ds.makeQueryGET, params)
 
     def testDS_unknownparam(self):
-        "Unknown parameter"
-
+        """Unknown parameter."""
         params = dict()
         params['unknown'] = FakeStorage('unknown')
         params['start'] = FakeStorage('2008-01-01T00:01:00')
@@ -116,8 +109,9 @@ RO VOIR -- BHZ 2015-07-07T14:48:47.0000 2015-07-07T15:18:47.0000"""
 
         self.assertRaises(WIClientError, self.ds.makeQueryGET, params)
 
-# ----------------------------------------------------------------------
+
 def usage():
+    """Print a usage/help message."""
     print 'testDataselect [-h] [-p]'
 
 global host

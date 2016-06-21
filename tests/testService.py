@@ -5,25 +5,22 @@ import datetime
 import unittest
 import urllib2
 from unittestTools import WITestRunner
-from difflib import Differ
+# from difflib import Differ
 from xml.dom.minidom import parseString
 
 
 class OwnDCTests(unittest.TestCase):
-    """Test the functionality of ownDC.py
-
-    """
+    """Test the functionality of ownDC.py."""
 
     @classmethod
     def setUp(cls):
-        "Setting up test"
+        """Setting up test."""
         cls.host = host
 
     def test_long_URI(self):
-        "very large URI"
-
-        msg = 'A URI of more than 2000 characters is not allowed and should ' +\
-            'return a 414 erro code'
+        """very large URI."""
+        msg = 'A URI of more than 2000 characters is not allowed and ' + \
+            'should return a 414 erro code'
         req = urllib2.Request('%s?net=GE%s' % (self.host, '&net=GE' * 500))
         try:
             u = urllib2.urlopen(req)
@@ -36,8 +33,7 @@ class OwnDCTests(unittest.TestCase):
         return
 
     def test_wrong_parameter(self):
-        "unknown parameter"
-
+        """unknown parameter."""
         msg = 'An error code 400 Bad Request is expected for an unknown ' + \
             'parameter'
         req = urllib2.Request('%s?net=GE&wrongparam=1' % self.host)
@@ -52,9 +48,9 @@ class OwnDCTests(unittest.TestCase):
         return
 
     def testDS_XX(self):
-        "non-existing network XX"
-
-        req = urllib2.Request('%s?net=XX&end=2008-01-01T00:01:15&start=2008-01-01T00:01:00' % self.host)
+        """non-existing network XX."""
+        reqStr = '%s?net=XX&end=2008-01-01T00:01:15&start=2008-01-01T00:01:00'
+        req = urllib2.Request(reqStr % self.host)
         msg = 'An error code 204 No Content is expected for an unknown network'
         try:
             u = urllib2.urlopen(req)
@@ -77,8 +73,7 @@ class OwnDCTests(unittest.TestCase):
         return
 
     def test_wrong_datetime(self):
-        "swap start and end time"
-
+        """swap start and end time."""
         d1 = datetime.datetime(2004, 1, 1)
         d2 = d1 - datetime.timedelta(days=1)
         req = urllib2.Request('%s?net=GE&start=%s&end=%s' % (self.host,
@@ -96,8 +91,7 @@ class OwnDCTests(unittest.TestCase):
         return
 
     def test_application_wadl(self):
-        "the 'application.wadl' method"
-
+        """the 'application.wadl' method."""
         if self.host.endswith('query'):
             appmethod = '%sapplication.wadl' % self.host[:-len('query')]
         else:
@@ -117,15 +111,14 @@ class OwnDCTests(unittest.TestCase):
         self.assertIn('<', buffer, msg)
 
         # Check that the returned value is a valid xml file
-        msg = 'Error "application.wadl" method does not return a valid xml file'
+        msg = 'Error! Application.wadl method does not return a valid xml file'
         try:
             parseString(buffer)
         except:
             self.assertTrue(False, msg)
 
     def test_version(self):
-        "the 'version' method"
-
+        """the 'version' method."""
         if self.host.endswith('query'):
             vermethod = '%sversion' % self.host[:-len('query')]
         else:
@@ -150,9 +143,12 @@ class OwnDCTests(unittest.TestCase):
             self.assertEqual(1, 0, msg)
 
     def testDS_GE(self):
-        "Dataselect for GE.APE.*.*"
-
-        qry = 'net=GE&sta=APE&starttime=2008-01-01T00:01:00&end=2008-01-01T00:01:15'
+        """Dataselect for GE.APE.*.*."""
+        net = 'GE'
+        sta = 'APE'
+        startt = '2008-01-01T00:01:00'
+        endt = '2008-01-01T00:01:15'
+        qry = 'net=%s&sta=%s&starttime=%s&end=%s' % (net, sta, startt, endt)
         req = urllib2.Request('%s?%s' % (self.host, qry))
         try:
             u = urllib2.urlopen(req)
@@ -166,8 +162,7 @@ class OwnDCTests(unittest.TestCase):
         self.assertEqual(len(buffer), expLen, msg % (expLen, len(buffer)))
 
     def testDS_RO_POST(self):
-        "Dataselect for RO.ARR,VOIR.--.BHZ"
-
+        """Dataselect for RO.ARR,VOIR.--.BHZ."""
         postReq = """RO ARR -- BHZ 2015-03-07T14:39:36.0000 2015-03-07T15:09:36.0000
 RO VOIR -- BHZ 2015-07-07T14:48:47.0000 2015-07-07T15:18:47.0000"""
 
@@ -183,8 +178,9 @@ RO VOIR -- BHZ 2015-07-07T14:48:47.0000 2015-07-07T15:18:47.0000"""
         msg = 'Error in size of response! Expected: %d ; Obtained: %d'
         self.assertEqual(len(buffer), expLen, msg % (expLen, len(buffer)))
 
-# ----------------------------------------------------------------------
+
 def usage():
+    """Print the usage/help message."""
     print 'testService [-h] [-p]\ntestService [-u http://server/path]'
 
 global host
