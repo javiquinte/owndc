@@ -17,7 +17,6 @@ Roadmap and things to do
 
  #. Transfer repository to GEOFON Organization
  #. Add to the SeisComP3 Github repository
- #. Add the Station WS also
 
 Installation
 ============
@@ -25,7 +24,8 @@ Installation
 Requirements
 ------------
 
- * Python 2.7
+ * *Python 2.7* for the normal usage.
+ * *Sphinx* for the generation of the documentation.
 
 .. _download:
 
@@ -43,6 +43,19 @@ Then, change to the ``owndc`` directory and follow the instructions in the
 next section to properly configure it. ::
 
   $ cd owndc
+
+Once in the root directory you should get also the rest of the software that is
+not part of OwnDC. Namely, the Routing Service. ::
+
+  $ git submodule init
+  $ git submodule update
+
+Then, the python files from the Routing Service should be reachable in the root
+directory and need to be linked. ::
+
+  $ ln -s ./routing/routing.py routing.py
+  $ ln -s ./routing/utils.py utils.py
+  $ ln -s ./routing/wsgicomm.py wsgicomm.py
 
 Configuration
 -------------
@@ -114,7 +127,7 @@ Routing Service code and later edited. ::
              more specific distribution of data to levels deeper than the
              network are usually not known.
 
-In the following example, we show how to point to the service in IRIS, when
+In the following example, we show how to point to the services in IRIS, when
 the ``II`` network is requested.
 
 .. code-block:: xml
@@ -122,6 +135,8 @@ the ``II`` network is requested.
     <?xml version="1.0" encoding="utf-8"?>
     <ns0:routing xmlns:ns0="http://geofon.gfz-potsdam.de/ns/Routing/1.0/">
         <ns0:route locationCode="" networkCode="II" stationCode="" streamCode="">
+            <ns0:station address="service.iris.edu/fdsnws/station/1/query"
+                end="" priority="9" start="1980-01-01T00:00:00.0000Z" />
             <ns0:dataselect address="service.iris.edu/fdsnws/dataselect/1/query"
                 end="" priority="9" start="1980-01-01T00:00:00.0000Z" />
         </ns0:route>
@@ -150,10 +165,10 @@ Test the Routing Service interface
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The first test you should run is the one testing the **Routing Service**
-interface. Its main purpose is to create an instance of the `RoutingCache`
-class, load the configuration provided with this set of tests and check that
-the proper routes are returned. A typical output of the test looks like the
-following: ::
+interface at the Python level. Its main purpose is to create an instance of the
+`RoutingCache` class, load the configuration provided with this set of tests and
+check that the proper routes are returned. A typical output of the test looks
+like the following: ::
 
   $ cd tests
   $ ./testRoute.py
@@ -197,6 +212,49 @@ last test in a console ::
   Running test...
   Checking Dataselect for GE.APE.*.*... [OK]
   Checking Dataselect for RO.ARR,VOIR.--.BHZ... [OK]
+
+OwnDC usage
+===========
+
+Once OwnDC was properly deployed, you can run it in the following way: ::
+
+  $ ./owndc.py
+
+The programm will print some lines about the configuration file used, the routes
+loaded and one final line saying that is ready to answer requests.
+
+OwnDC is basically an HTTP server that listens on port 4000 to any requests
+which are complaint with the Dataselect and the Station-WS. The programm
+consists of 2 well defined parts:
+
+ #. An internal Routing Service
+ #. An FDSN dataselect and Station-WS.
+
+The internal Routing Service are python classes that read during the
+setup/configuration phase how data are distributed between different data
+centers. This information will usually come from an external Routing Service,
+whose URL can be setup in the OwnDC configuration file. After reading these
+data, the location of the different (data) services requested by the user will
+be served from the local cache and no external communication is needed for this.
+
+OwnDC's API can be divided in two parts:
+
+ #. The Dataselect API, which is 100% complaint to the FDSN specification.
+ #. The Station-WS API, which is only compatible with the _text mode_ of the
+    Station-WS according to the FDSN specifications (`format=text`).
+
+.. warning:: All the information delivered by OwnDC will be retrieved in real
+             time from the data center hosting these data according with the
+             information available at the local Routing Service instance. The
+             user will receive the data as it had been hosted at one data
+             center, what it makes it very convenient to query multiple data
+             centers at the same time without worrying to merge different
+             datasets.
+
+The user will be able to query via HTTP their local machine at the port 4000 as
+it was a real data center. As the interface is FDSN compliant you can point all
+any client supporting Dataselect and Station-WS to your IP and port 4000 in
+order to get data from all the data centers included in the configuration.
 
 OwnDC client
 ============
