@@ -57,6 +57,9 @@ directory and need to be linked. ::
   $ ln -s ./routing/utils.py utils.py
   $ ln -s ./routing/wsgicomm.py wsgicomm.py
 
+And now that the installation is finished, you can proceed with the
+configuration of the system in the next section.
+
 Configuration
 -------------
 
@@ -240,7 +243,7 @@ be served from the local cache and no external communication is needed for this.
 OwnDC's API can be divided in two parts:
 
  #. The Dataselect API, which is 100% complaint to the FDSN specification.
- #. The Station-WS API, which is only compatible with the _text mode_ of the
+ #. The Station-WS API, which is only compatible with the *text mode* of the
     Station-WS according to the FDSN specifications (`format=text`).
 
 .. warning:: All the information delivered by OwnDC will be retrieved in real
