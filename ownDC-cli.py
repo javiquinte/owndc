@@ -6,7 +6,7 @@ from urlparse import urlparse
 from urlparse import parse_qs
 from time import sleep
 import logging
-from query import DataSelectQuery
+from query import FDSNWSQuery
 from version import get_git_version
 
 
@@ -82,7 +82,7 @@ class SummarizedRun(dict):
         return '%s %s %s %s %s %s' % (net, sta, loc, cha, startt, endt)
 
     def log(self, le, *args, **kwargs):
-        
+
         try:
             # Append another log item to the proper request line
             self[self.__url2nslc(le.line)].append((le.dt, self.__code2desc(le.code), le.bytes))
@@ -114,7 +114,7 @@ def main():
                         help='Increase the verbosity level')
     parser.add_argument('--version', action='version', version='ownDC-cli %s ' % get_git_version())
     args = parser.parse_args()
-    
+
     # Read the streams and timewindows to download
     if args.post_file is not None:
         fh = open(args.post_file, 'r')
@@ -124,9 +124,8 @@ def main():
     lines = fh.read()
     summary = SummarizedRun()
 
-    ds = DataSelectQuery(summary,
-                         routesFile='data/ownDC-routes.xml',
-                         configFile=args.config)
+    ds = FDSNWSQuery(summary, routesFile='data/ownDC-routes.xml',
+                     configFile=args.config)
 
     outwav = open('%s.mseed' % args.output, 'wb')
 
@@ -137,7 +136,7 @@ def main():
         print '\n\nAttempt Nr. %d of %d' % (attempt+1, args.retries+1)
 
         iterObj = ds.makeQueryPOST(lines)
-        
+
         for chunk in iterObj:
             outwav.write(chunk)
             print '.',
@@ -164,12 +163,12 @@ def main():
             sleep(args.minutes * 60)
         else:
             seconds = 2 if args.seconds is None else args.seconds
-            
+
             print 'Waiting %d seconds to retry again...' % seconds
             sleep(seconds)
 
     outwav.close()
-    
+
     # FIXME I should decide here a nice format for the output
     # and also if it should be to stdout, a file or a port
     with open('%s.log' % args.output, 'w') as outlog:

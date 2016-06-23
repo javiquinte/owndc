@@ -28,7 +28,7 @@ try:
 except ImportError:
     import ConfigParser as configparser
 
-from query import DataSelectQuery
+from query import FDSNWSQuery
 from wsgicomm import WIError
 from wsgicomm import WIContentError
 from version import get_git_version
@@ -341,9 +341,9 @@ def main():
         sys.exit(-1)
 
     # Create the object that will resolve and execute all the queries
-    loclog.info('Creating a DataSelectQuery object. Wait...')
-    ServerHandler.wi = DataSelectQuery('ownDC.log', './data/ownDC-routes.xml',
-                                       configFile=args.config)
+    loclog.info('Creating a FDSNWSQuery object. Wait...')
+    ServerHandler.wi = FDSNWSQuery('ownDC.log', './data/ownDC-routes.xml',
+                                   configFile=args.config)
     loclog.info('Ready to answer queries!')
 
     Handler = ServerHandler

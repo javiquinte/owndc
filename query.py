@@ -263,18 +263,18 @@ class ResultFile(object):
         raise StopIteration
 
 
-class DataSelectQuery(object):
+class FDSNWSQuery(object):
     """Process the requests received via GET and POST methods."""
 
     def __init__(self, logName=None, routesFile='./data/routing.xml',
                  masterFile='./data/masterTable.xml',
                  configFile='routing.cfg'):
-        """DataSelectQuery constructor."""
-        # Dataselect version
+        """FDSNWSQuery constructor."""
+        # FDSNWSQuery version
         self.version = '1.1.0'
 
         # set up logging
-        self.logs = logging.getLogger('DataSelectQuery')
+        self.logs = logging.getLogger('FDSNWSQuery')
         logging.basicConfig()
 
         # Read the verbosity setting
