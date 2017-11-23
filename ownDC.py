@@ -329,6 +329,22 @@ class Application(object):
 #                 (host, port))
 #     httpd.serve_forever()
 
+server_config = {
+    'global': {
+        'tools.proxy.on': True,
+        'tools.trailing_slash.on': False,
+        'server.socket_host': '127.0.0.1',
+        'server.socket_port': 7000,
+        'engine.autoreload_on': False
+    }
+}
+# Update the global CherryPy configuration
+cherrypy.config.update(server_config)
+cherrypy.tree.mount(Application(), '/fdsnws/dataselect/1')
+
 if __name__ == '__main__':
-    config = {'/': {'tools.trailing_slash.on': False}}
-    cherrypy.quickstart(Application(), script_name='/fdsnws/dataselect/1', config=config)
+    cherrypy.engine.signals.subscribe()
+    cherrypy.engine.start()
+    cherrypy.engine.block()
+    # config = {'/': {'tools.trailing_slash.on': False}}
+    # cherrypy.quickstart(Application(), script_name='/', config=config)
