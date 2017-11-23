@@ -20,19 +20,21 @@
 .. moduleauthor:: Javier Quinteros <javier@gfz-potsdam.de>, GEOFON, GFZ Potsdam
 """
 
+import sys
 import datetime
 import logging
 import urllib.request as ul
 import configparser
-from routing.routeutils.wsgicomm import WIClientError
-from routing.routeutils.wsgicomm import WIContentError
-from routing.routeutils.utils import Stream
-from routing.routeutils.utils import TW
-from routing.routeutils.utils import RoutingCache
-from routing.routeutils.utils import RoutingException
-from routing.routeutils.routing import applyFormat
-from routing.routeutils.routing import lsNSLC
-from routing.routeutils.utils import str2date
+sys.path.add('./routing')
+from routeutils.wsgicomm import WIClientError
+from routeutils.wsgicomm import WIContentError
+from routeutils.utils import Stream
+from routeutils.utils import TW
+from routeutils.utils import RoutingCache
+from routeutils.utils import RoutingException
+from routeutils.routing import applyFormat
+from routeutils.routing import lsNSLC
+from routeutils.utils import str2date
 
 
 class ResultFile(object):

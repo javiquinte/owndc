@@ -27,8 +27,10 @@ import sys
 import configparser
 
 from query import DataSelectQuery
-from routing.routeutils.wsgicomm import WIError
 from version import get_git_version
+
+sys.path.add('./routing')
+from routeutils.wsgicomm import WIError
 
 # Version of this software
 version = '0.9a2'
