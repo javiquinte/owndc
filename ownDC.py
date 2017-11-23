@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/python
 # ownDC: An FDSN Virtual Datacentre for SC3
 #
 # (c) 2015-2017 Javier Quinteros, GEOFON team
@@ -19,17 +19,21 @@
 .. moduleauthor:: Javier Quinteros <javier@gfz-potsdam.de>, GEOFON, GFZ Potsdam
 """
 
+import os
+import sys
 import cherrypy
 import argparse
 import logging
-import os
-import sys
-import configparser
+try:
+    import configparser
+except Exception as e:
+    print e
+    import ConfigParser as configparser
 
 from query import DataSelectQuery
 from version import get_git_version
 
-sys.path.add('./routing')
+sys.path.append('./routing')
 from routeutils.wsgicomm import WIError
 
 # Version of this software

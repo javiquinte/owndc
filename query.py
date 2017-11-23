@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python
 #
 # OwnDC - An FDSN-WS compliant Virtual Datacentre prototype
 #
@@ -23,9 +23,14 @@
 import sys
 import datetime
 import logging
-import urllib.request as ul
-import configparser
-sys.path.add('./routing')
+import urllib as ul
+
+try:
+    import configparser
+except:
+    import ConfigParser as configparser
+
+sys.path.append('./routing')
 from routeutils.wsgicomm import WIClientError
 from routeutils.wsgicomm import WIContentError
 from routeutils.utils import Stream
