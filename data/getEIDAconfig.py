@@ -19,10 +19,10 @@ except ImportError:
 
 sys.path.append('..')
 
-from utils import addRemote
-from utils import addRoutes
-from utils import Route
-from utils import RoutingCache
+from routing.routeutils.utils import addRemote
+from routing.routeutils.utils import addRoutes
+from routing.routeutils.utils import Route
+from routing.routeutils.utils import RoutingCache
 import logging
 
 """
