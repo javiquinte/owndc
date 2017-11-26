@@ -38,7 +38,7 @@ version = '0.9a2'
 # Dataselect version of this software
 dsversion = '1.1.0'
 
-dsq = DataSelectQuery('./data/ownDC-routes.xml', configFile=args.config)
+dsq = DataSelectQuery('./data/ownDC-routes.xml', './data/masterTable.xml', 'ownDC.cfg')
 
 # Wrap parsed values in the GET method with this class to mimic FieldStorage
 # syntax and be compatible with underlying classes, which use ".value"
