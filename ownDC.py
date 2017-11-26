@@ -24,11 +24,7 @@ import sys
 import cherrypy
 import argparse
 import logging
-try:
-    import configparser
-except Exception as e:
-    print e
-    import ConfigParser as configparser
+import ConfigParser as configparser
 
 from query import DataSelectQuery
 from version import get_git_version
