@@ -5,6 +5,9 @@ baseURL = http://geofon.gfz-potsdam.de/eidaws/routing/1
 info = Routing information from the synchronization with EIDA nodes.
    All the routes related to the data in EIDA are supposed to be available here.
    Still in "Beta" version.
+# Time at which the routing and inventory information must be updated
+# updateTime = 01:00 02:00 03:00
+updateTime = 03:00
 
 # Should the routing information be updated and overwritten by the data from
 # the configured Arclink server when updateAll.py is run?
