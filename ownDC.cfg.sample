@@ -1,21 +1,33 @@
-[Service]
-# Base URL of the current owndc service
-baseURL = http://localhost:7000/fdsnws/dataselect/1
+Service]
+# Base URL of the current Routing Service
+baseURL = http://geofon.gfz-potsdam.de/eidaws/routing/1
 # String that must be returned when the method "config" is called
-info = Routing information from the Arclink Server at GEOFON.
+info = Routing information from the synchronization with EIDA nodes.
    All the routes related to the data in EIDA are supposed to be available here.
+   Still in "Beta" version.
+
 # Should the routing information be updated and overwritten by the data from
 # the configured Arclink server when updateAll.py is run?
 # Also the algorithms for other services will be based on the arclink routes.
 ArclinkBased = false
+
 # Verbosity of the logging system
 # Possible values are:
 # CRITICAL, ERROR, WARNING, INFO, DEBUG
-verbosity = INFO
+verbosity = DEBUG
 # Servers with routes to be imported (name, url)
 # synchronize = SERVER2, http://remotehost/eidaws/routing/1
-#               SERVER3, http://remotehost2/eidaws/routing/1
-synchronize =
+synchronize = BGR, http://eida.bgr.de/eidaws/routing/1
+              ETH, http://eida.ethz.ch/eidaws/routing/1
+              GFZ, http://geofon.gfz-potsdam.de/eidaws/routing/1
+              INGV, http://eida.ingv.it/eidaws/routing/1
+              IPGP, http://eidaws.ipgp.fr/eidaws/routing/1
+              LMU, http://erde.geophysik.uni-muenchen.de/eidaws/routing/1
+              NOA, http://eida.gein.noa.gr/eidaws/routing/1
+              KOERI, http://eida.koeri.boun.edu.tr/eidaws/routing/1
+              NIEP, http://eida-routing.infp.ro/eidaws/routing/1/routing.xml
+              ODC, http://www.orfeus-eu.org/eidaws/routing/1
+              RESIF, http://ws.resif.fr/eida_routing.xml
 # Can overlapping routes be saved in the routing table?
 # If yes, the Arclink-inventory.xml must be used to expand the routes and
 # produce a coherent response.
