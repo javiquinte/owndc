@@ -31,7 +31,7 @@ except ImportError:
 
 import ConfigParser as configparser
 
-sys.path.append('..')
+sys.path.append(os.path.join(os.getcwd(), '..'))
 
 try:
     from routing.routeutils.utils import addRemote
@@ -77,7 +77,7 @@ table is saved under the same filename plus ``.bin`` (e.g. ownDC-tmp.xml.bin).
                 (dcid, url)
             logs.error(msg)
 
-        if os.path.exists('./routing-%s.xml' % dcid.strip()):
+        if os.path.exists('./ownDC-%s.xml' % dcid.strip()):
             # FIXME addRoutes should return no Exception ever and skip a
             # problematic file returning a coherent version of the routes
             print 'Adding REMOTE %s' % dcid
