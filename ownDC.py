@@ -123,7 +123,8 @@ class Application(object):
                 yield data
 
             if loop == 0:
-                raise cherrypy.HTTPError(204, 'No Content')
+                cherrypy.response.status = 204
+                return
 
         except WIError as w:
             messDict = {'code': 0,
