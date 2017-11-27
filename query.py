@@ -23,7 +23,7 @@
 import sys
 import datetime
 import logging
-import urllib as ul
+import urllib2 as ul
 
 try:
     import configparser

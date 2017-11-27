@@ -22,12 +22,12 @@
 import os
 import sys
 import cherrypy
+import json
 import argparse
 import logging
 import ConfigParser as configparser
 
 from query import DataSelectQuery
-from version import get_git_version
 
 sys.path.append('./routing')
 from routeutils.wsgicomm import WIError
@@ -92,14 +92,30 @@ class Application(object):
     @cherrypy.expose
     def query(self, **kwargs):
         if cherrypy.request.method.upper() == 'GET':
-            return queryGET(**kwargs)
+            return self.queryGET(**kwargs)
         elif cherrypy.request.method.upper() == 'POST':
-            return queryPOST()
+            return self.queryPOST()
 
     def queryGET(self, **kwargs):
         cherrypy.response.headers['Server'] = 'OwnDC/%s' % version
-        cherrypy.response.headers['Content-Type'] = 'application/vnd.fdsn.mseed'
-        return version.encode('utf-8')
+
+        for k, v in kwargs.items():
+            kwargs[k] = FakeStorage(v)
+
+        try:
+            iterObj = dsq.makeQueryGET(kwargs)
+            print iterObj
+            cherrypy.response.headers['Content-Type'] = 'application/vnd.fdsn.mseed'
+            cherrypy.response.headers['Content-Disposition'] = 'attachment; filename=output.mseed'
+            return iterObj
+        except WIError as w:
+            messDict = {'code': 0,
+                        'message': str(w)}
+            message = json.dumps(messDict)
+            cherrypy.response.headers['Content-Type'] = 'application/json'
+            raise cherrypy.HTTPError(400, message)
+
+    queryGET._cp_config = {'response.stream': True}
 
     def queryPOST(self):
         pass
