@@ -23,7 +23,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='1.2.0',
+    version='0.9.1',
 
     description='ownDC: An FDSN Virtual Datacentre for SC3',
     long_description=long_description,
@@ -49,7 +49,7 @@ setup(
         'Framework :: CherryPy',
 
         # Indicate who your project is intended for
-        'Intended Audience :: Seismologists',
+        # 'Intended Audience :: Seismologists',
         'Topic :: Software Development :: Build Tools',
 
         # Pick your license as you wish (should match "license" above)
