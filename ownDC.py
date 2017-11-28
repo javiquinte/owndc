@@ -33,7 +33,7 @@ sys.path.append('./routing')
 from routeutils.wsgicomm import WIError
 
 # Version of this software
-version = '0.9a2'
+version = '0.9.1a1'
 
 # Dataselect version of this software
 dsversion = '1.1.0'
@@ -63,7 +63,7 @@ class Application(object):
 
     @cherrypy.expose
     def index(self):
-        cherrypy.response.headers['Server'] = 'OwnDC/%s' % version
+        cherrypy.response.headers['Server'] = 'ownDC/%s' % version
         cherrypy.response.headers['Content-Type'] = 'text/html'
         helptext = '<body><h1>Help of the Dataselect implementation by ownDC</h1></body>.'
         return helptext.encode('utf-8')
@@ -75,7 +75,7 @@ class Application(object):
         :returns: System version in plain text format
         :rtype: string
         """
-        cherrypy.response.headers['Server'] = 'OwnDC/%s' % version
+        cherrypy.response.headers['Server'] = 'ownDC/%s' % version
         cherrypy.response.headers['Content-Type'] = 'text/plain'
         return dsversion.encode('utf-8')
 
@@ -84,7 +84,7 @@ class Application(object):
         here = os.path.dirname(__file__)
         with open(os.path.join(here, 'application.wadl'), 'r') \
                 as appFile:
-            cherrypy.response.headers['Server'] = 'OwnDC/%s' % version
+            cherrypy.response.headers['Server'] = 'ownDC/%s' % version
             cherrypy.response.headers['Content-Type'] = 'text/xml'
             iterObj = appFile.read()
         return iterObj.encode('utf-8')
@@ -97,7 +97,7 @@ class Application(object):
             return self.queryPOST()
 
     def queryGET(self, **kwargs):
-        cherrypy.response.headers['Server'] = 'OwnDC/%s' % version
+        cherrypy.response.headers['Server'] = 'ownDC/%s' % version
 
         for k, v in kwargs.items():
             kwargs[k] = FakeStorage(v)
