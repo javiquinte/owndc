@@ -80,15 +80,16 @@ table. To see all the available options you can call the script with the ``-h``
 parameter. ::
 
   $ cd data
-  $ python getEIDAconfig.py -h
+  $ python update.py -h
 
 If you would like to use this automatic configuration, just call the script in
 the following way: ::
 
-  $ python getEIDAconfig.py
+  $ python update.py
 
 When the script finishes you should find a file called ``ownDC-routes.xml``
-containing all the routes to get data from any EIDA node.
+containing all the routes to get data from any EIDA node, as well as a binary
+version of the routes.
 
 If you would like to route some other streams not included in EIDA,
 there is a *masterTable* that can be used. When the service starts, it
