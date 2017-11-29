@@ -105,7 +105,7 @@ class Application(object):
         try:
             iterObj = dsq.makeQueryGET(kwargs)
             # WARNING I need to check if data length == 0?
-            # Cycle through the iterator in order to retrieve one chunck at a time
+            # Cycle through the iterator in order to retrieve one chunk at a time
             loop = 0
             for data in iterObj:
                 if loop == 0:
@@ -136,7 +136,48 @@ class Application(object):
     queryGET._cp_config = {'response.stream': True}
 
     def queryPOST(self):
-        pass
+        cherrypy.response.headers['Server'] = 'ownDC/%s' % version
+
+        length = int(cherrypy.request.headers.get('content-length', 0))
+        logging.debug('Length: %s' % length)
+        lines = cherrypy.request.body.fp.read(length)
+
+        # Show request
+        logging.info('POST request with %s lines' % len(lines.split('\n')))
+
+        try:
+            iterObj = dsq.makeQueryPOST(lines)
+            # WARNING I need to check if data length == 0?
+            # Cycle through the iterator in order to retrieve one chunk at a time
+            loop = 0
+            for data in iterObj:
+                if loop == 0:
+                    # The first thing to do is to send the headers.
+                    # This needs to be done here so that we are sure that there is
+                    # ACTUALLY data to send
+
+                    # Content-length cannot be set because the file size is unknown
+                    cherrypy.response.headers['Content-Type'] = iterObj.content_type
+                    cherrypy.response.headers['Content-Disposition'] = 'attachment; filename=%s' % (iterObj.filename)
+
+                # Increment the loop count
+                loop += 1
+                # and send data
+                yield data
+
+            if loop == 0:
+                cherrypy.response.status = 204
+                return
+
+        except WIError as w:
+            messDict = {'code': 0,
+                        'message': str(w)}
+            message = json.dumps(messDict)
+            cherrypy.response.headers['Content-Type'] = 'application/json'
+            raise cherrypy.HTTPError(400, message)
+
+    queryPOST._cp_config = {'response.stream': True}
+
 
 # # Implement the web server
 # class ServerHandler(htserv.SimpleHTTPRequestHandler):
