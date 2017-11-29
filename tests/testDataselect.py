@@ -8,12 +8,11 @@ sys.path.append(os.path.join(here, '..'))
 
 import unittest
 import urllib2
-from unittestTools import WITestRunner
-from difflib import Differ
+from routing.routeutils.unittestTools import WITestRunner
 from ownDC import FakeStorage
 from query import DataSelectQuery
-from wsgicomm import WIClientError
-from wsgicomm import WIContentError
+from routing.routeutils.wsgicomm import WIClientError
+from routing.routeutils.wsgicomm import WIContentError
 
 class OwnDCTests(unittest.TestCase):
     """Test the functionality of ownDC.py
@@ -30,7 +29,7 @@ class OwnDCTests(unittest.TestCase):
         if hasattr(cls, 'ds'):
             return
 
-        cls.ds = DataSelectQuery('ownDC-test.log', './ownDC-test-routes.xml',
+        cls.ds = DataSelectQuery('./ownDC-test-routes.xml',
                                  './masterTable.xml',
                                  configFile='./ownDC-test.cfg')
 

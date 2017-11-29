@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# ownDC: An FDSN Virtual Datacentre for SC3
+# ownDC: An FDSN Virtual Datacentre for SeisComP3
 #
 # (c) 2015-2017 Javier Quinteros, GEOFON team
 # <javier@gfz-potsdam.de>
@@ -7,7 +7,7 @@
 # ----------------------------------------------------------------------
 
 
-"""ownDC: An FDSN-WS Virtual Datacentre prototype
+"""ownDC: An FDSN-WS Virtual Data Centre for SeisComP3
 
    :Platform:
        Linux
