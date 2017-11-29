@@ -6,7 +6,7 @@ from urlparse import urlparse
 from urlparse import parse_qs
 from time import sleep
 import logging
-from query import DataSelectQuery
+from ownDC import DataSelectQuery
 from version import get_git_version
 
 
