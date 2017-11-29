@@ -7,7 +7,6 @@ here = os.path.dirname(__file__)
 sys.path.append(os.path.join(here, '..'))
 
 import unittest
-import urllib2
 from routing.routeutils.unittestTools import WITestRunner
 from ownDC import FakeStorage
 from query import DataSelectQuery

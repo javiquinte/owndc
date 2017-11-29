@@ -1,12 +1,16 @@
 #!/usr/bin/env python
 
 import sys
+import os
 import datetime
 import unittest
 import urllib2
-from unittestTools import WITestRunner
-from difflib import Differ
 from xml.dom.minidom import parseString
+
+here = os.path.dirname(__file__)
+sys.path.append(os.path.join(here, '..'))
+
+from routing.routeutils.unittestTools import WITestRunner
 
 
 class OwnDCTests(unittest.TestCase):
