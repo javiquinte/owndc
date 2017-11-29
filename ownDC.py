@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2
 # ownDC: An FDSN Virtual Datacentre for SeisComP3
 #
 # (c) 2015-2017 Javier Quinteros, GEOFON team
