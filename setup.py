@@ -23,9 +23,9 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='0.9.1',
+    version='0.9.1a1.dev2',
 
-    description='ownDC: An FDSN Virtual Datacentre for SC3',
+    description='ownDC: An FDSN Virtual Datacentre for SeisComP3',
     long_description=long_description,
 
     # The project's main homepage.
@@ -50,7 +50,6 @@ setup(
 
         # Indicate who your project is intended for
         # 'Intended Audience :: Seismologists',
-        'Topic :: Software Development :: Build Tools',
 
         # Pick your license as you wish (should match "license" above)
         'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
@@ -94,7 +93,7 @@ setup(
     # installed, specify them here.  If using Python 2.6 or less, then these
     # have to be included in MANIFEST.in as well.
     package_data={
-        'sample': ['package_data.dat'],
+        'sample': ['ownDC.cfg'],
     },
 
     # Although 'package_data' is the preferred approach, in some case you may
