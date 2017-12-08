@@ -20,8 +20,6 @@ any later version.
 import os
 import sys
 import argparse
-from time import sleep
-import xml.etree.cElementTree as ET
 import logging
 
 try:
