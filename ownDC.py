@@ -45,6 +45,8 @@ version = '0.9.1a1'
 # Dataselect version of this software
 dsversion = '1.1.0'
 
+global dsq
+
 
 class ResultFile(object):
     """Define a class that is an iterable. We can start returning the file
@@ -134,10 +136,6 @@ class DataSelectQuery(object):
                  log=None):
         # Dataselect version
         self.version = '1.1.0'
-
-        # Read the verbosity setting
-        configP = configparser.RawConfigParser()
-        configP.read(configFile)
 
         self.routes = RoutingCache(routesFile, masterFile, configFile)
 
@@ -436,71 +434,67 @@ class Application(object):
     queryPOST._cp_config = {'response.stream': True}
 
 
-# def main():
-#     parser = argparse.ArgumentParser()
-#     parser.add_argument('-H', '--host',
-#                         help='Address where this server listens.',
-#                         default='localhost')
-#     parser.add_argument('-P', '--port',
-#                         help='Port where this server listens.',
-#                         default='7000')
-#     parser.add_argument('-c', '--config',
-#                         help='Config file.',
-#                         default='ownDC.cfg')
-#     parser.add_argument('--version', action='version',
-#                         version='ownDC %s' % get_git_version())
-#     args = parser.parse_args()
-#
-#     # Check arguments (IP, port)
-#     host = args.host
-#
-#     configP = configparser.RawConfigParser()
-#     configP.read(args.config)
-#
-#     verbo = configP.get('Service', 'verbosity')
-#     verboNum = getattr(logging, verbo.upper(), 30)
-#
-#     logging.basicConfig(logLevel=verboNum)
-#     loclog = logging.getLogger('main')
-#     loclog.setLevel(verboNum)
-#
-#     try:
-#         port = int(args.port)
-#     except:
-#         loclog.error('Error while interpreting port %s' % args.port)
-#         sys.exit(-1)
-#
-#     # Create the object that will resolve and execute all the queries
-#     loclog.info('Creating a DataSelectQuery object. Wait...')
-#     ServerHandler.wi = DataSelectQuery('ownDC.log', './data/ownDC-routes.xml',
-#                                        configFile=args.config)
-#     loclog.info('Ready to answer queries!')
-#
-#     Handler = ServerHandler
-#     httpd = socsrv.TCPServer((host, port), Handler)
-#
-#     loclog.info("Virtual Datacentre at: http://%s:%s/fdsnws/dataselect/1/" %
-#                 (host, port))
-#     httpd.serve_forever()
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-H', '--host',
+                        help='Address where this server listens.',
+                        default='localhost')
+    parser.add_argument('-P', '--port',
+                        help='Port where this server listens.',
+                        default='7000')
+    parser.add_argument('-c', '--config',
+                        help='Config file.',
+                        default='ownDC.cfg')
+    parser.add_argument('--version', action='version',
+                        version='ownDC-%s' % dsversion)
+    args = parser.parse_args()
 
-dsq = DataSelectQuery('./data/ownDC-routes.xml', './data/masterTable.xml', 'ownDC.cfg')
+    # Check arguments (IP, port)
+    host = args.host
 
-server_config = {
-    'global': {
-        'tools.proxy.on': True,
-        'tools.trailing_slash.on': False,
-        'server.socket_host': '127.0.0.1',
-        'server.socket_port': 7000,
-        'engine.autoreload_on': False
+    configP = configparser.RawConfigParser()
+    configP.read(args.config)
+
+    verbo = configP.get('Service', 'verbosity')
+    verboNum = getattr(logging, verbo.upper(), 30)
+
+    logging.basicConfig(logLevel=verboNum)
+    loclog = logging.getLogger('main')
+    loclog.setLevel(verboNum)
+
+    try:
+        port = int(args.port)
+    except:
+        loclog.error('Error while interpreting port %s' % args.port)
+        raise Exception('Error while interpreting port %s' % args.port)
+
+    # Create the object that will resolve and execute all the queries
+    loclog.info('Creating a DataSelectQuery object. Wait...')
+    global dsq
+    dsq = DataSelectQuery('./data/ownDC-routes.xml', './data/masterTable.xml', args.config)
+    loclog.info('Ready to answer queries!')
+    loclog.info("Virtual Datacentre at: http://%s:%s/fdsnws/dataselect/1/" %
+                (host, port))
+
+    server_config = {
+        'global': {
+            'tools.proxy.on': True,
+            'tools.trailing_slash.on': False,
+            'server.socket_host': '127.0.0.1',
+            'server.socket_port': 7000,
+            'engine.autoreload_on': False
+        }
     }
-}
-# Update the global CherryPy configuration
-cherrypy.config.update(server_config)
-cherrypy.tree.mount(Application(), '/fdsnws/dataselect/1')
-
-if __name__ == '__main__':
+    # Update the global CherryPy configuration
+    cherrypy.config.update(server_config)
+    # TODO Pass all parameters to Application!
+    cherrypy.tree.mount(Application(), '/fdsnws/dataselect/1')
     cherrypy.engine.signals.subscribe()
     cherrypy.engine.start()
     cherrypy.engine.block()
+
+
+if __name__ == '__main__':
+    main()
     # config = {'/': {'tools.trailing_slash.on': False}}
     # cherrypy.quickstart(Application(), script_name='/', config=config)
