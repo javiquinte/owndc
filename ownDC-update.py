@@ -69,30 +69,30 @@ table is saved under the same filename plus ``.bin`` (e.g. ownDC-tmp.xml.bin).
         logs.debug(str(line.split(',')))
         dcid, url = line.split(',')
         try:
-            addRemote('./ownDC-%s.xml' % dcid.strip(), url.strip())
+            addRemote('data/ownDC-%s.xml' % dcid.strip(), url.strip())
         except:
             msg = 'Failure updating routing information from %s (%s)' % \
                 (dcid, url)
             logs.error(msg)
 
-        if os.path.exists('./ownDC-%s.xml' % dcid.strip()):
+        if os.path.exists('data/ownDC-%s.xml' % dcid.strip()):
             # FIXME addRoutes should return no Exception ever and skip a
             # problematic file returning a coherent version of the routes
             print 'Adding REMOTE %s' % dcid
-            ptRT = addRoutes('./ownDC-%s.xml' % dcid.strip(),
+            ptRT = addRoutes('data/ownDC-%s.xml' % dcid.strip(),
                              routingTable=ptRT, allowOverlaps=allowOverlaps)
-            ptVN = addVirtualNets('./ownDC-%s.xml' % dcid.strip(),
+            ptVN = addVirtualNets('data/ownDC-%s.xml' % dcid.strip(),
                                   vnTable=ptVN)
 
     try:
-        os.remove('./%s.bin' % fileRoutes)
+        os.remove('data/%s.bin' % fileRoutes)
     except:
         pass
 
     stationTable = dict()
     cacheStations(ptRT, stationTable)
 
-    with open('./%s.bin' % fileRoutes, 'wb') as finalRoutes:
+    with open('data/%s.bin' % fileRoutes, 'wb') as finalRoutes:
         pickle.dump((ptRT, stationTable, ptVN), finalRoutes)
         logs.info('Routes in main Routing Table: %s\n' % len(ptRT))
         logs.info('Stations cached: %s\n' %
@@ -110,11 +110,11 @@ def main():
                         help='Verbosity in the output.',
                         choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO',
                                  'DEBUG'])
-    parser.add_argument('-s', '--server',
-                        help='Arclink server address (address.domain:18001).')
+    # parser.add_argument('-s', '--server',
+    #                     help='Arclink server address (address.domain:18001).')
     parser.add_argument('-c', '--config',
                         help='Config file to use.',
-                        default='../ownDC.cfg')
+                        default='./ownDC.cfg')
     args = parser.parse_args()
 
     config = configparser.RawConfigParser()
@@ -139,7 +139,7 @@ def main():
         logs.error('Configuration file %s could not be read' % args.config)
 
     try:
-        os.remove('ownDC-routes.xml.bin')
+        os.remove('data/ownDC-routes.xml.bin')
     except:
         pass
 
@@ -149,7 +149,7 @@ def main():
         # Otherwise, default value
         synchroList = ''
 
-    mergeRoutes('ownDC-routes.xml', synchroList)
+    mergeRoutes('data/ownDC-routes.xml', synchroList)
 
 
 if __name__ == '__main__':
