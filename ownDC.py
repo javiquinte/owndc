@@ -61,7 +61,7 @@ class ResultFile(object):
                                                 now.second)
 
         # FIXME The filename prefix should be read from the configuration
-        self.filename = 'OwnDC-%s.mseed' % nowStr
+        self.filename = 'ownDC-%s.mseed' % nowStr
 
         # Set the logging properties
         if log is not None:
@@ -131,9 +131,18 @@ class ResultFile(object):
         raise StopIteration
 
 class DataSelectQuery(object):
-    def __init__(self, routesFile='./data/routing.xml',
-                 masterFile='./data/masterTable.xml', configFile='routing.cfg',
-                 log=None):
+    def __init__(self, routesFile=None, masterFile=None,
+                 configFile=None, log=None):
+
+        if routesFile is None:
+            routesFile = os.path.join(os.path.expanduser('~'), '.ownDC', 'data', 'routing.xml')
+
+        if masterFile is None:
+            masterFile = os.path.join(os.path.expanduser('~'), '.ownDC', 'data', 'masterTable.xml')
+
+        if configFile is None:
+            configFile = os.path.join(os.path.expanduser('~'), '.ownDC', 'routing.cfg')
+
         # Dataselect version
         self.version = '1.1.0'
 
