@@ -1,6 +1,6 @@
 # Include the license file
 include LICENSE
-include README.md
+include README.rst
 include ownDC.cfg
 
 # Include the data files
