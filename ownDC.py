@@ -453,9 +453,9 @@ def main():
                         default='7000')
     parser.add_argument('-c', '--config',
                         help='Config file.',
-                        default='ownDC.cfg')
+                        default=os.path.join(os.path.expanduser('~'), '.ownDC', 'ownDC.cfg'))
     parser.add_argument('--version', action='version',
-                        version='ownDC-%s' % dsversion)
+                        version='ownDC-%s' % version)
     args = parser.parse_args()
 
     # Check arguments (IP, port)
@@ -480,7 +480,9 @@ def main():
     # Create the object that will resolve and execute all the queries
     loclog.info('Creating a DataSelectQuery object. Wait...')
     global dsq
-    dsq = DataSelectQuery('./data/ownDC-routes.xml', './data/masterTable.xml', args.config)
+    dsq = DataSelectQuery(os.path.join(os.path.expanduser('~'), '.ownDC', 'data', 'ownDC-routes.xml'),
+                          os.path.join(os.path.expanduser('~'), '.ownDC', 'data', 'masterTable.xml'),
+                          args.config)
     loclog.info('Ready to answer queries!')
     loclog.info("Virtual Datacentre at: http://%s:%s/fdsnws/dataselect/1/" %
                 (host, port))

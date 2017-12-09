@@ -69,30 +69,32 @@ table is saved under the same filename plus ``.bin`` (e.g. ownDC-tmp.xml.bin).
         logs.debug(str(line.split(',')))
         dcid, url = line.split(',')
         try:
-            addRemote('data/ownDC-%s.xml' % dcid.strip(), url.strip())
+            addRemote(os.path.join(os.path.expanduser('~'), '.ownDC', 'data', 'ownDC-%s.xml' % dcid.strip()),
+                      url.strip())
         except:
             msg = 'Failure updating routing information from %s (%s)' % \
                 (dcid, url)
             logs.error(msg)
 
-        if os.path.exists('data/ownDC-%s.xml' % dcid.strip()):
+        if os.path.exists(os.path.join(os.path.expanduser('~'), '.ownDC', 'data', 'ownDC-%s.xml' % dcid.strip())):
             # FIXME addRoutes should return no Exception ever and skip a
             # problematic file returning a coherent version of the routes
             print 'Adding REMOTE %s' % dcid
-            ptRT = addRoutes('data/ownDC-%s.xml' % dcid.strip(),
+            ptRT = addRoutes(os.path.join(os.path.expanduser('~'), '.ownDC', 'data', 'ownDC-%s.xml' % dcid.strip()),
                              routingTable=ptRT, allowOverlaps=allowOverlaps)
-            ptVN = addVirtualNets('data/ownDC-%s.xml' % dcid.strip(),
+            ptVN = addVirtualNets(os.path.join(os.path.expanduser('~'), '.ownDC', 'data', 'ownDC-%s.xml' % dcid.strip()),
                                   vnTable=ptVN)
 
     try:
-        os.remove('data/%s.bin' % fileRoutes)
+        os.remove(os.path.join(os.path.expanduser('~'), '.ownDC', 'data', '%s.bin' % fileRoutes))
     except:
         pass
 
     stationTable = dict()
     cacheStations(ptRT, stationTable)
 
-    with open('data/%s.bin' % fileRoutes, 'wb') as finalRoutes:
+    fname = os.path.join(os.path.expanduser('~'), '.ownDC', 'data', '%s.bin' % fileRoutes)
+    with open(fname, 'wb') as finalRoutes:
         pickle.dump((ptRT, stationTable, ptVN), finalRoutes)
         logs.info('Routes in main Routing Table: %s\n' % len(ptRT))
         logs.info('Stations cached: %s\n' %
