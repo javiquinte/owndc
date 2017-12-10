@@ -29,8 +29,6 @@ except ImportError:
 
 import ConfigParser as configparser
 
-sys.path.append(os.path.join(os.getcwd(), '..'))
-
 try:
     from routing.routeutils.utils import addRemote
     from routing.routeutils.utils import addRoutes
@@ -114,9 +112,10 @@ def main():
                                  'DEBUG'])
     # parser.add_argument('-s', '--server',
     #                     help='Arclink server address (address.domain:18001).')
+    cfgname = os.path.join(os.path.expanduser('~'), '.ownDC', 'ownDC.cfg')
     parser.add_argument('-c', '--config',
                         help='Config file to use.',
-                        default='./ownDC.cfg')
+                        default=cfgname)
     args = parser.parse_args()
 
     config = configparser.RawConfigParser()
@@ -141,7 +140,7 @@ def main():
         logs.error('Configuration file %s could not be read' % args.config)
 
     try:
-        os.remove('data/ownDC-routes.xml.bin')
+        os.remove(os.path.join(os.path.expanduser('~'), '.ownDC', 'data', 'ownDC-routes.xml.bin'))
     except:
         pass
 
@@ -151,7 +150,7 @@ def main():
         # Otherwise, default value
         synchroList = ''
 
-    mergeRoutes('data/ownDC-routes.xml', synchroList)
+    mergeRoutes(os.path.join(os.path.expanduser('~'), '.ownDC', 'data', 'ownDC-routes.xml'), synchroList)
 
 
 if __name__ == '__main__':
