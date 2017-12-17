@@ -6,7 +6,7 @@ from urlparse import urlparse
 from urlparse import parse_qs
 from time import sleep
 import logging
-from ownDC import DataSelectQuery
+from owndc import DataSelectQuery
 from version import get_git_version
 
 
@@ -92,12 +92,12 @@ class SummarizedRun(dict):
 
 
 def main():
-    ownDCver = '0.9a2'
+    owndcver = '0.9a2'
 
     parser = argparse.ArgumentParser(description=\
         'Client to download waveforms from different datacentres via FDSN-WS')
     parser.add_argument('-c', '--config', help='Config file.',
-                        default='ownDC.cfg')
+                        default='owndc.cfg')
     parser.add_argument('-p', '--post-file', default=None,
                         help='File with the streams and timewindows requested.')
     parser.add_argument('-o', '--output', default='request',
@@ -112,7 +112,7 @@ def main():
                         help='Number of minutes between retries for the lines without data')
     parser.add_argument('-v', '--verbosity', action="count", default=0,
                         help='Increase the verbosity level')
-    parser.add_argument('--version', action='version', version='ownDC-cli %s ' % get_git_version())
+    parser.add_argument('--version', action='version', version='owndc-cli %s ' % get_git_version())
     args = parser.parse_args()
     
     # Read the streams and timewindows to download
@@ -125,7 +125,7 @@ def main():
     summary = SummarizedRun()
 
     ds = DataSelectQuery(summary,
-                         routesFile='data/ownDC-routes.xml',
+                         routesFile='data/owndc-routes.xml',
                          configFile=args.config)
 
     outwav = open('%s.mseed' % args.output, 'wb')

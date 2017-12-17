@@ -1,5 +1,5 @@
 #!/usr/bin/env python2
-# ownDC: An FDSN Virtual Datacentre for SeisComP3
+# owndc: An FDSN Virtual Datacentre for SeisComP3
 #
 # (c) 2015-2017 Javier Quinteros, GEOFON team
 # <javier@gfz-potsdam.de>
@@ -7,7 +7,7 @@
 # ----------------------------------------------------------------------
 
 
-"""ownDC: An FDSN-WS Virtual Data Centre for SeisComP3
+"""owndc: An FDSN-WS Virtual Data Centre for SeisComP3
 
    :Platform:
        Linux
@@ -61,7 +61,7 @@ class ResultFile(object):
                                                 now.second)
 
         # FIXME The filename prefix should be read from the configuration
-        self.filename = 'ownDC-%s.mseed' % nowStr
+        self.filename = 'owndc-%s.mseed' % nowStr
 
         # Set the logging properties
         if log is not None:
@@ -135,13 +135,13 @@ class DataSelectQuery(object):
                  configFile=None, log=None):
 
         if routesFile is None:
-            routesFile = os.path.join(os.path.expanduser('~'), '.ownDC', 'data', 'routing.xml')
+            routesFile = os.path.join(os.path.expanduser('~'), '.owndc', 'data', 'routing.xml')
 
         if masterFile is None:
-            masterFile = os.path.join(os.path.expanduser('~'), '.ownDC', 'data', 'masterTable.xml')
+            masterFile = os.path.join(os.path.expanduser('~'), '.owndc', 'data', 'masterTable.xml')
 
         if configFile is None:
-            configFile = os.path.join(os.path.expanduser('~'), '.ownDC', 'routing.cfg')
+            configFile = os.path.join(os.path.expanduser('~'), '.owndc', 'routing.cfg')
 
         # Dataselect version
         self.version = '1.1.0'
@@ -325,9 +325,9 @@ class Application(object):
 
     @cherrypy.expose
     def index(self):
-        cherrypy.response.headers['Server'] = 'ownDC/%s' % version
+        cherrypy.response.headers['Server'] = 'owndc/%s' % version
         cherrypy.response.headers['Content-Type'] = 'text/html'
-        helptext = '<body><h1>Help of the Dataselect implementation by ownDC</h1></body>.'
+        helptext = '<body><h1>Help of the Dataselect implementation by owndc</h1></body>.'
         return helptext.encode('utf-8')
 
     @cherrypy.expose
@@ -337,7 +337,7 @@ class Application(object):
         :returns: System version in plain text format
         :rtype: utf-8 encoded string
         """
-        cherrypy.response.headers['Server'] = 'ownDC/%s' % version
+        cherrypy.response.headers['Server'] = 'owndc/%s' % version
         cherrypy.response.headers['Content-Type'] = 'text/plain'
         cherrypy.response.headers['Content-Length'] = str(len(dsversion.encode('utf-8')))
         return dsversion.encode('utf-8')
@@ -347,7 +347,7 @@ class Application(object):
         here = os.path.dirname(__file__)
         with open(os.path.join(here, 'application.wadl'), 'r') \
                 as appFile:
-            cherrypy.response.headers['Server'] = 'ownDC/%s' % version
+            cherrypy.response.headers['Server'] = 'owndc/%s' % version
             cherrypy.response.headers['Content-Type'] = 'text/xml'
             iterObj = appFile.read()
             cherrypy.response.headers['Content-Length'] = str(len(iterObj.encode('utf-8')))
@@ -361,7 +361,7 @@ class Application(object):
             return self.queryPOST()
 
     def queryGET(self, **kwargs):
-        cherrypy.response.headers['Server'] = 'ownDC/%s' % version
+        cherrypy.response.headers['Server'] = 'owndc/%s' % version
 
         for k, v in kwargs.items():
             kwargs[k] = FakeStorage(v)
@@ -400,7 +400,7 @@ class Application(object):
     queryGET._cp_config = {'response.stream': True}
 
     def queryPOST(self):
-        cherrypy.response.headers['Server'] = 'ownDC/%s' % version
+        cherrypy.response.headers['Server'] = 'owndc/%s' % version
 
         length = int(cherrypy.request.headers.get('content-length', 0))
         logging.debug('Length: %s' % length)
@@ -453,9 +453,9 @@ def main():
                         default='7000')
     parser.add_argument('-c', '--config',
                         help='Config file.',
-                        default=os.path.join(os.path.expanduser('~'), '.ownDC', 'ownDC.cfg'))
+                        default=os.path.join(os.path.expanduser('~'), '.owndc', 'owndc.cfg'))
     parser.add_argument('--version', action='version',
-                        version='ownDC-%s' % version)
+                        version='owndc-%s' % version)
     args = parser.parse_args()
 
     # Check arguments (IP, port)
@@ -480,8 +480,8 @@ def main():
     # Create the object that will resolve and execute all the queries
     loclog.info('Creating a DataSelectQuery object. Wait...')
     global dsq
-    dsq = DataSelectQuery(os.path.join(os.path.expanduser('~'), '.ownDC', 'data', 'ownDC-routes.xml'),
-                          os.path.join(os.path.expanduser('~'), '.ownDC', 'data', 'masterTable.xml'),
+    dsq = DataSelectQuery(os.path.join(os.path.expanduser('~'), '.owndc', 'data', 'owndc-routes.xml'),
+                          os.path.join(os.path.expanduser('~'), '.owndc', 'data', 'masterTable.xml'),
                           args.config)
     loclog.info('Ready to answer queries!')
     loclog.info("Virtual Datacentre at: http://%s:%s/fdsnws/dataselect/1/" %
