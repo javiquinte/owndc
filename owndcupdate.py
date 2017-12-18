@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python2
 
 """Retrieve data from a Routing WS to be used locally
 
@@ -18,7 +18,6 @@ any later version.
 """
 
 import os
-import sys
 import argparse
 import logging
 
@@ -44,7 +43,7 @@ def mergeRoutes(fileRoutes, synchroList, allowOverlaps=False):
     """Retrieve routes from different sources and merge them with the local
 ones in the routing tables. The configuration file is checked to see whether
 overlapping routes are allowed or not. A pickled version of the the routing
-table is saved under the same filename plus ``.bin`` (e.g. ownDC-tmp.xml.bin).
+table is saved under the same filename plus ``.bin`` (e.g. owndc-tmp.xml.bin).
 
 :param fileRoutes: File containing the local routing table
 :type fileRoutes: str
@@ -67,31 +66,31 @@ table is saved under the same filename plus ``.bin`` (e.g. ownDC-tmp.xml.bin).
         logs.debug(str(line.split(',')))
         dcid, url = line.split(',')
         try:
-            addRemote(os.path.join(os.path.expanduser('~'), '.ownDC', 'data', 'ownDC-%s.xml' % dcid.strip()),
+            addRemote(os.path.join(os.path.expanduser('~'), '.owndc', 'data', 'owndc-%s.xml' % dcid.strip()),
                       url.strip())
         except:
             msg = 'Failure updating routing information from %s (%s)' % \
                 (dcid, url)
             logs.error(msg)
 
-        if os.path.exists(os.path.join(os.path.expanduser('~'), '.ownDC', 'data', 'ownDC-%s.xml' % dcid.strip())):
+        if os.path.exists(os.path.join(os.path.expanduser('~'), '.owndc', 'data', 'owndc-%s.xml' % dcid.strip())):
             # FIXME addRoutes should return no Exception ever and skip a
             # problematic file returning a coherent version of the routes
             print 'Adding REMOTE %s' % dcid
-            ptRT = addRoutes(os.path.join(os.path.expanduser('~'), '.ownDC', 'data', 'ownDC-%s.xml' % dcid.strip()),
+            ptRT = addRoutes(os.path.join(os.path.expanduser('~'), '.owndc', 'data', 'owndc-%s.xml' % dcid.strip()),
                              routingTable=ptRT, allowOverlaps=allowOverlaps)
-            ptVN = addVirtualNets(os.path.join(os.path.expanduser('~'), '.ownDC', 'data', 'ownDC-%s.xml' % dcid.strip()),
+            ptVN = addVirtualNets(os.path.join(os.path.expanduser('~'), '.owndc', 'data', 'owndc-%s.xml' % dcid.strip()),
                                   vnTable=ptVN)
 
     try:
-        os.remove(os.path.join(os.path.expanduser('~'), '.ownDC', 'data', '%s.bin' % fileRoutes))
+        os.remove(os.path.join(os.path.expanduser('~'), '.owndc', 'data', '%s.bin' % fileRoutes))
     except:
         pass
 
     stationTable = dict()
     cacheStations(ptRT, stationTable)
 
-    fname = os.path.join(os.path.expanduser('~'), '.ownDC', 'data', '%s.bin' % fileRoutes)
+    fname = os.path.join(os.path.expanduser('~'), '.owndc', 'data', '%s.bin' % fileRoutes)
     with open(fname, 'wb') as finalRoutes:
         pickle.dump((ptRT, stationTable, ptVN), finalRoutes)
         logs.info('Routes in main Routing Table: %s\n' % len(ptRT))
@@ -104,7 +103,7 @@ table is saved under the same filename plus ``.bin`` (e.g. ownDC-tmp.xml.bin).
 def main():
     # FIXME logLevel must be used via argparser
     # Check verbosity in the output
-    msg = 'Prefill the ownDC configuration with the routes from EIDA.'
+    msg = 'Prefill the owndc configuration with the routes from EIDA.'
     parser = argparse.ArgumentParser(description=msg)
     parser.add_argument('-l', '--loglevel',
                         help='Verbosity in the output.',
@@ -112,7 +111,7 @@ def main():
                                  'DEBUG'])
     # parser.add_argument('-s', '--server',
     #                     help='Arclink server address (address.domain:18001).')
-    cfgname = os.path.join(os.path.expanduser('~'), '.ownDC', 'ownDC.cfg')
+    cfgname = os.path.join(os.path.expanduser('~'), '.owndc', 'owndc.cfg')
     parser.add_argument('-c', '--config',
                         help='Config file to use.',
                         default=cfgname)
@@ -140,7 +139,7 @@ def main():
         logs.error('Configuration file %s could not be read' % args.config)
 
     try:
-        os.remove(os.path.join(os.path.expanduser('~'), '.ownDC', 'data', 'ownDC-routes.xml.bin'))
+        os.remove(os.path.join(os.path.expanduser('~'), '.owndc', 'data', 'owndc-routes.xml.bin'))
     except:
         pass
 
@@ -150,7 +149,7 @@ def main():
         # Otherwise, default value
         synchroList = ''
 
-    mergeRoutes(os.path.join(os.path.expanduser('~'), '.ownDC', 'data', 'ownDC-routes.xml'), synchroList)
+    mergeRoutes(os.path.join(os.path.expanduser('~'), '.owndc', 'data', 'owndc-routes.xml'), synchroList)
 
 
 if __name__ == '__main__':
