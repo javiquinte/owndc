@@ -60,7 +60,6 @@ class ResultFile(object):
                                                 now.hour, now.minute,
                                                 now.second)
 
-        # FIXME The filename prefix should be read from the configuration
         self.filename = 'owndc-%s.mseed' % nowStr
 
         # Set the logging properties
@@ -491,8 +490,8 @@ def main():
         'global': {
             'tools.proxy.on': True,
             'tools.trailing_slash.on': False,
-            'server.socket_host': '127.0.0.1',
-            'server.socket_port': 7000,
+            'server.socket_host': host,
+            'server.socket_port': port,
             'engine.autoreload_on': False
         }
     }
