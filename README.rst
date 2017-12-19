@@ -1,10 +1,10 @@
-# OwnDC
+# owndc
 FDSN-WS Dataselect for the seismological community which allows the access to any data centre.
 
 Purpose
 -------
 
-OwnDC was originally designed to give a SeisComP3 user access to waveforms in any data centre in the world.
+owndc was originally designed to give a SeisComP3 user access to waveforms in any data centre in the world.
 It provides a fully complaint FDSN-WS Dataselect interface, which is compatible with any standard client
 using this type of service.
 
@@ -18,32 +18,32 @@ Very, very quick installation instructions
 
 Using pip
 =========
-Execute the following commands to deploy [ownDC from Pypi](https://pypi.python.org/pypi/ownDC).
+Execute the following commands to deploy [owndc from Pypi](https://pypi.python.org/pypi/owndc).
 
 ```
-$ pip install ownDC
-$ python -m ownDC
+$ pip install owndc
+$ python -m owndc
 ```
 
 
 From the Github repository
 ==========================
 The execution of the following commands will deploy and setup a ready-to-run
-OwnDC instance with access to all the data within
+owndc instance with access to all the data within
 [EIDA](http://www.orfeus-eu.org/eida/).
 
 ```
 $ git clone https://github.com/javiquinte/owndc
 $ cd owndc
-$ cp ownDC.cfg.sample ownDC.cfg
+$ cp owndc.cfg.sample owndc.cfg
 $ cd data
-$ python getEIDAconfig.py
+$ python owndcupdate.py
 $ cd ..
-$ ./ownDC.py
+$ ./owndc.py
 ```
 
-Create OwnDC documentation
---------------------------
+Create the owndc documentation
+------------------------------
 
 Very detailed instructions regarding installation as well as different aspects
 of the software can be found in the official documentation provided in this
@@ -52,6 +52,6 @@ repository. In order to generate it you should execute these commands:
 ```
 $ cd doc
 $ make latexpdf
-$ evince _build_/latex/OwnDC.pdf
+$ evince _build_/latex/owndc.pdf
 ```
 
