@@ -7,10 +7,10 @@ here = os.path.dirname(__file__)
 sys.path.append(os.path.join(here, '..'))
 
 import unittest
-from routing.routeutils.unittestTools import WITestRunner
-from routing.routeutils.utils import RoutingCache
-from routing.routeutils.utils import RequestMerge
-from routing.routeutils.utils import Stream
+from ..routing.routeutils.unittestTools import WITestRunner
+from ..routing.routeutils.utils import RoutingCache
+from ..routing.routeutils.utils import RequestMerge
+from ..routing.routeutils.utils import Stream
 
 
 class RouteCacheTests(unittest.TestCase):
@@ -26,14 +26,14 @@ class RouteCacheTests(unittest.TestCase):
         cls.numTestsRun += 1
         if hasattr(cls, 'rc'):
             return
-        cls.rc = RoutingCache('./ownDC-test-routes.xml',
-                              './masterTable.xml', './ownDC-test.cfg')
+        cls.rc = RoutingCache('./owndc-test-routes.xml',
+                              './masterTable.xml', './owndc-test.cfg')
 
     @classmethod
     def tearDown(cls):
         "Removing cache and log files"
         if cls.numTestsRun == 7:
-            os.remove('./ownDC-test-routes.xml.bin')
+            os.remove('./owndc-test-routes.xml.bin')
 
 
     def testDS_GE(self):

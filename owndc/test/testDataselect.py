@@ -7,14 +7,14 @@ here = os.path.dirname(__file__)
 sys.path.append(os.path.join(here, '..'))
 
 import unittest
-from routing.routeutils.unittestTools import WITestRunner
-from ownDC import FakeStorage
+from ..routing.routeutils.unittestTools import WITestRunner
+from owndc import FakeStorage
 from query import DataSelectQuery
-from routing.routeutils.wsgicomm import WIClientError
-from routing.routeutils.wsgicomm import WIContentError
+from ..routing.routeutils.wsgicomm import WIClientError
+from ..routing.routeutils.wsgicomm import WIContentError
 
 class OwnDCTests(unittest.TestCase):
-    """Test the functionality of ownDC.py
+    """Test the functionality of owndc.py
 
     """
 
@@ -28,16 +28,16 @@ class OwnDCTests(unittest.TestCase):
         if hasattr(cls, 'ds'):
             return
 
-        cls.ds = DataSelectQuery('./ownDC-test-routes.xml',
+        cls.ds = DataSelectQuery('./owndc-test-routes.xml',
                                  './masterTable.xml',
-                                 configFile='./ownDC-test.cfg')
+                                 configFile='./owndc-test.cfg')
 
     @classmethod
     def tearDown(cls):
         "Removing cache and log files"
         if cls.numTestsRun == 4:
-            os.remove('./ownDC-test.log')
-            os.remove('./ownDC-test-routes.xml.bin')
+            os.remove('./owndc-test.log')
+            os.remove('./owndc-test-routes.xml.bin')
 
     def testDS_GE(self):
         "Dataselect GE.APE.*.*"

@@ -10,11 +10,11 @@ from xml.dom.minidom import parseString
 here = os.path.dirname(__file__)
 sys.path.append(os.path.join(here, '..'))
 
-from routing.routeutils.unittestTools import WITestRunner
+from ..routing.routeutils.unittestTools import WITestRunner
 
 
 class OwnDCTests(unittest.TestCase):
-    """Test the functionality of ownDC.py
+    """Test the functionality of owndc.py
 
     """
 
