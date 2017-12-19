@@ -1,8 +1,8 @@
 # Include the license file
 include LICENSE
 include README.rst
-include application.wadl
-# include owndc.cfg
+include owndc/application.wadl
+include owndc.cfg
 
 # Include the data files
-# recursive-include data *
+recursive-include data *
