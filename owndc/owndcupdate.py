@@ -118,7 +118,7 @@ def main():
     # parser.add_argument('-c', '--config',
     #                     help='Config file to use.',
     #                     default=cfgname)
-    parser.add_argument('--reset',
+    parser.add_argument('--reset', action="store_true",
                         help='Remove all configuration files and routes.')
     args = parser.parse_args()
 
@@ -136,15 +136,24 @@ def main():
         except:
             pass
 
+        if not os.path.exists(os.path.dirname(cfgname)):
+            os.makedirs(os.path.dirname(cfgname))
+
         url = "https://raw.githubusercontent.com/javiquinte/owndc/package/owndc.cfg.sample"
         cfg = ul.urlopen(url)
         with open(cfgname, "w") as fout:
             fout.write(cfg.read())
 
+        if not os.path.exists(os.path.dirname(master)):
+            os.makedirs(os.path.dirname(master))
+
         url = "https://raw.githubusercontent.com/javiquinte/owndc/package/data/masterTable.xml"
         mas = ul.urlopen(url)
         with open(master, "w") as fout:
             fout.write(mas.read())
+
+        if not os.path.exists(os.path.dirname(routes)):
+            os.makedirs(os.path.dirname(routes))
 
         url = "https://raw.githubusercontent.com/javiquinte/owndc/package/data/owndc-routes.xml"
         rou = ul.urlopen(url)
