@@ -20,6 +20,7 @@ any later version.
 import os
 import argparse
 import logging
+import urllib2 as ul
 
 try:
     import cPickle as pickle
@@ -112,10 +113,43 @@ def main():
     # parser.add_argument('-s', '--server',
     #                     help='Arclink server address (address.domain:18001).')
     cfgname = os.path.join(os.path.expanduser('~'), '.owndc', 'owndc.cfg')
-    parser.add_argument('-c', '--config',
-                        help='Config file to use.',
-                        default=cfgname)
+    master = os.path.join(os.path.expanduser('~'), '.owndc', 'data', 'masterTable.xml')
+    routes = os.path.join(os.path.expanduser('~'), '.owndc', 'data', 'owndc-routes.xml')
+    # parser.add_argument('-c', '--config',
+    #                     help='Config file to use.',
+    #                     default=cfgname)
+    parser.add_argument('--reset',
+                        help='Remove all configuration files and routes.')
     args = parser.parse_args()
+
+    if args.reset:
+        try:
+            os.remove(cfgname)
+        except:
+            pass
+        try:
+            os.remove(master)
+        except:
+            pass
+        try:
+            os.remove(routes)
+        except:
+            pass
+
+        url = "https://raw.githubusercontent.com/javiquinte/owndc/package/owndc.cfg.sample"
+        cfg = ul.urlopen(url)
+        with open(cfgname, "w") as fout:
+            fout.write(cfg.read())
+
+        url = "https://raw.githubusercontent.com/javiquinte/owndc/package/data/masterTable.xml"
+        mas = ul.urlopen(url)
+        with open(master, "w") as fout:
+            fout.write(mas.read())
+
+        url = "https://raw.githubusercontent.com/javiquinte/owndc/package/data/owndc-routes.xml"
+        rou = ul.urlopen(url)
+        with open(routes, "w") as fout:
+            fout.write(rou.read())
 
     config = configparser.RawConfigParser()
     # Command line parameter has priority
