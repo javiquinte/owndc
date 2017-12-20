@@ -1,0 +1,3 @@
+[submodule "owndc/routing"]
+	path = owndc/routing
+	url = https://github.com/EIDA/routing
