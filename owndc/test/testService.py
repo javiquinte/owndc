@@ -1,14 +1,13 @@
 #!/usr/bin/env python
 
 import sys
-import os
 import datetime
 import unittest
 import urllib2
 from xml.dom.minidom import parseString
 
-here = os.path.dirname(__file__)
-sys.path.append(os.path.join(here, '..'))
+# here = os.path.dirname(__file__)
+# sys.path.append(os.path.join(here, '..'))
 
 from ..routing.routeutils.unittestTools import WITestRunner
 
@@ -194,6 +193,11 @@ def usage():
 global host
 
 host = 'http://localhost:7000/fdsnws/dataselect/1/query'
+
+
+def suite():
+    return unittest.TestLoader().loadTestsFromTestCase(OwnDCTests)
+
 
 if __name__ == '__main__':
 

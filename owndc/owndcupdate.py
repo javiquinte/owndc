@@ -127,14 +127,6 @@ def main():
             os.remove(cfgname)
         except:
             pass
-        try:
-            os.remove(master)
-        except:
-            pass
-        try:
-            os.remove(routes)
-        except:
-            pass
 
         if not os.path.exists(os.path.dirname(cfgname)):
             os.makedirs(os.path.dirname(cfgname))
@@ -144,23 +136,10 @@ def main():
         with open(cfgname, "w") as fout:
             fout.write(cfg.read())
 
-        if not os.path.exists(os.path.dirname(master)):
-            os.makedirs(os.path.dirname(master))
-
-        url = "https://raw.githubusercontent.com/javiquinte/owndc/package/data/masterTable.xml"
-        mas = ul.urlopen(url)
-        with open(master, "w") as fout:
-            fout.write(mas.read())
-
-        if not os.path.exists(os.path.dirname(routes)):
-            os.makedirs(os.path.dirname(routes))
-
-        url = "https://raw.githubusercontent.com/javiquinte/owndc/package/data/owndc-routes.xml"
-        rou = ul.urlopen(url)
-        with open(routes, "w") as fout:
-            fout.write(rou.read())
-
     config = configparser.RawConfigParser()
+    if not len(config.read(cfgname)):
+        logs.error('Configuration file %s could not be read' % cfgname)
+
     # Command line parameter has priority
     try:
         verbo = getattr(logging, args.loglevel)
@@ -178,8 +157,37 @@ def main():
     logs = logging.getLogger('update')
     logs.setLevel(verbo)
 
-    if not len(config.read(cfgname)):
-        logs.error('Configuration file %s could not be read' % cfgname)
+    if args.reset:
+        try:
+            os.remove(master)
+            logging.debug('Master table removed.')
+        except:
+            pass
+        try:
+            os.remove(routes)
+            logging.debug('Local routes removed.')
+        except:
+            pass
+
+        if not os.path.exists(os.path.dirname(master)):
+            logging.debug('Creating .owndc/data under home directory.')
+            os.makedirs(os.path.dirname(master))
+
+        url = "https://raw.githubusercontent.com/javiquinte/owndc/package/data/masterTable.xml"
+        mas = ul.urlopen(url)
+        with open(master, "w") as fout:
+            logging.debug('Creating a standard master table from Github.')
+            fout.write(mas.read())
+
+        if not os.path.exists(os.path.dirname(routes)):
+            logging.debug('Creating .owndc/data under home directory.')
+            os.makedirs(os.path.dirname(routes))
+
+        url = "https://raw.githubusercontent.com/javiquinte/owndc/package/data/owndc-routes.xml"
+        rou = ul.urlopen(url)
+        with open(routes, "w") as fout:
+            logging.debug('Creating a standard routing table from Github.')
+            fout.write(rou.read())
 
     try:
         os.remove(routes + '.bin')
@@ -192,6 +200,7 @@ def main():
         # Otherwise, default value
         synchroList = ''
 
+    logs.warning('This process can take up 5 minutes to finalize!')
     mergeRoutes(routes, synchroList)
 
 

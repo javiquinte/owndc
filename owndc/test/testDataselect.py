@@ -3,17 +3,17 @@
 import sys
 import os
 
-here = os.path.dirname(__file__)
-sys.path.append(os.path.join(here, '..'))
+# here = os.path.dirname(__file__)
+# sys.path.append(os.path.join(here, '..'))
 
 import unittest
 from ..routing.routeutils.unittestTools import WITestRunner
-from owndc import FakeStorage
-from query import DataSelectQuery
+from ..owndc import FakeStorage
+from ..owndc import DataSelectQuery
 from ..routing.routeutils.wsgicomm import WIClientError
 from ..routing.routeutils.wsgicomm import WIContentError
 
-class OwnDCTests(unittest.TestCase):
+class DataselectTests(unittest.TestCase):
     """Test the functionality of owndc.py
 
     """
@@ -28,16 +28,16 @@ class OwnDCTests(unittest.TestCase):
         if hasattr(cls, 'ds'):
             return
 
-        cls.ds = DataSelectQuery('./owndc-test-routes.xml',
-                                 './masterTable.xml',
-                                 configFile='./owndc-test.cfg')
+        cls.ds = DataSelectQuery('./test-owndc-routes.xml',
+                                 './test-masterTable.xml',
+                                 configFile='./test-owndc.cfg')
 
     @classmethod
     def tearDown(cls):
         "Removing cache and log files"
         if cls.numTestsRun == 4:
-            os.remove('./owndc-test.log')
-            os.remove('./owndc-test-routes.xml.bin')
+            # os.remove('./owndc-test.log')
+            os.remove('./test-owndc-routes.xml.bin')
 
     def testDS_GE(self):
         "Dataselect GE.APE.*.*"
@@ -121,6 +121,11 @@ def usage():
 global host
 
 host = 'http://localhost:7000/fdsnws/dataselect/1/query'
+
+
+def suite():
+    return unittest.TestLoader().loadTestsFromTestCase(DataselectTests)
+
 
 if __name__ == '__main__':
 
