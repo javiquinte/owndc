@@ -1,8 +1,11 @@
 # Include the license file
 include LICENSE
 include README.rst
-include owndc/application.wadl
 include owndc.cfg
+include owndc/application.wadl
+include owndc/test/test-owndc.cfg
+include owndc/test/test-owndc-routes.xml
+include owndc/test/test-masterTable.xml
 
 # Include the data files
 recursive-include data *

@@ -23,7 +23,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='0.9.1a1.dev23',
+    version='0.9.1a1.dev24',
 
     description='owndc: An FDSN Virtual Datacentre for SeisComP3',
     long_description=long_description,
@@ -95,6 +95,9 @@ setup(
     # have to be included in MANIFEST.in as well.
     package_data={
         'owndc': ['owndc/application.wadl'],
+        'owndc/test': ['owndc/test/test-owndc.cfg',
+                       'owndc/test/test-owndc-routes.xml',
+                       'owndc/test/test-masterTable.xml'],
     },
     include_package_data=True,
     # Although 'package_data' is the preferred approach, in some case you may
