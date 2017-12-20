@@ -178,11 +178,11 @@ def main():
     logs = logging.getLogger('update')
     logs.setLevel(verbo)
 
-    if not len(config.read(args.config)):
-        logs.error('Configuration file %s could not be read' % args.config)
+    if not len(config.read(cfgname)):
+        logs.error('Configuration file %s could not be read' % cfgname)
 
     try:
-        os.remove(os.path.join(os.path.expanduser('~'), '.owndc', 'data', 'owndc-routes.xml.bin'))
+        os.remove(routes + '.bin')
     except:
         pass
 
@@ -192,7 +192,7 @@ def main():
         # Otherwise, default value
         synchroList = ''
 
-    mergeRoutes(os.path.join(os.path.expanduser('~'), '.owndc', 'data', 'owndc-routes.xml'), synchroList)
+    mergeRoutes(routes, synchroList)
 
 
 if __name__ == '__main__':
