@@ -4,6 +4,10 @@
   <ns0:station address="http://erde.geophysik.uni-muenchen.de/fdsnws/station/1/query" priority="1" start="1980-01-01T00:00:00" end="" />
   <ns0:dataselect address="http://erde.geophysik.uni-muenchen.de/fdsnws/dataselect/1/query" priority="1" start="1980-01-01T00:00:00" end="" />
  </ns0:route>
+ <ns0:route networkCode="CH" stationCode="*" locationCode="*" streamCode="*">
+  <ns0:station address="http://eida.ethz.ch/fdsnws/station/1/query" priority="1" start="1980-01-01T00:00:00" end="" />
+  <ns0:dataselect address="http://eida.ethz.ch/fdsnws/dataselect/1/query" priority="1" start="1980-01-01T00:00:00" end="" />
+ </ns0:route>
  <ns0:route networkCode="XO" stationCode="*" locationCode="*" streamCode="*">
   <ns0:station address="http://geofon.gfz-potsdam.de/fdsnws/station/1/query" priority="1" start="1995-08-01T00:00:00" end="1995-10-12T00:00:00" />
   <ns0:dataselect address="http://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query" priority="1" start="1995-08-01T00:00:00" end="1995-10-12T00:00:00" />
