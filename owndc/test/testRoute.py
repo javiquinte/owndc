@@ -118,7 +118,7 @@ class RouteCacheTests(unittest.TestCase):
     def testDS_CH_LIENZ_qHZ(self):
         "route for CH.LIENZ.*.?HZ"
 
-        expURL = 'http://eida.ethz.ch/fdsnws/dataselect/1/query'
+        ethURL = 'http://eida.ethz.ch/fdsnws/dataselect/1/query'
         result = self.rc.getRoute(Stream('CH', 'LIENZ', '*', '?HZ'), TW(None, None))
         self.assertIsInstance(result, RequestMerge,
                               'A RequestMerge object was expected!')
