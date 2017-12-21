@@ -7,11 +7,11 @@ import unittest
 # here = os.path.dirname(__file__)
 # sys.path.append(os.path.join(here, '..'))
 
-from ..routing.routeutils.unittestTools import WITestRunner
-from ..routing.routeutils.utils import RoutingCache
-from ..routing.routeutils.utils import RequestMerge
-from ..routing.routeutils.utils import Stream
-from ..routing.routeutils.utils import TW
+from owndc.routing.routeutils.unittestTools import WITestRunner
+from owndc.routing.routeutils.utils import RoutingCache
+from owndc.routing.routeutils.utils import RequestMerge
+from owndc.routing.routeutils.utils import Stream
+from owndc.routing.routeutils.utils import TW
 
 
 class RouteCacheTests(unittest.TestCase):
@@ -104,7 +104,7 @@ class RouteCacheTests(unittest.TestCase):
     def testDS_CH_LIENZ_BHZ(self):
         "route for CH.LIENZ.*.BHZ"
 
-        expURL = 'http://www.orfeus-eu.org/fdsnws/dataselect/1/query'
+        expURL = 'http://eida.ethz.ch/fdsnws/dataselect/1/query'
         result = self.rc.getRoute(Stream('CH', 'LIENZ', '*', 'BHZ'), TW(None, None))
         self.assertIsInstance(result, RequestMerge,
                               'A RequestMerge object was expected!')
@@ -118,12 +118,11 @@ class RouteCacheTests(unittest.TestCase):
     def testDS_CH_LIENZ_qHZ(self):
         "route for CH.LIENZ.*.?HZ"
 
-        odcURL = 'http://www.orfeus-eu.org/fdsnws/dataselect/1/query'
-        ethURL = 'http://eida.ethz.ch/fdsnws/dataselect/1/query'
+        expURL = 'http://eida.ethz.ch/fdsnws/dataselect/1/query'
         result = self.rc.getRoute(Stream('CH', 'LIENZ', '*', '?HZ'), TW(None, None))
         self.assertIsInstance(result, RequestMerge,
                               'A RequestMerge object was expected!')
-        self.assertEqual(len(result), 2,
+        self.assertEqual(len(result), 1,
                          'Wrong number of data centers for CH.LIENZ.*.?HZ!')
 
         for res in result:
@@ -141,20 +140,9 @@ class RouteCacheTests(unittest.TestCase):
                     self.assertIn(i['cha'], myStreams,
                                   '%s is not an expected channel for ETH!'
                                   % i['cha'])
-            elif 'orfeus' in res['url']:
-                self.assertEqual(res['url'], odcURL,
-                                 'Wrong URL for CH.LIENZ.*.?HZ!')
-                self.assertEqual(res['name'], 'dataselect',
-                                 'Wrong service name!')
-
-                self.assertEqual(len(res['params']), 1,
-                                 'Wrong number of streams for ODC!')
-                self.assertIn(res['params'][0]['cha'], 'BHZ',
-                              '%s is not an expected channel for ETH!' %
-                              res['params'][0]['cha'])
             else:
                 self.assertEqual(1, 0,
-                                 'None of the URLs belong to Orfeus or ETH!')
+                                 'None of the URLs belong to ETH!')
 
     def testDS_RO_BZS_BHZ(self):
         "route for RO.BZS.*.BHZ"
