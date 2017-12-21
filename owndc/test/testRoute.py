@@ -42,7 +42,7 @@ class RouteCacheTests(unittest.TestCase):
         "route for GE.*.*.*"
 
         expURL = 'http://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query'
-        result = self.rc.getRoute(Stream('GE', None, None, None), TW(None, None))
+        result = self.rc.getRoute(Stream('GE', '*', '*', '*'), TW(None, None))
         self.assertIsInstance(result, RequestMerge,
                               'A RequestMerge object was expected!')
         self.assertEqual(len(result), 1,
@@ -58,8 +58,8 @@ class RouteCacheTests(unittest.TestCase):
         expURL_GE = 'http://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query'
         expURL_RO = 'http://eida-sc3.infp.ro/fdsnws/dataselect/1/query'
 
-        result = self.rc.getRoute(Stream('GE', None, None, None), TW(None, None))
-        result.extend(self.rc.getRoute(Stream('RO', None, None, None), TW(None, None)))
+        result = self.rc.getRoute(Stream('GE', '*', '*', '*'), TW(None, None))
+        result.extend(self.rc.getRoute(Stream('RO', '*', '*', '*'), TW(None, None)))
         self.assertIsInstance(result, RequestMerge,
                               'A RequestMerge object was expected!')
         self.assertEqual(len(result), 2,
@@ -77,7 +77,7 @@ class RouteCacheTests(unittest.TestCase):
         "route for GE.APE.*.*"
 
         expURL = 'http://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query'
-        result = self.rc.getRoute(Stream('GE', 'APE', None, None), TW(None, None))
+        result = self.rc.getRoute(Stream('GE', 'APE', '*', '*'), TW(None, None))
         self.assertIsInstance(result, RequestMerge,
                               'A RequestMerge object was expected!')
         self.assertEqual(len(result), 1,
