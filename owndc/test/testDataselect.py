@@ -72,7 +72,6 @@ RO VOIR -- BHZ 2015-07-07T14:48:47.0000 2015-07-07T15:18:47.0000"""
         for chunk in iterObj:
             lenData += len(chunk)
 
-        expLen = 75264
         numRecords = (140, 155)
 
         msg = 'Error in size of response! Expected a multiple of 512, but obtained: %d'

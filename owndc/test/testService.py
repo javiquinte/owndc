@@ -160,13 +160,17 @@ class OwnDCTests(unittest.TestCase):
         try:
             u = urllib2.urlopen(req)
             buffer = u.read()
+            lenData = len(buffer)
         except:
             raise Exception('Error retrieving data for GE.APE.*.*')
 
-        expLen = 11776
+        numRecords = (18, 25)
 
-        msg = 'Error in size of response! Expected: %d ; Obtained: %d'
-        self.assertEqual(len(buffer), expLen, msg % (expLen, len(buffer)))
+        msg = 'Error in size of response! Expected a multiple of 512, but obtained: %d'
+        self.assertEqual(lenData/512.0, int(lenData/512.0), msg % lenData)
+
+        msg = 'Error in number of records! Expected records within the range: %s, but obtained %s'
+        self.assertIn(int(lenData / 512.0), range(*numRecords), msg % (numRecords, int(lenData/512)))
 
     def testDS_RO_POST(self):
         "Dataselect for RO.ARR,VOIR.--.BHZ"
@@ -178,13 +182,17 @@ RO VOIR -- BHZ 2015-07-07T14:48:47.0000 2015-07-07T15:18:47.0000"""
         try:
             u = urllib2.urlopen(req)
             buffer = u.read()
+            lenData = len(buffer)
         except:
             raise Exception('Error retrieving data for RO.ARR,VOIR.--.BHZ')
 
-        expLen = 75264
+        numRecords = (140, 155)
 
-        msg = 'Error in size of response! Expected: %d ; Obtained: %d'
-        self.assertEqual(len(buffer), expLen, msg % (expLen, len(buffer)))
+        msg = 'Error in size of response! Expected a multiple of 512, but obtained: %d'
+        self.assertEqual(lenData/512.0, int(lenData/512.0), msg % lenData)
+
+        msg = 'Error in number of records! Expected records within the range: %s, but obtained %s'
+        self.assertIn(int(lenData / 512.0), range(*numRecords), msg % (numRecords, int(lenData/512)))
 
 # ----------------------------------------------------------------------
 def usage():
