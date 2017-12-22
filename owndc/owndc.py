@@ -436,6 +436,7 @@ class Application(object):
             messDict = {'code': 0,
                         'message': str(w)}
             message = json.dumps(messDict)
+            print(message)
             cherrypy.response.headers['Content-Type'] = 'application/json'
             raise cherrypy.HTTPError(400, message)
 

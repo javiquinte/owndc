@@ -175,8 +175,8 @@ class OwnDCTests(unittest.TestCase):
     def testDS_RO_POST(self):
         "Dataselect for RO.ARR,VOIR.--.BHZ"
 
-        postReq = """RO ARR -- BHZ 2015-03-07T14:39:36.0000 2015-03-07T15:09:36.0000
-RO VOIR -- BHZ 2015-07-07T14:48:47.0000 2015-07-07T15:18:47.0000"""
+        postReq = """RO ARR -- BHZ 2015-03-07T14:39:36.0000Z 2015-03-07T15:09:36.0000Z
+RO VOIR -- BHZ 2015-07-07T14:48:47.0000Z 2015-07-07T15:18:47.0000Z"""
 
         req = urllib2.Request(self.host, postReq)
         try:
