@@ -132,14 +132,6 @@ class RouteCacheTests(unittest.TestCase):
                 self.assertEqual(res['name'], 'dataselect',
                                  'Wrong service name!')
 
-                myStreams = ['LHZ', 'HHZ']
-                self.assertEqual(len(res['params']), len(myStreams),
-                                 'Wrong number of streams for ETH!')
-
-                for i in res['params']:
-                    self.assertIn(i['cha'], myStreams,
-                                  '%s is not an expected channel for ETH!'
-                                  % i['cha'])
             else:
                 self.assertEqual(1, 0,
                                  'None of the URLs belong to ETH!')
