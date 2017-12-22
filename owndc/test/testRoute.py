@@ -53,7 +53,7 @@ class RouteCacheTests(unittest.TestCase):
                          'Wrong service name!')
 
     def testDS_GE_RO(self):
-        "route for GE,RO.*.*.*"
+        "route for GE.RO.*.*.*"
 
         expURL_GE = 'http://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query'
         expURL_RO = 'http://eida-sc3.infp.ro/fdsnws/dataselect/1/query'

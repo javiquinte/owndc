@@ -7,11 +7,11 @@ import os
 # sys.path.append(os.path.join(here, '..'))
 
 import unittest
-from ..routing.routeutils.unittestTools import WITestRunner
-from ..owndc import FakeStorage
-from ..owndc import DataSelectQuery
-from ..routing.routeutils.wsgicomm import WIClientError
-from ..routing.routeutils.wsgicomm import WIContentError
+from owndc.routing.routeutils.unittestTools import WITestRunner
+from owndc.owndc import FakeStorage
+from owndc.owndc import DataSelectQuery
+from owndc.routing.routeutils.wsgicomm import WIClientError
+from owndc.routing.routeutils.wsgicomm import WIContentError
 
 class DataselectTests(unittest.TestCase):
     """Test the functionality of owndc.py
@@ -53,10 +53,13 @@ class DataselectTests(unittest.TestCase):
         for chunk in iterObj:
             lenData += len(chunk)
 
-        expLen = 11776
+        numRecords = (18, 25)
 
-        msg = 'Error in size of response! Expected: %d ; Obtained: %d'
-        self.assertEqual(lenData, expLen, msg % (expLen, lenData))
+        msg = 'Error in size of response! Expected a multiple of 512, but obtained: %d'
+        self.assertEqual(lenData/512.0, int(lenData/512.0), msg % lenData)
+
+        msg = 'Error in number of records! Expected records within the range: %s, but obtained %s'
+        self.assertIn(int(lenData / 512.0), range(*numRecords), msg % (numRecords, int(lenData/512)))
 
     def testDS_RO_POST(self):
         "Dataselect via POST method with RO.ARR,VOIR.--.BHZ"
@@ -70,9 +73,13 @@ RO VOIR -- BHZ 2015-07-07T14:48:47.0000 2015-07-07T15:18:47.0000"""
             lenData += len(chunk)
 
         expLen = 75264
+        numRecords = (140, 155)
 
-        msg = 'Error in size of response! Expected: %d ; Obtained: %d'
-        self.assertEqual(lenData, expLen, msg % (expLen, lenData))
+        msg = 'Error in size of response! Expected a multiple of 512, but obtained: %d'
+        self.assertEqual(lenData/512.0, int(lenData/512.0), msg % lenData)
+
+        msg = 'Error in number of records! Expected records within the range: %s, but obtained %s'
+        self.assertIn(int(lenData / 512.0), range(*numRecords), msg % (numRecords, int(lenData/512)))
 
     def testDS_XX(self):
         "Unknown network XX"
