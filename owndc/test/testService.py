@@ -183,7 +183,8 @@ RO VOIR -- BHZ 2015-07-07T14:48:47.0000 2015-07-07T15:18:47.0000"""
             u = urllib2.urlopen(req)
             buffer = u.read()
             lenData = len(buffer)
-        except:
+        except Exception as e:
+            print(e)
             raise Exception('Error retrieving data for RO.ARR,VOIR.--.BHZ')
 
         numRecords = (140, 155)
