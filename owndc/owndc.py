@@ -28,6 +28,7 @@ import ConfigParser as configparser
 import datetime
 import urllib2 as ul
 
+from cherrypy.process import plugins
 from routing.routeutils.wsgicomm import WIError
 from routing.routeutils.wsgicomm import WIClientError
 from routing.routeutils.wsgicomm import WIContentError
@@ -389,6 +390,10 @@ class Application(object):
                 cherrypy.response.status = 204
                 return
 
+        except WIContentError as w:
+            cherrypy.response.status = 204
+            return
+
         except WIError as w:
             messDict = {'code': 0,
                         'message': str(w)}
@@ -493,16 +498,32 @@ def main():
             'tools.trailing_slash.on': False,
             'server.socket_host': host,
             'server.socket_port': port,
-            'engine.autoreload_on': False
+            'engine.autoreload_on': False,
+            'log.screen': False
         }
     }
     # Update the global CherryPy configuration
     cherrypy.config.update(server_config)
     # TODO Pass all parameters to Application!
     cherrypy.tree.mount(Application(), '/fdsnws/dataselect/1')
-    cherrypy.engine.signals.subscribe()
-    cherrypy.engine.start()
-    cherrypy.engine.block()
+    # cherrypy.engine.signals.subscribe()
+    # cherrypy.engine.start()
+    # cherrypy.engine.block()
+
+    plugins.Daemonizer(cherrypy.engine).subscribe()
+    if hasattr(cherrypy.engine, 'signal_handler'):
+        cherrypy.engine.signal_handler.subscribe()
+    if hasattr(cherrypy.engine, 'console_control_handler'):
+        cherrypy.engine.console_control_handler.subscribe()
+
+    # Always start the engine; this will start all other services
+    try:
+        cherrypy.engine.start()
+    except Exception:
+        # Assume the error has been logged already via bus.log.
+        raise
+    else:
+        cherrypy.engine.block()
 
 
 if __name__ == '__main__':
