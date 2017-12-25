@@ -179,6 +179,7 @@ class OwnDCTests(unittest.TestCase):
 RO VOIR -- BHZ 2015-07-07T14:48:47.0000Z 2015-07-07T15:18:47.0000Z"""
 
         req = urllib2.Request(self.host, postReq)
+        req.add_header('Content-type', 'text/plain')
         try:
             u = urllib2.urlopen(req)
             buffer = u.read()
