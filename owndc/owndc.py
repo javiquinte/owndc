@@ -48,12 +48,79 @@ dsversion = '1.1.0'
 
 global dsq
 
+# Logging configuration (hardcoded!)
+LOG_CONF = {
+    'version': 1,
+
+    'formatters': {
+        'void': {
+            'format': ''
+        },
+        'standard': {
+            'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
+        },
+    },
+    'handlers': {
+        'default': {
+            'level':'INFO',
+            'class':'logging.StreamHandler',
+            'formatter': 'standard',
+            'stream': 'ext://sys.stdout'
+        },
+        'cherrypy_console': {
+            'level':'INFO',
+            'class':'logging.StreamHandler',
+            'formatter': 'void',
+            'stream': 'ext://sys.stdout'
+        },
+        'cherrypy_access': {
+            'level':'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'formatter': 'void',
+            'filename': 'access.log',
+            'maxBytes': 10485760,
+            'backupCount': 20,
+            'encoding': 'utf8'
+        },
+        'cherrypy_error': {
+            'level':'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'formatter': 'void',
+            'filename': 'errors.log',
+            'maxBytes': 10485760,
+            'backupCount': 20,
+            'encoding': 'utf8'
+        },
+    },
+    'loggers': {
+        'main': {
+            'handlers': ['default'],
+            'level': 'DEBUG'
+        },
+        'ResultFile': {
+            'handlers': ['cherrypy_console'],
+            'level': 'DEBUG' ,
+            'propagate': False
+        },
+        'DataSelectQuery': {
+            'handlers': ['cherrypy_access'],
+            'level': 'DEBUG',
+            'propagate': False
+        },
+        'Application': {
+            'handlers': ['cherrypy_error'],
+            'level': 'DEBUG',
+            'propagate': False
+        },
+    }
+}
 
 class ResultFile(object):
     """Define a class that is an iterable. We can start returning the file
     before everything was retrieved from the sources."""
 
-    def __init__(self, urlList, log=None):
+    def __init__(self, urlList):
+        self.log = logging.getLogger('ResultFile')
         self.urlList = urlList
         self.content_type = 'application/vnd.fdsn.mseed'
         now = datetime.datetime.now()
@@ -62,12 +129,6 @@ class ResultFile(object):
                                                 now.second)
 
         self.filename = 'owndc-%s.mseed' % nowStr
-
-        # Set the logging properties
-        if log is not None:
-            self.log = log
-        else:
-            self.log = logging
 
     def __iter__(self):
         """
@@ -96,7 +157,7 @@ class ResultFile(object):
                 try:
                     buffer = u.read(blockSize)
                 except:
-                    self.log.error('Oops!')
+                    self.log.error('Error reading data from %s!' % url)
 
                 while len(buffer):
                     totalBytes += len(buffer)
@@ -105,7 +166,7 @@ class ResultFile(object):
                     try:
                         buffer = u.read(blockSize)
                     except:
-                        self.log.error('Oops!')
+                        self.log.error('Error reading data from %s!' % url)
                     self.log.debug('%s/%s - %s bytes from %s' %
                                    (pos, len(self.urlList), totalBytes, url))
 
@@ -132,8 +193,8 @@ class ResultFile(object):
 
 class DataSelectQuery(object):
     def __init__(self, routesFile=None, masterFile=None,
-                 configFile=None, log=None):
-
+                 configFile=None):
+        self.log = logging.getLogger('DataSelectQuery')
         if routesFile is None:
             routesFile = os.path.join(os.path.expanduser('~'), '.owndc', 'data', 'routing.xml')
 
@@ -150,12 +211,6 @@ class DataSelectQuery(object):
 
         self.ID = str(datetime.datetime.now())
 
-        # Set the logging properties
-        if log is not None:
-            self.log = log
-        else:
-            self.log = logging
-
     def makeQueryPOST(self, lines):
 
         urlList = []
@@ -167,7 +222,7 @@ class DataSelectQuery(object):
             try:
                 net, sta, loc, cha, start, endt = line.split(' ')
             except:
-                logging.error('Cannot parse line: %s' % line)
+                self.log.error('Cannot parse line: %s' % line)
                 continue
 
             # Empty location
@@ -321,10 +376,11 @@ class FakeStorage(dict):
 # Application class
 class Application(object):
     def __init__(self):
-        pass
+        self.log = logging.getLogger('Application')
 
     @cherrypy.expose
     def index(self):
+        self.log.debug('Showing owndc help page.')
         cherrypy.response.headers['Server'] = 'owndc/%s' % version
         cherrypy.response.headers['Content-Type'] = 'text/html'
         helptext = '<body><h1>Help of the Dataselect implementation by owndc</h1></body>.'
@@ -337,6 +393,7 @@ class Application(object):
         :returns: System version in plain text format
         :rtype: utf-8 encoded string
         """
+        self.log.debug('Return owndc version number.')
         cherrypy.response.headers['Server'] = 'owndc/%s' % version
         cherrypy.response.headers['Content-Type'] = 'text/plain'
         cherrypy.response.headers['Content-Length'] = str(len(dsversion.encode('utf-8')))
@@ -344,6 +401,7 @@ class Application(object):
 
     @cherrypy.expose(alias='application.wadl')
     def applicationwadl(self):
+        self.log.debug('Return application.wadl.')
         here = os.path.dirname(__file__)
         with open(os.path.join(here, 'application.wadl'), 'r') \
                 as appFile:
@@ -359,8 +417,10 @@ class Application(object):
             return self.queryGET(**kwargs)
         elif cherrypy.request.method.upper() == 'POST':
             return self.queryPOST()
+        self.log.error('Request method is neither GET nor POST.')
 
     def queryGET(self, **kwargs):
+        self.log.debug('Query with GET method')
         cherrypy.response.headers['Server'] = 'owndc/%s' % version
 
         for k, v in kwargs.items():
@@ -378,19 +438,23 @@ class Application(object):
                     # ACTUALLY data to send
 
                     # Content-length cannot be set because the file size is unknown
+                    self.log.debug('Setting headers.')
                     cherrypy.response.headers['Content-Type'] = iterObj.content_type
                     cherrypy.response.headers['Content-Disposition'] = 'attachment; filename=%s' % (iterObj.filename)
 
                 # Increment the loop count
                 loop += 1
                 # and send data
+                self.log.debug('Send chunk')
                 yield data
 
             if loop == 0:
+                self.log.debug('Send 204 HTTP error code')
                 cherrypy.response.status = 204
                 return
 
         except WIContentError as w:
+            self.log.debug('Send 204 HTTP error code')
             cherrypy.response.status = 204
             return
 
@@ -399,19 +463,21 @@ class Application(object):
                         'message': str(w)}
             message = json.dumps(messDict)
             cherrypy.response.headers['Content-Type'] = 'application/json'
+            self.log.debug('Send 400 HTTP error code')
             raise cherrypy.HTTPError(400, message)
 
     queryGET._cp_config = {'response.stream': True}
 
     def queryPOST(self):
+        self.log.debug('Query with POST method')
         cherrypy.response.headers['Server'] = 'owndc/%s' % version
 
         length = int(cherrypy.request.headers.get('content-length', 0))
-        logging.debug('Length: %s' % length)
+        self.log.debug('Length: %s' % length)
         lines = cherrypy.request.body.fp.read(length)
 
         # Show request
-        logging.info('POST request with %s lines' % len(lines.split('\n')))
+        self.log.debug('Request body:' % lines)
 
         try:
             iterObj = dsq.makeQueryPOST(lines)
@@ -424,6 +490,7 @@ class Application(object):
                     # This needs to be done here so that we are sure that there is
                     # ACTUALLY data to send
 
+                    self.log.debug('Setting headers.')
                     # Content-length cannot be set because the file size is unknown
                     cherrypy.response.headers['Content-Type'] = iterObj.content_type
                     cherrypy.response.headers['Content-Disposition'] = 'attachment; filename=%s' % (iterObj.filename)
@@ -431,9 +498,11 @@ class Application(object):
                 # Increment the loop count
                 loop += 1
                 # and send data
+                self.log.debug('Send chunk')
                 yield data
 
             if loop == 0:
+                self.log.debug('Send 204 HTTP error code')
                 cherrypy.response.status = 204
                 return
 
@@ -441,7 +510,7 @@ class Application(object):
             messDict = {'code': 0,
                         'message': str(w)}
             message = json.dumps(messDict)
-            print(message)
+            self.log.debug('Send 400 HTTP error code')
             cherrypy.response.headers['Content-Type'] = 'application/json'
             raise cherrypy.HTTPError(400, message)
 
@@ -469,12 +538,12 @@ def main():
     configP = configparser.RawConfigParser()
     configP.read(args.config)
 
-    verbo = configP.get('Service', 'verbosity')
-    verboNum = getattr(logging, verbo.upper(), 30)
-
-    logging.basicConfig(logLevel=verboNum)
+    logging.config.dictConfig(LOG_CONF)
+    # verbo = configP.get('Service', 'verbosity')
+    # verboNum = getattr(logging, verbo.upper(), 30)
+    #
+    # logging.basicConfig(logLevel=verboNum)
     loclog = logging.getLogger('main')
-    loclog.setLevel(verboNum)
 
     try:
         port = int(args.port)
@@ -506,9 +575,6 @@ def main():
     cherrypy.config.update(server_config)
     # TODO Pass all parameters to Application!
     cherrypy.tree.mount(Application(), '/fdsnws/dataselect/1')
-    # cherrypy.engine.signals.subscribe()
-    # cherrypy.engine.start()
-    # cherrypy.engine.block()
 
     plugins.Daemonizer(cherrypy.engine).subscribe()
     if hasattr(cherrypy.engine, 'signal_handler'):
