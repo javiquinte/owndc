@@ -24,6 +24,7 @@ import cherrypy
 import json
 import argparse
 import logging
+import logging.config
 import ConfigParser as configparser
 import datetime
 import urllib2 as ul
@@ -477,7 +478,7 @@ class Application(object):
         lines = cherrypy.request.body.fp.read(length)
 
         # Show request
-        self.log.debug('Request body:' % lines)
+        self.log.debug('Request body:\n%s' % lines)
 
         try:
             iterObj = dsq.makeQueryPOST(lines)
