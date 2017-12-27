@@ -290,7 +290,8 @@ class DataSelectQuery(object):
                 net = '*'
             net = net.split(',')
         except:
-            net = ['*']
+            self.log.error('Network could not be parsed!')
+            raise WIClientError('Network could not be parsed!')
 
         try:
             if 'station' in parameters:
@@ -301,7 +302,8 @@ class DataSelectQuery(object):
                 sta = '*'
             sta = sta.split(',')
         except:
-            sta = ['*']
+            self.log.error('Station could not be parsed!')
+            raise WIClientError('Station could not be parsed!')
 
         try:
             if 'location' in parameters:
@@ -312,7 +314,8 @@ class DataSelectQuery(object):
                 loc = '*'
             loc = loc.split(',')
         except:
-            loc = ['*']
+            self.log.error('Location could not be parsed!')
+            raise WIClientError('Location could not be parsed!')
 
         try:
             if 'channel' in parameters:
@@ -323,7 +326,8 @@ class DataSelectQuery(object):
                 cha = '*'
             cha = cha.split(',')
         except:
-            cha = ['*']
+            self.log.error('Channel could not be parsed!')
+            raise WIClientError('Channel could not be parsed!')
 
         try:
             if 'starttime' in parameters:
@@ -423,6 +427,12 @@ class Application(object):
 
     @cherrypy.expose
     def query(self, **kwargs):
+        # Check that the query string is not longer than 2000 chars
+        if len(cherrypy.request.query_string) > 2000:
+            cherrypy.response.headers['Server'] = 'owndc/%s' % version
+            cherrypy.response.status = 414
+            return
+
         if cherrypy.request.method.upper() == 'GET':
             return self.queryGET(**kwargs)
         elif cherrypy.request.method.upper() == 'POST':
