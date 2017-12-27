@@ -335,7 +335,7 @@ class DataSelectQuery(object):
             elif 'start' in parameters:
                 start = str2date(parameters['start'].value.upper())
             else:
-                raise Exception
+                start = None
         except:
             self.log.error('Error while converting starttime parameter.')
             raise WIClientError('Error while converting starttime parameter.')
@@ -346,7 +346,7 @@ class DataSelectQuery(object):
             elif 'end' in parameters:
                 endt = str2date(parameters['end'].value.upper())
             else:
-                raise Exception
+                endt = None
         except:
             self.log.error('Error while converting endtime parameter.')
             raise WIClientError('Error while converting endtime parameter.')
