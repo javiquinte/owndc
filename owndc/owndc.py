@@ -63,31 +63,34 @@ LOG_CONF = {
     },
     'handlers': {
         'default': {
-            'level':'INFO',
+            'level':'DEBUG',
             'class':'logging.StreamHandler',
             'formatter': 'standard',
             'stream': 'ext://sys.stdout'
         },
-        'cherrypy_console': {
-            'level':'INFO',
-            'class':'logging.StreamHandler',
-            'formatter': 'standard',
-            'stream': 'ext://sys.stdout'
-        },
-        'cherrypy_access': {
-            'level':'INFO',
+        'owndclog': {
+            'level':'DEBUG',
             'class': 'logging.handlers.RotatingFileHandler',
             'formatter': 'standard',
-            'filename': 'access.log',
+            'filename': os.path.join(os.path.expanduser('~'), '.owndc', 'owndc.log'),
+            'maxBytes': 10485760,
+            'backupCount': 20,
+            'encoding': 'utf8'
+        },
+        'cherrypy_access': {
+            'level':'DEBUG',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'formatter': 'standard',
+            'filename': os.path.join(os.path.expanduser('~'), '.owndc', 'access.log'),
             'maxBytes': 10485760,
             'backupCount': 20,
             'encoding': 'utf8'
         },
         'cherrypy_error': {
-            'level':'INFO',
+            'level':'DEBUG',
             'class': 'logging.handlers.RotatingFileHandler',
             'formatter': 'standard',
-            'filename': 'errors.log',
+            'filename': os.path.join(os.path.expanduser('~'), '.owndc', 'errors.log'),
             'maxBytes': 10485760,
             'backupCount': 20,
             'encoding': 'utf8'
@@ -95,22 +98,32 @@ LOG_CONF = {
     },
     'loggers': {
         'main': {
-            'handlers': ['default'],
-            'level': 'DEBUG'
+            'handlers': ['owndclog'],
+            'level': 'INFO'
         },
         'ResultFile': {
-            'handlers': ['cherrypy_console'],
-            'level': 'DEBUG' ,
+            'handlers': ['owndclog'],
+            'level': 'INFO' ,
             'propagate': False
         },
         'DataSelectQuery': {
-            'handlers': ['cherrypy_access'],
-            'level': 'DEBUG',
+            'handlers': ['owndclog'],
+            'level': 'INFO',
             'propagate': False
         },
         'Application': {
+            'handlers': ['owndclog'],
+            'level': 'INFO',
+            'propagate': False
+        },
+        'cherrypy.access': {
+            'handlers': ['cherrypy_access'],
+            'level': 'INFO',
+            'propagate': False
+        },
+        'cherrypy.error': {
             'handlers': ['cherrypy_error'],
-            'level': 'DEBUG',
+            'level': 'INFO',
             'propagate': False
         },
     }
