@@ -23,7 +23,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='0.9.1a1.dev29',
+    version='0.9.1a1.dev30',
 
     description='owndc: An FDSN Virtual Datacentre for SeisComP3',
     long_description=long_description,

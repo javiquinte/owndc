@@ -71,13 +71,13 @@ LOG_CONF = {
         'cherrypy_console': {
             'level':'INFO',
             'class':'logging.StreamHandler',
-            'formatter': 'void',
+            'formatter': 'standard',
             'stream': 'ext://sys.stdout'
         },
         'cherrypy_access': {
             'level':'INFO',
             'class': 'logging.handlers.RotatingFileHandler',
-            'formatter': 'void',
+            'formatter': 'standard',
             'filename': 'access.log',
             'maxBytes': 10485760,
             'backupCount': 20,
@@ -86,7 +86,7 @@ LOG_CONF = {
         'cherrypy_error': {
             'level':'INFO',
             'class': 'logging.handlers.RotatingFileHandler',
-            'formatter': 'void',
+            'formatter': 'standard',
             'filename': 'errors.log',
             'maxBytes': 10485760,
             'backupCount': 20,
@@ -197,23 +197,25 @@ class DataSelectQuery(object):
                  configFile=None):
         self.log = logging.getLogger('DataSelectQuery')
         if routesFile is None:
-            routesFile = os.path.join(os.path.expanduser('~'), '.owndc', 'data', 'routing.xml')
+            routesFile = os.path.join(os.path.expanduser('~'), '.owndc', 'data', 'owndc-routes.xml')
 
         if masterFile is None:
             masterFile = os.path.join(os.path.expanduser('~'), '.owndc', 'data', 'masterTable.xml')
 
         if configFile is None:
-            configFile = os.path.join(os.path.expanduser('~'), '.owndc', 'routing.cfg')
+            configFile = os.path.join(os.path.expanduser('~'), '.owndc', 'owndc.cfg')
 
         # Dataselect version
         self.version = '1.1.0'
 
+        self.log.debug('Creating Routing Cache.')
         self.routes = RoutingCache(routesFile, masterFile, configFile)
 
         self.ID = str(datetime.datetime.now())
 
     def makeQueryPOST(self, lines):
 
+        self.log.debug('Query with POST method and body:\n%s' % lines)
         urlList = []
         for line in lines.split('\n'):
             # Skip empty lines
@@ -247,6 +249,7 @@ class DataSelectQuery(object):
             try:
                 st = Stream(net, sta, loc, cha)
                 tw = TW(start, endt)
+                self.log.debug('Retrieve routes for %s %s' % (st, tw))
                 fdsnws = self.routes.getRoute(st, tw, 'dataselect')
                 urlList.extend(applyFormat(fdsnws, 'get').splitlines())
 
@@ -255,6 +258,7 @@ class DataSelectQuery(object):
                 continue
 
         if not len(urlList):
+            self.log.debug('No routes found!')
             raise WIContentError('No routes have been found!')
 
         iterObj = ResultFile(urlList)
@@ -270,9 +274,11 @@ class DataSelectQuery(object):
                          'end', 'endtime',
                          'user']
 
+        self.log.debug('Query with GET method and parameters:\n%s' % parameters)
         for param in parameters:
             if param not in allowedParams:
                 # return 'Unknown parameter: %s' % param
+                self.log.error('Unknown parameter: %s' % param)
                 raise WIClientError('Unknown parameter: %s' % param)
 
         try:
@@ -327,6 +333,7 @@ class DataSelectQuery(object):
             else:
                 raise Exception
         except:
+            self.log.error('Error while converting starttime parameter.')
             raise WIClientError('Error while converting starttime parameter.')
 
         try:
@@ -337,6 +344,7 @@ class DataSelectQuery(object):
             else:
                 raise Exception
         except:
+            self.log.error('Error while converting endtime parameter.')
             raise WIClientError('Error while converting endtime parameter.')
 
         urlList = []
@@ -352,6 +360,7 @@ class DataSelectQuery(object):
                 pass
 
         if not len(urlList):
+            self.log.debug('No routes found!')
             raise WIContentError('No routes have been found!')
 
         iterObj = ResultFile(urlList)
