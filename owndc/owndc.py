@@ -573,27 +573,27 @@ def main():
     # Logging configuration
     verbo = configP.get('Logging', 'main') if configP.has_option('Logging', 'main') else 'INFO'
     verboNum = getattr(logging, verbo.upper(), 30)
-    LOG_CONF['handlers']['main']['level'] = verboNum
+    LOG_CONF['loggers']['main']['level'] = verboNum
 
     verbo = configP.get('Logging', 'ResultFile') if configP.has_option('Logging', 'ResultFile') else 'INFO'
     verboNum = getattr(logging, verbo.upper(), 30)
-    LOG_CONF['handlers']['ResultFile']['level'] = verboNum
+    LOG_CONF['loggers']['ResultFile']['level'] = verboNum
 
     verbo = configP.get('Logging', 'DataSelectQuery') if configP.has_option('Logging', 'DataSelectQuery') else 'INFO'
     verboNum = getattr(logging, verbo.upper(), 30)
-    LOG_CONF['handlers']['DataSelectQuery']['level'] = verboNum
+    LOG_CONF['loggers']['DataSelectQuery']['level'] = verboNum
 
     verbo = configP.get('Logging', 'Application') if configP.has_option('Logging', 'Application') else 'INFO'
     verboNum = getattr(logging, verbo.upper(), 30)
-    LOG_CONF['handlers']['Application']['level'] = verboNum
+    LOG_CONF['loggers']['Application']['level'] = verboNum
 
     verbo = configP.get('Logging', 'cherrypy.access') if configP.has_option('Logging', 'cherrypy.access') else 'INFO'
     verboNum = getattr(logging, verbo.upper(), 30)
-    LOG_CONF['handlers']['cherrypy.access']['level'] = verboNum
+    LOG_CONF['loggers']['cherrypy.access']['level'] = verboNum
 
     verbo = configP.get('Logging', 'cherrypy.error') if configP.has_option('Logging', 'cherrypy.error') else 'INFO'
     verboNum = getattr(logging, verbo.upper(), 30)
-    LOG_CONF['handlers']['cherrypy.error']['level'] = verboNum
+    LOG_CONF['loggers']['cherrypy.error']['level'] = verboNum
 
     logging.config.dictConfig(LOG_CONF)
 

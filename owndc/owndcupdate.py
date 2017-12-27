@@ -138,7 +138,7 @@ def main():
 
     config = configparser.RawConfigParser()
     if not len(config.read(cfgname)):
-        logs.error('Configuration file %s could not be read' % cfgname)
+        print('Configuration file %s could not be read' % cfgname)
 
     # Command line parameter has priority
     try:
