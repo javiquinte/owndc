@@ -80,14 +80,14 @@ class OwnDCTests(unittest.TestCase):
         return
 
     def test_wrong_datetime(self):
-        "swap start and end time"
+        "wrong datetime"
 
         d1 = datetime.datetime(2004, 1, 1)
-        d2 = d1 - datetime.timedelta(days=1)
+        d2 = datetime.datetime(2004, 1, 2)
         req = urllib2.Request('%s?net=GE&start=%s&end=%s' % (self.host,
-                                                             d1.isoformat(),
-                                                             d2.isoformat()))
-        msg = 'When starttime > endtime an error code 400 is expected!'
+                                                             d1.isoformat() + 'A',
+                                                             'A' + d2.isoformat()))
+        msg = 'If a datetime format error occurs an HTTP 400 code is expected!'
         try:
             u = urllib2.urlopen(req)
             u.read()
