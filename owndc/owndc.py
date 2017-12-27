@@ -227,7 +227,6 @@ class DataSelectQuery(object):
         self.ID = str(datetime.datetime.now())
 
     def makeQueryPOST(self, lines):
-
         self.log.debug('Query with POST method and body:\n%s' % lines)
         urlList = []
         for line in lines.split('\n'):
@@ -571,11 +570,33 @@ def main():
     configP = configparser.RawConfigParser()
     configP.read(args.config)
 
+    # Logging configuration
+    verbo = configP.get('Logging', 'main') if configP.has_option('Logging', 'main') else 'INFO'
+    verboNum = getattr(logging, verbo.upper(), 30)
+    LOG_CONF['handlers']['main']['level'] = verboNum
+
+    verbo = configP.get('Logging', 'ResultFile') if configP.has_option('Logging', 'ResultFile') else 'INFO'
+    verboNum = getattr(logging, verbo.upper(), 30)
+    LOG_CONF['handlers']['ResultFile']['level'] = verboNum
+
+    verbo = configP.get('Logging', 'DataSelectQuery') if configP.has_option('Logging', 'DataSelectQuery') else 'INFO'
+    verboNum = getattr(logging, verbo.upper(), 30)
+    LOG_CONF['handlers']['DataSelectQuery']['level'] = verboNum
+
+    verbo = configP.get('Logging', 'Application') if configP.has_option('Logging', 'Application') else 'INFO'
+    verboNum = getattr(logging, verbo.upper(), 30)
+    LOG_CONF['handlers']['Application']['level'] = verboNum
+
+    verbo = configP.get('Logging', 'cherrypy.access') if configP.has_option('Logging', 'cherrypy.access') else 'INFO'
+    verboNum = getattr(logging, verbo.upper(), 30)
+    LOG_CONF['handlers']['cherrypy.access']['level'] = verboNum
+
+    verbo = configP.get('Logging', 'cherrypy.error') if configP.has_option('Logging', 'cherrypy.error') else 'INFO'
+    verboNum = getattr(logging, verbo.upper(), 30)
+    LOG_CONF['handlers']['cherrypy.error']['level'] = verboNum
+
     logging.config.dictConfig(LOG_CONF)
-    # verbo = configP.get('Service', 'verbosity')
-    # verboNum = getattr(logging, verbo.upper(), 30)
-    #
-    # logging.basicConfig(logLevel=verboNum)
+
     loclog = logging.getLogger('main')
 
     try:
@@ -590,7 +611,6 @@ def main():
     dsq = DataSelectQuery(os.path.join(os.path.expanduser('~'), '.owndc', 'data', 'owndc-routes.xml'),
                           os.path.join(os.path.expanduser('~'), '.owndc', 'data', 'masterTable.xml'),
                           args.config)
-    loclog.info('Ready to answer queries!')
     loclog.info("Virtual Datacentre at: http://%s:%s/fdsnws/dataselect/1/" %
                 (host, port))
 
