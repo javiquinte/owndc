@@ -49,7 +49,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'OwnDC'
+project = u'owndc'
 copyright = u'2015, Javier Quinteros'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -182,7 +182,7 @@ html_static_path = ['_static']
 #html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'OwnDCdoc'
+htmlhelp_basename = 'owndcdoc'
 
 
 # -- Options for LaTeX output ---------------------------------------------
@@ -202,7 +202,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  ('index', 'OwnDC.tex', u'OwnDC Documentation',
+  ('index', 'owndc.tex', u'owndc Documentation',
    u'Javier Quinteros', 'manual'),
 ]
 
@@ -232,7 +232,7 @@ latex_logo = 'GFZ-logo.jpg'
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'owndc', u'OwnDC Documentation',
+    ('index', 'owndc', u'owndc Documentation',
      [u'Javier Quinteros'], 1)
 ]
 
@@ -246,8 +246,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'OwnDC', u'OwnDC Documentation',
-   u'Javier Quinteros', 'OwnDC', 'One line description of project.',
+  ('index', 'owndc', u'owndc Documentation',
+   u'Javier Quinteros', 'owndc', 'One line description of project.',
    'Miscellaneous'),
 ]
 
