@@ -37,6 +37,7 @@ allowoverlap = false
 # Possible values are:
 # CRITICAL, ERROR, WARNING, INFO, DEBUG
 main = INFO
+DSRequest = INFO
 ResultFile = INFO
 DataSelectQuery = INFO
 Application = INFO

@@ -101,6 +101,11 @@ LOG_CONF = {
             'handlers': ['owndclog'],
             'level': 'INFO'
         },
+        'DSRequest': {
+            'handlers': ['owndclog'],
+            'level': 'INFO' ,
+            'propagate': False
+        },
         'ResultFile': {
             'handlers': ['owndclog'],
             'level': 'INFO' ,
