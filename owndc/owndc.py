@@ -139,14 +139,15 @@ class DSRequest(object):
     def __enter__(self):
         req = ul.Request(self.url)
 
-        totalBytes = 0
-        httpErr = 0
+        # totalBytes = 0
+        # httpErr = 0
         # Connect to the proper FDSN-WS
         try:
             self.u = ul.urlopen(req)
             self.log.debug('Connected to %s' % (self.url))
         except:
             raise
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.u.close()
