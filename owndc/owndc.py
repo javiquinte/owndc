@@ -129,6 +129,48 @@ LOG_CONF = {
     }
 }
 
+class DSRequest(object):
+    """Define a Dataselect request as a file-like object"""
+
+    def __init__(self, url):
+        self.url = url
+        self.log = logging.getLogger('DSRequest')
+
+    def __enter__(self):
+        req = ul.Request(self.url)
+
+        totalBytes = 0
+        httpErr = 0
+        # Connect to the proper FDSN-WS
+        try:
+            self.u = ul.urlopen(req)
+            self.log.debug('Connected to %s' % (self.url))
+        except:
+            raise
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.u.close()
+
+    def read(self, blocks=0):
+        # Read the data in blocks of predefined size
+        blockSize = int(4096 * blocks)
+        try:
+            return self.u.read(blockSize)
+        except ul.URLError as e:
+            if hasattr(e, 'reason'):
+                self.log.error('%s - Reason: %s' % (self.url, e.reason))
+            elif hasattr(e, 'code'):
+                self.log.error('The server couldn\'t fulfill the request')
+                self.log.error('Error code: %s' % e.code)
+
+            if hasattr(e, 'code'):
+                httpErr = e.code
+        except Exception as e:
+            self.log.error('%s' % e)
+        except:
+            self.log.error('Error reading data from %s!' % self.url)
+
+
 class ResultFile(object):
     """Define a class that is an iterable. We can start returning the file
     before everything was retrieved from the sources."""
@@ -151,25 +193,19 @@ class ResultFile(object):
         different sources.
         """
 
-        blockSize = 25 * 4096
-
+        blocks = 25
         status = ''
 
         for pos, url in enumerate(self.urlList):
             # Prepare Request
             self.log.debug('%s/%s - Connecting %s' % (pos, len(self.urlList), url))
-            req = ul.Request(url)
-
             totalBytes = 0
             httpErr = 0
             # Connect to the proper FDSN-WS
-            try:
-                u = ul.urlopen(req)
-                self.log.debug('%s/%s - Connected to %s' % (pos, len(self.urlList), url))
-
+            with DSRequest(url) as dsr:
                 # Read the data in blocks of predefined size
                 try:
-                    buffer = u.read(blockSize)
+                    buffer = dsr.read(blocks)
                 except:
                     self.log.error('Error reading data from %s!' % url)
 
@@ -178,30 +214,11 @@ class ResultFile(object):
                     # Return one block of data
                     yield buffer
                     try:
-                        buffer = u.read(blockSize)
+                        buffer = dsr.read(blocks)
                     except:
                         self.log.error('Error reading data from %s!' % url)
                     self.log.debug('%s/%s - %s bytes from %s' %
                                    (pos, len(self.urlList), totalBytes, url))
-
-                httpErr = u.getcode()
-
-                # Close the connection to avoid overloading the server
-                self.log.info('%s/%s - %s bytes from %s' %
-                              (pos, len(self.urlList), totalBytes, url))
-                u.close()
-
-            except ul.URLError as e:
-                if hasattr(e, 'reason'):
-                    self.log.error('%s - Reason: %s' % (url, e.reason))
-                elif hasattr(e, 'code'):
-                    self.log.error('The server couldn\'t fulfill the request')
-                    self.log.error('Error code: %s' % e.code)
-
-                if hasattr(e, 'code'):
-                    httpErr = e.code
-            except Exception as e:
-                self.log.error('%s' % e)
 
         raise StopIteration
 
