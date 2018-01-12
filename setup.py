@@ -49,7 +49,7 @@ setup(
         'Framework :: CherryPy',
 
         # Indicate who your project is intended for
-        'Intended Audience:: Science / Research,'
+        'Intended Audience:: Science / Research',
 
         # Pick your license as you wish (should match "license" above)
         'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
