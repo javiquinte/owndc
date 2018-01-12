@@ -23,7 +23,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='0.9.1a1.dev35',
+    version='0.9.1a1.dev36',
 
     description='owndc: An FDSN Virtual Datacentre for SeisComP3',
     long_description=long_description,
@@ -49,17 +49,19 @@ setup(
         'Framework :: CherryPy',
 
         # Indicate who your project is intended for
-        # 'Intended Audience :: Seismologists',
+        'Intended Audience:: Science / Research,'
 
         # Pick your license as you wish (should match "license" above)
         'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
-        'Operating System :: Unix',
+        'Natural Language :: English',
+        'Operating System :: POSIX',
+        'Operating System :: MacOS',
 
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.7',
-        'Topic :: Software Development :: Object Brokering'
+        'Topic :: Scientific/Engineering :: Interface Engine/Protocol Translator'
     ],
 
     # What does your project relate to?
