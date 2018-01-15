@@ -1,14 +1,15 @@
 Owndc
 ~~~~~
 
-|ImgVersionsLink|_ |ImgStatusLink|_ |ImgFormatLink|_
-
-.. |ImgVersionsLink| image:: /images/versions.png
-.. _ImgVersionsLink: https://img.shields.io/pypi/pyversions/owndc.svg
-.. |ImgFormatLink| image:: /images/format.png
-.. _ImgFormatLink: https://img.shields.io/pypi/format/owndc.svg
-.. |ImgStatusLink| image:: /images/status.png
-.. _ImgStatusLink: https://img.shields.io/pypi/status/owndc.svg
+.. image:: pyversions.svg
+   :target: https://img.shields.io/pypi/pyversions/owndc.svg
+   
+.. image:: format.svg
+   :target: https://img.shields.io/pypi/format/owndc.svg
+   
+.. image:: status.svg
+   :target: https://img.shields.io/pypi/status/owndc.svg
+   
 
 FDSN-WS Dataselect for the seismological community which allows the access to any data centre.
 
