@@ -1,8 +1,8 @@
 Owndc
 ~~~~~
 
-.. image:: https://img.shields.io/pypi/v/openapi-spec-validator.svg
-   :target: https://img.shields.io/pypi/v/openapi-spec-validator.svg
+.. image:: https://img.shields.io/pypi/v/owndc.svg
+   :target: https://img.shields.io/pypi/v/owndc.svg
    
 .. image:: https://img.shields.io/pypi/pyversions/owndc.svg
    :target: https://img.shields.io/pypi/pyversions/owndc.svg
