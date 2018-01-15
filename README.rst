@@ -1,13 +1,13 @@
 Owndc
 ~~~~~
 
-.. image:: pyversions.svg
+.. image:: https://img.shields.io/pypi/pyversions/owndc.svg
    :target: https://img.shields.io/pypi/pyversions/owndc.svg
    
-.. image:: format.svg
+.. image:: https://img.shields.io/pypi/format/owndc.svg
    :target: https://img.shields.io/pypi/format/owndc.svg
    
-.. image:: status.svg
+.. image:: https://img.shields.io/pypi/status/owndc.svg
    :target: https://img.shields.io/pypi/status/owndc.svg
    
 
