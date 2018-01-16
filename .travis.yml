@@ -1,5 +1,10 @@
 language: python
 python:
   - "2.7"
-install: pip install cherrypy; pip install -e .
-script: owndc & ; cd owndc/owndc/test; ./testRoute.py
+install:
+  - pip install cherrypy
+  - pip install -e .
+script:
+  # - owndc &
+  - cd owndc/owndc/test
+  - ./testRoute.py
