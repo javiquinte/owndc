@@ -152,50 +152,6 @@ class OwnDCTests(unittest.TestCase):
             msg = 'Components of the version number seem not to be integers.'
             self.assertEqual(1, 0, msg)
 
-    def testDS_GE(self):
-        "Dataselect for GE.APE.*.*"
-
-        qry = 'net=GE&sta=APE&starttime=2008-01-01T00:01:00&end=2008-01-01T00:01:15'
-        req = urllib2.Request('%s?%s' % (self.host, qry))
-        try:
-            u = urllib2.urlopen(req)
-            buffer = u.read()
-            lenData = len(buffer)
-        except:
-            raise Exception('Error retrieving data for GE.APE.*.*')
-
-        numRecords = (18, 25)
-
-        msg = 'Error in size of response! Expected a multiple of 512, but obtained: %d'
-        self.assertEqual(lenData/512.0, int(lenData/512.0), msg % lenData)
-
-        msg = 'Error in number of records! Expected records within the range: %s, but obtained %s'
-        self.assertIn(int(lenData / 512.0), range(*numRecords), msg % (numRecords, int(lenData/512)))
-
-    def testDS_RO_POST(self):
-        "Dataselect for RO.ARR,VOIR.--.BHZ"
-
-        postReq = """RO ARR -- BHZ 2015-03-07T14:39:36.0000Z 2015-03-07T15:09:36.0000Z
-RO VOIR -- BHZ 2015-07-07T14:48:47.0000Z 2015-07-07T15:18:47.0000Z"""
-
-        req = urllib2.Request(self.host, postReq)
-        req.add_header('Content-type', 'text/plain')
-        try:
-            u = urllib2.urlopen(req)
-            buffer = u.read()
-            lenData = len(buffer)
-        except Exception as e:
-            print(e)
-            raise Exception('Error retrieving data for RO.ARR,VOIR.--.BHZ')
-
-        numRecords = (140, 155)
-
-        msg = 'Error in size of response! Expected a multiple of 512, but obtained: %d'
-        self.assertEqual(lenData/512.0, int(lenData/512.0), msg % lenData)
-
-        msg = 'Error in number of records! Expected records within the range: %s, but obtained %s'
-        self.assertIn(int(lenData / 512.0), range(*numRecords), msg % (numRecords, int(lenData/512)))
-
 # ----------------------------------------------------------------------
 def usage():
     print 'testService [-h] [-p]\ntestService [-u http://server/path]'
