@@ -27,15 +27,15 @@ class RouteCacheTests(unittest.TestCase):
         cls.numTestsRun += 1
         if hasattr(cls, 'rc'):
             return
-        cls.rc = RoutingCache('./test-owndc-routes.xml',
-                              './test-masterTable.xml',
-                              './test-owndc.cfg')
+        cls.rc = RoutingCache('tests/test-owndc-routes.xml',
+                              'tests/test-masterTable.xml',
+                              'tests/test-owndc.cfg')
 
     @classmethod
     def tearDown(cls):
         "Removing cache and log files"
         if cls.numTestsRun == 7:
-            os.remove('./test-owndc-routes.xml.bin')
+            os.remove('tests/test-owndc-routes.xml.bin')
 
 
     def testDS_GE(self):
