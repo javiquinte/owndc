@@ -7,7 +7,7 @@ import os
 # sys.path.append(os.path.join(here, '..'))
 
 import unittest
-from owndc.routing.routeutils.unittestTools import WITestRunner
+from unittestTools import WITestRunner
 from owndc.owndc import FakeStorage
 from owndc.owndc import DataSelectQuery
 from owndc.routing.routeutils.wsgicomm import WIClientError

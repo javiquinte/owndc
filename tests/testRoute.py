@@ -7,7 +7,7 @@ import unittest
 # here = os.path.dirname(__file__)
 # sys.path.append(os.path.join(here, '..'))
 
-from owndc.routing.routeutils.unittestTools import WITestRunner
+from unittestTools import WITestRunner
 from owndc.routing.routeutils.utils import RoutingCache
 from owndc.routing.routeutils.utils import RequestMerge
 from owndc.routing.routeutils.utils import Stream
