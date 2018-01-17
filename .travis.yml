@@ -3,6 +3,7 @@ python:
   - "2.7"
 install:
   - pip install cherrypy
+  - touch owndc/routing/__init__.py
   - pip install -e .
 script:
   # - owndc &
