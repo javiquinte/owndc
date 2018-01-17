@@ -1,20 +1,20 @@
 Owndc
 ~~~~~
 
-.. image:: https://img.shields.io/badge/License-GPL%20v3-blue.svg
-   :target: https://img.shields.io/badge/License-GPL%20v3-blue.svg
+.. image:: https://img.shields.io/pypi/l/owndc.svg
+   :target:
 
 .. image:: https://img.shields.io/pypi/v/owndc.svg
-   :target: https://img.shields.io/pypi/v/owndc.svg
+   :target:
    
 .. image:: https://img.shields.io/pypi/pyversions/owndc.svg
-   :target: https://img.shields.io/pypi/pyversions/owndc.svg
+   :target:
    
 .. image:: https://img.shields.io/pypi/format/owndc.svg
-   :target: https://img.shields.io/pypi/format/owndc.svg
+   :target:
    
 .. image:: https://img.shields.io/pypi/status/owndc.svg
-   :target: https://img.shields.io/pypi/status/owndc.svg
+   :target:
    
 FDSN-WS Dataselect for the seismological community which allows the access to any data centre.
 
