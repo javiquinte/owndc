@@ -6,5 +6,6 @@ install:
   - pip install -e .
 script:
   # - owndc &
-  - cd owndc/owndc/test
-  - ./testRoute.py
+  - python -m unittest tests.testRoute
+  - python -m unittest tests.testDataselect
+  # - python2 -m unittest tests.testService
